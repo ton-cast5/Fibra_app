@@ -98,8 +98,14 @@ def _resolve_database_url():
     return f'postgresql://{user}:{quote_plus(password)}@{host}:{port}/{db_name}'
 
 
-DATABASE_URL = _resolve_database_url()
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+_db_config_error = None
+try:
+    DATABASE_URL = _resolve_database_url()
+except ValueError as exc:
+    DATABASE_URL = None
+    _db_config_error = str(exc)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or 'sqlite:///:memory:'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fibra-manager-dev-key')
 app.config['DEBUG'] = os.getenv('FLASK_ENV', 'development') != 'production'
@@ -2701,6 +2707,24 @@ def allowed_file(filename):
 # ----------------------------------------------------------------------
 # MIDDLEWARE PARA DETECCIÓN MÓVIL
 # ----------------------------------------------------------------------
+
+@app.route('/health')
+def health_check():
+    if _db_config_error:
+        return jsonify({'status': 'error', 'detail': _db_config_error}), 503
+    return jsonify({'status': 'ok'})
+
+
+@app.before_request
+def require_database_config():
+    if _db_config_error and request.endpoint not in ('health_check', 'static'):
+        return (
+            '<h1>Fibra Manager</h1>'
+            f'<p><strong>Base de datos no configurada:</strong> {_db_config_error}</p>'
+            '<p>En Vercel → Settings → Environment Variables, agrega '
+            '<code>DATABASE_URL</code> o <code>DB_PASSWORD</code> y las variables de Supabase.</p>'
+        ), 503
+
 
 @app.before_request
 def detect_mobile():

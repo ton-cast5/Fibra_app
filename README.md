@@ -22,7 +22,7 @@ Repositorio: [github.com/ton-cast5/Fibra_app](https://github.com/ton-cast5/Fibra
 
 ### 1. Subir código a GitHub
 
-El proyecto ya incluye `vercel.json` y `api/index.py` para Flask serverless.
+El proyecto usa `vercel.json` + `app.py` con `@vercel/python` (instala `requirements.txt`).
 
 ### 2. Conectar Vercel
 
