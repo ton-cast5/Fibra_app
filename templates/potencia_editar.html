@@ -1,0 +1,994 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Medición - Fibra Manager{% endblock %}
+
+{% block head %}
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .input-glow:focus {
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+    }
+    .excellent-badge {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+    .normal-badge {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+    }
+    .warning-badge {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .critical-badge {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+    .result-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 2px solid #e2e8f0;
+    }
+    .resultado-mini-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+    }
+    html.dark .result-card {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+        border-color: rgba(71, 85, 105, 0.55);
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.22);
+    }
+    html.dark .resultado-mini-card {
+        background: rgba(30, 41, 59, 0.88);
+        border-color: rgba(71, 85, 105, 0.45);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    html.dark .resultado-titulo {
+        color: #e2e8f0 !important;
+    }
+    html.dark .resultado-titulo svg {
+        color: #60a5fa !important;
+    }
+    html.dark .perdida-valor {
+        color: #60a5fa !important;
+    }
+    html.dark .calidad-track {
+        background: rgba(71, 85, 105, 0.45) !important;
+    }
+    html.dark .excellent-badge {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.22) 100%);
+        color: #6ee7b7;
+        border-color: rgba(16, 185, 129, 0.45);
+    }
+    html.dark .normal-badge {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(37, 99, 235, 0.22) 100%);
+        color: #93c5fd;
+        border-color: rgba(59, 130, 246, 0.45);
+    }
+    html.dark .warning-badge {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.22) 100%);
+        color: #fcd34d;
+        border-color: rgba(245, 158, 11, 0.45);
+    }
+    html.dark .critical-badge {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.22) 100%);
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.45);
+    }
+    .cliente-sugerencias {
+        position: absolute;
+        z-index: 40;
+        left: 0;
+        right: 0;
+        top: calc(100% + 4px);
+        max-height: 220px;
+        overflow-y: auto;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    }
+    .cliente-sugerencia-item {
+        cursor: pointer;
+        padding: 0.65rem 1rem;
+        font-size: 0.875rem;
+        transition: background 0.15s ease;
+    }
+    .cliente-sugerencia-item:hover,
+    .cliente-sugerencia-item.activa {
+        background: rgba(59, 130, 246, 0.1);
+    }
+    .campo-solo-lectura {
+        background: #f8fafc;
+        cursor: not-allowed;
+    }
+    html.dark .campo-solo-lectura {
+        background: rgba(30, 41, 59, 0.6);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Premium -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-3 rounded-xl mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        Editar Medición de Potencia
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">
+                        Modifique los datos de la medición seleccionada
+                    </p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Botón de Volver Premium -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <a href="/potencias" 
+               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Volver a Mediciones
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Columna del Formulario -->
+        <div class="lg:col-span-2">
+            <div class="glass-effect rounded-2xl shadow-xl overflow-hidden fade-in">
+                <!-- Header del Formulario -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+                    <h2 class="text-white text-xl font-bold flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Datos de la Medición
+                    </h2>
+                    <p class="text-blue-100 mt-2">Modifique los datos de la medición</p>
+                </div>
+
+                <!-- Cuerpo del Formulario -->
+                <div class="p-8">
+                    <form id="form-potencia">
+                        <input type="hidden" id="potencia-id" name="id">
+                        
+                        <!-- Cliente (búsqueda) -->
+                        <div class="space-y-2 mb-6">
+                            <label for="cliente_busqueda" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <span class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-1 rounded-lg mr-2">👤</span>
+                                Cliente *
+                            </label>
+                            <div class="relative">
+                                <input type="text" id="cliente_busqueda" autocomplete="off"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300 bg-white"
+                                       placeholder="Escribe para buscar o seleccionar cliente...">
+                                <input type="hidden" id="cliente_id" name="cliente_id" required>
+                                <ul id="cliente-sugerencias" class="cliente-sugerencias fm-panel hidden"></ul>
+                            </div>
+                            <p class="text-xs text-gray-500">Coincidencia en tiempo real, sin distinguir mayúsculas</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- NAP automática -->
+                            <div class="space-y-2">
+                                <label for="nap_nombre" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-1 rounded-lg mr-2">📡</span>
+                                    NAP Asociada
+                                </label>
+                                <input type="text" id="nap_nombre" readonly
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl campo-solo-lectura text-gray-700"
+                                       placeholder="Se asigna al seleccionar el cliente">
+                                <input type="hidden" id="nap_id" name="nap_id">
+                            </div>
+
+                            <!-- Técnico -->
+                            <div class="space-y-2">
+                                <label for="tecnico" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-1 rounded-lg mr-2">🔧</span>
+                                    Técnico
+                                </label>
+                                <select id="tecnico" name="tecnico"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300 bg-white">
+                                    <option value="">-- Selecciona un técnico --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Potencia de la NAP -->
+                            <div class="space-y-2">
+                                <label for="potencia-entrada" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-1 rounded-lg mr-2">📡</span>
+                                    Potencia de la NAP (dBm) *
+                                </label>
+                                <input type="number" step="0.1" name="potencia_entrada" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300"
+                                       placeholder="Ej: -18.5" id="potencia-entrada">
+                                <p id="hint-potencia-nap" class="text-xs text-gray-500 mt-1">Puedes editarla; al guardar se actualiza en todas las mediciones de esa NAP</p>
+                            </div>
+
+                            <!-- Potencia del Modem -->
+                            <div class="space-y-2">
+                                <label for="potencia-salida" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-1 rounded-lg mr-2">📶</span>
+                                    Potencia del Modem (dBm) *
+                                </label>
+                                <input type="number" step="0.1" name="potencia_salida" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300"
+                                       placeholder="Ej: -16.0" id="potencia-salida">
+                                <p class="text-xs text-gray-500 mt-1">Lectura en el equipo del cliente</p>
+                            </div>
+                        </div>
+
+                        <!-- Fecha -->
+                        <div class="mb-6">
+                            <label for="fecha-medicion" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                                <span class="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-1 rounded-lg mr-2">📅</span>
+                                Fecha de Medición
+                            </label>
+                            <input type="datetime-local" name="fecha_medicion"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300"
+                                   id="fecha-medicion">
+                        </div>
+
+                        <!-- Resultados Calculados -->
+                        <div class="mb-6 p-6 result-card rounded-2xl shadow-inner">
+                            <h3 class="resultado-titulo font-bold text-gray-800 mb-4 flex items-center text-lg">
+                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                                Resultados Calculados
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="resultado-mini-card p-4 rounded-xl shadow-sm">
+                                    <label class="block text-sm text-gray-600 mb-1">Pérdida Calculada</label>
+                                    <div class="perdida-valor text-2xl font-bold text-blue-600" id="perdida-calculada">0.0 dB</div>
+                                    <p class="text-xs text-gray-500 mt-1">Diferencia entre NAP y modem</p>
+                                </div>
+                                <div class="resultado-mini-card p-4 rounded-xl shadow-sm">
+                                    <label class="block text-sm text-gray-600 mb-1">Estado Estimado</label>
+                                    <div class="text-lg font-bold mt-1">
+                                        <span id="estado-estimado" class="px-3 py-1 rounded-lg">-</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">Calidad del enlace</p>
+                                </div>
+                                <div class="resultado-mini-card p-4 rounded-xl shadow-sm">
+                                    <label class="block text-sm text-gray-600 mb-1">Calidad</label>
+                                    <div class="h-2 rounded-full bg-gray-200 calidad-track mt-3">
+                                        <div id="calidad-bar" class="h-full rounded-full w-0"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Observaciones -->
+                        <div class="mb-8">
+                            <label for="observaciones" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                                <span class="bg-gradient-to-r from-gray-500 to-gray-600 text-white p-1 rounded-lg mr-2">
+                                    📝
+                                </span>
+                                Observaciones
+                            </label>
+                            <textarea name="observaciones" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300" 
+                                      placeholder="Notas adicionales..." id="observaciones"></textarea>
+                        </div>
+                        
+                        <!-- BOTONES -->
+                        <div class="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
+                            <a href="/potencias" 
+                               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-2 sm:order-1">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                                Cancelar
+                            </a>
+                            
+                            <button type="submit" 
+                                    class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-1 sm:order-2">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Actualizar Medición
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Información -->
+        <div class="space-y-6">
+            <!-- Información de Potencia -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Rangos de Referencia
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-emerald-200">
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 bg-emerald-500 rounded-full mr-3"></span>
+                            <span class="text-sm font-medium text-gray-700">Excelente (≤ 1.0 dB)</span>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-600">Óptimo</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200">
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
+                            <span class="text-sm font-medium text-gray-700">Normal (1.1 - 2.5 dB)</span>
+                        </div>
+                        <span class="text-xs font-bold text-blue-600">Aceptable</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-amber-200">
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 bg-amber-500 rounded-full mr-3"></span>
+                            <span class="text-sm font-medium text-gray-700">Bajo (2.6 - 3.5 dB)</span>
+                        </div>
+                        <span class="text-xs font-bold text-amber-600">Monitorizar</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200">
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 bg-red-500 rounded-full mr-3"></span>
+                            <span class="text-sm font-medium text-gray-700">Crítico (> 3.5 dB)</span>
+                        </div>
+                        <span class="text-xs font-bold text-red-600">Alerta</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consejos Rápidos -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+                <h3 class="text-lg font-bold text-blue-800 mb-3">💡 Consejos de Edición</h3>
+                <ul class="text-sm text-blue-700 space-y-2">
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Verifica los valores de potencia</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Actualiza la fecha si es necesario</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Registra cambios importantes</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Mantén información precisa</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Información Técnica -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    Valores Típicos
+                </h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
+                        <span class="font-medium text-gray-700">Fibra Óptica Nueva</span>
+                        <span class="text-xs text-emerald-600">0.3-0.5 dB/km</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
+                        <span class="font-medium text-gray-700">Conector LC/UPC</span>
+                        <span class="text-xs text-blue-600">0.2-0.3 dB</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
+                        <span class="font-medium text-gray-700">Empalme Fusión</span>
+                        <span class="text-xs text-blue-600">0.05-0.1 dB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nota Importante -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+                <h3 class="text-lg font-bold text-amber-800 mb-3">⚠️ Importante</h3>
+                <p class="text-sm text-amber-700">
+                    Los cambios realizados se registrarán en el historial de la medición.
+                    Verifica dos veces los valores antes de guardar.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para edición -->
+<script>
+let clientesLista = [];
+let indiceSugerenciaActiva = -1;
+let potenciaNapReferencia = null;
+
+function normalizar(texto) {
+    return (texto || '').toString().toLowerCase().trim();
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    const pathParts = window.location.pathname.split('/');
+    const potenciaId = pathParts[pathParts.length - 1];
+
+    if (!potenciaId || isNaN(potenciaId)) {
+        mostrarNotificacion('ID de medición no válido', 'error');
+        setTimeout(function() { window.location.href = '/potencias'; }, 1500);
+        return;
+    }
+
+    try {
+        await cargarClientes();
+        const potencia = await cargarDatosPotencia(potenciaId);
+        prellenarClienteYNap(potencia);
+        inicializarBusquedaCliente();
+
+        document.getElementById('potencia-entrada').addEventListener('input', function() {
+            actualizarCalculos();
+            actualizarHintPotenciaNap();
+        });
+        document.getElementById('potencia-salida').addEventListener('input', actualizarCalculos);
+
+        document.getElementById('form-potencia').addEventListener('submit', function(e) {
+            e.preventDefault();
+            actualizarPotencia(potenciaId);
+        });
+
+        agregarEfectosVisuales();
+    } catch (error) {
+        console.error('Error inicial:', error);
+        mostrarNotificacion('Error: ' + error.message, 'error');
+    }
+});
+
+async function cargarClientes() {
+    const response = await fetch('/api/clientes');
+    const data = await response.json();
+    clientesLista = Array.isArray(data) ? data : (data.clientes || []);
+}
+
+async function cargarTecnicos(tecnicoActual) {
+    const select = document.getElementById('tecnico');
+    if (!select) return;
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    try {
+        const response = await fetch('/api/trabajadores');
+        const data = await response.json();
+        (data.trabajadores || []).forEach(function(t) {
+            const option = document.createElement('option');
+            option.value = t.nombre;
+            option.textContent = t.nombre;
+            select.appendChild(option);
+        });
+        if (tecnicoActual) {
+            const existe = Array.from(select.options).some(function(o) { return o.value === tecnicoActual; });
+            if (!existe && tecnicoActual.trim()) {
+                const extra = document.createElement('option');
+                extra.value = tecnicoActual;
+                extra.textContent = tecnicoActual;
+                select.appendChild(extra);
+            }
+            select.value = tecnicoActual;
+        }
+    } catch (error) {
+        console.error('Error cargando técnicos:', error);
+    }
+}
+
+function prellenarClienteYNap(potencia) {
+    const hiddenId = document.getElementById('cliente_id');
+    const input = document.getElementById('cliente_busqueda');
+    const napId = document.getElementById('nap_id');
+    const napNombre = document.getElementById('nap_nombre');
+
+    if (hiddenId && potencia.cliente_id) {
+        hiddenId.value = potencia.cliente_id;
+    }
+    if (input) {
+        input.value = potencia.cliente_nombre || '';
+    }
+
+    const cliente = clientesLista.find(function(c) {
+        return String(c.id) === String(potencia.cliente_id);
+    });
+
+    if (napId) {
+        napId.value = potencia.nap_id || cliente?.nat_id || '';
+    }
+    if (napNombre) {
+        napNombre.value = potencia.nap_nombre || cliente?.nap_nombre || (potencia.nap_id ? 'NAP #' + potencia.nap_id : 'Sin NAP asignada');
+    }
+
+    potenciaNapReferencia = potencia.potencia_entrada != null
+        ? parseFloat(potencia.potencia_entrada)
+        : null;
+}
+
+function actualizarHintPotenciaNap() {
+    const input = document.getElementById('potencia-entrada');
+    const hint = document.getElementById('hint-potencia-nap');
+    if (!input || !hint) return;
+    const valorActual = input.value === '' ? null : parseFloat(input.value);
+    if (potenciaNapReferencia != null && !isNaN(valorActual) && valorActual !== potenciaNapReferencia) {
+        hint.textContent = 'Valor modificado: al guardar se actualizará en todas las mediciones de esta NAP';
+        hint.classList.remove('text-emerald-600');
+        hint.classList.add('text-amber-600');
+    } else if (potenciaNapReferencia != null) {
+        hint.textContent = 'Puedes editarla; al guardar se actualiza en todas las mediciones de esa NAP';
+        hint.classList.add('text-emerald-600');
+        hint.classList.remove('text-amber-600');
+    }
+}
+
+function asignarNapCliente(cliente) {
+    const napId = document.getElementById('nap_id');
+    const napNombre = document.getElementById('nap_nombre');
+    if (cliente.nat_id) {
+        napId.value = cliente.nat_id;
+        napNombre.value = cliente.nap_nombre || 'NAP #' + cliente.nat_id;
+        cargarPotenciaNap(cliente.nat_id);
+    } else {
+        napId.value = '';
+        napNombre.value = 'Sin NAP asignada';
+        potenciaNapReferencia = null;
+    }
+}
+
+async function cargarPotenciaNap(napId) {
+    const input = document.getElementById('potencia-entrada');
+    const hint = document.getElementById('hint-potencia-nap');
+    if (!input || !napId) return;
+    try {
+        const response = await fetch('/api/potencias/nap/' + napId + '/potencia-nap');
+        const data = await response.json();
+        if (data.success && data.potencia_entrada != null) {
+            input.value = data.potencia_entrada;
+            potenciaNapReferencia = parseFloat(data.potencia_entrada);
+            if (hint) {
+                hint.textContent = 'Valor de la NAP cargado. Puedes modificarlo si necesitas corregirlo';
+                hint.classList.add('text-emerald-600');
+                hint.classList.remove('text-amber-600');
+            }
+            actualizarCalculos();
+        }
+    } catch (error) {
+        console.error('Error cargando potencia NAP:', error);
+    }
+}
+
+function inicializarBusquedaCliente() {
+    const input = document.getElementById('cliente_busqueda');
+    const lista = document.getElementById('cliente-sugerencias');
+    const hiddenId = document.getElementById('cliente_id');
+    if (!input || !lista || !hiddenId) return;
+
+    function ocultarSugerencias() {
+        lista.classList.add('hidden');
+        lista.innerHTML = '';
+        indiceSugerenciaActiva = -1;
+    }
+
+    function renderSugerencias(coincidencias) {
+        lista.innerHTML = '';
+        if (!coincidencias.length) {
+            ocultarSugerencias();
+            return;
+        }
+        coincidencias.slice(0, 8).forEach(function(cliente, idx) {
+            const li = document.createElement('li');
+            li.className = 'cliente-sugerencia-item text-gray-800';
+            li.dataset.id = cliente.id;
+            li.dataset.nombre = cliente.nombre;
+            li.dataset.natId = cliente.nat_id || '';
+            li.dataset.napNombre = cliente.nap_nombre || '';
+            li.textContent = cliente.nombre + (cliente.nap_nombre ? ' · ' + cliente.nap_nombre : '');
+            li.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                seleccionarCliente(cliente);
+            });
+            li.addEventListener('mouseenter', function() {
+                indiceSugerenciaActiva = idx;
+                Array.from(lista.children).forEach(function(el, i) {
+                    el.classList.toggle('activa', i === idx);
+                });
+            });
+            lista.appendChild(li);
+        });
+        lista.classList.remove('hidden');
+    }
+
+    function filtrarClientes(termino) {
+        if (!termino) return clientesLista.slice(0, 8);
+        return clientesLista.filter(function(c) {
+            return normalizar(c.nombre).includes(termino)
+                || normalizar(c.nap_nombre || '').includes(termino)
+                || String(c.id).includes(termino);
+        });
+    }
+
+    function seleccionarCliente(cliente) {
+        hiddenId.value = cliente.id;
+        input.value = cliente.nombre;
+        ocultarSugerencias();
+        asignarNapCliente(cliente);
+    }
+
+    input.addEventListener('input', function() {
+        hiddenId.value = '';
+        renderSugerencias(filtrarClientes(normalizar(input.value)));
+    });
+
+    input.addEventListener('focus', function() {
+        renderSugerencias(filtrarClientes(normalizar(input.value)));
+    });
+
+    input.addEventListener('blur', function() {
+        setTimeout(function() {
+            if (hiddenId.value) return;
+            const exacto = clientesLista.find(function(c) {
+                return normalizar(c.nombre) === normalizar(input.value);
+            });
+            if (exacto) seleccionarCliente(exacto);
+        }, 180);
+    });
+
+    input.addEventListener('keydown', function(e) {
+        const items = Array.from(lista.children);
+        if (!items.length || lista.classList.contains('hidden')) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            indiceSugerenciaActiva = Math.min(indiceSugerenciaActiva + 1, items.length - 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            indiceSugerenciaActiva = Math.max(indiceSugerenciaActiva - 1, 0);
+        } else if (e.key === 'Enter' && indiceSugerenciaActiva >= 0) {
+            e.preventDefault();
+            const el = items[indiceSugerenciaActiva];
+            seleccionarCliente({
+                id: el.dataset.id,
+                nombre: el.dataset.nombre,
+                nat_id: el.dataset.natId ? Number(el.dataset.natId) : null,
+                nap_nombre: el.dataset.napNombre || null,
+            });
+            return;
+        } else if (e.key === 'Escape') {
+            ocultarSugerencias();
+            return;
+        } else {
+            return;
+        }
+        items.forEach(function(el, i) {
+            el.classList.toggle('activa', i === indiceSugerenciaActiva);
+        });
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !lista.contains(e.target)) {
+            ocultarSugerencias();
+        }
+    });
+}
+
+async function cargarDatosPotencia(id) {
+    try {
+        const response = await fetch(`/api/potencias/${id}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: No se pudo cargar la medición`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Error en la respuesta del servidor');
+        }
+        
+        const potencia = data.potencia || data;
+        
+        console.log("📥 Datos de medición recibidos:", potencia);
+        
+        // Llenar formulario con los datos
+        document.getElementById('potencia-id').value = potencia.id;
+        
+        document.getElementById('potencia-entrada').value = parseFloat(potencia.potencia_entrada).toFixed(1);
+        document.getElementById('potencia-salida').value = parseFloat(potencia.potencia_salida).toFixed(1);
+        potenciaNapReferencia = parseFloat(potencia.potencia_entrada);
+
+        await cargarTecnicos(potencia.tecnico || '');
+
+        // Fecha
+        if (potencia.fecha_medicion || potencia.fecha) {
+            let fecha = potencia.fecha_medicion || potencia.fecha;
+            // Ajustar formato para datetime-local
+            if (fecha.includes('T')) {
+                fecha = fecha.slice(0, 16); // YYYY-MM-DDTHH:MM
+            } else {
+                // Si es solo fecha, agregar tiempo
+                fecha = fecha + 'T00:00';
+            }
+            document.getElementById('fecha-medicion').value = fecha;
+        }
+        
+        // Observaciones
+        document.getElementById('observaciones').value = potencia.observaciones || '';
+        
+        actualizarCalculos();
+        actualizarHintPotenciaNap();
+        return potencia;
+        
+    } catch (error) {
+        console.error('Error al cargar medición:', error);
+        mostrarNotificacion(`❌ Error al cargar datos: ${error.message}`, 'error');
+        setTimeout(() => window.location.href = '/potencias', 2000);
+    }
+
+}
+
+// Actualizar cálculos (coincide con tu Flask)
+function actualizarCalculos() {
+    const entrada = parseFloat(document.getElementById('potencia-entrada').value);
+    const salida = parseFloat(document.getElementById('potencia-salida').value);
+    
+    if (!isNaN(entrada) && !isNaN(salida)) {
+        const perdida = Math.abs(salida - entrada);
+        document.getElementById('perdida-calculada').textContent = perdida.toFixed(1) + ' dB';
+        
+        // Coincidir con tu API Flask
+        let estado = '';
+        let colorClase = '';
+        let porcentaje = 50;
+        
+        if (perdida <= 1.0) {
+            estado = 'Excelente';
+            colorClase = 'excellent-badge';
+            porcentaje = 100;
+        } else if (perdida <= 2.5) {
+            estado = 'Normal';
+            colorClase = 'normal-badge';
+            porcentaje = 75;
+        } else if (perdida <= 3.5) {
+            estado = 'Bajo';
+            colorClase = 'warning-badge';
+            porcentaje = 50;
+        } else {
+            estado = 'Crítico';
+            colorClase = 'critical-badge';
+            porcentaje = 25;
+        }
+        
+        const estadoElement = document.getElementById('estado-estimado');
+        estadoElement.textContent = estado;
+        estadoElement.className = `px-3 py-1 rounded-lg font-bold ${colorClase}`;
+        
+        const barra = document.getElementById('calidad-bar');
+        barra.style.width = porcentaje + '%';
+        barra.className = 'h-full rounded-full';
+        
+        // Aplicar color basado en el estado
+        if (perdida <= 1.0) {
+            barra.style.backgroundColor = '#10b981'; // verde
+        } else if (perdida <= 2.5) {
+            barra.style.backgroundColor = '#3b82f6'; // azul
+        } else if (perdida <= 3.5) {
+            barra.style.backgroundColor = '#f59e0b'; // amarillo
+        } else {
+            barra.style.backgroundColor = '#ef4444'; // rojo
+        }
+    }
+}
+
+// Actualizar potencia
+async function actualizarPotencia(id) {
+    try {
+        // Obtener datos del formulario
+        const clienteId = document.getElementById('cliente_id').value;
+        if (!clienteId) {
+            mostrarNotificacion('Selecciona un cliente de la lista de sugerencias', 'error');
+            return;
+        }
+
+        const napId = document.getElementById('nap_id').value || null;
+        const formData = {
+            cliente_id: clienteId,
+            nap_id: napId,
+            tecnico: document.getElementById('tecnico').value || '',
+            potencia_entrada: document.getElementById('potencia-entrada').value,
+            potencia_salida: document.getElementById('potencia-salida').value,
+            fecha_medicion: document.getElementById('fecha-medicion').value,
+            observaciones: document.getElementById('observaciones').value,
+            propagar_potencia_nap: !!napId,
+        };
+
+        console.log("📤 Enviando datos de actualización:", formData);
+
+        // Validar campos requeridos
+        if (!formData.cliente_id || !formData.potencia_entrada || !formData.potencia_salida) {
+            mostrarNotificacion('Por favor, completa los campos requeridos (*)', 'error');
+            return;
+        }
+
+        // Validar valores numéricos
+        if (isNaN(parseFloat(formData.potencia_entrada)) || isNaN(parseFloat(formData.potencia_salida))) {
+            mostrarNotificacion('Los valores de potencia deben ser números válidos', 'error');
+            return;
+        }
+
+        // Mostrar estado de carga
+        const botonSubmit = document.querySelector('button[type="submit"]');
+        const textoOriginal = botonSubmit.innerHTML;
+        botonSubmit.innerHTML = `
+            <svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Actualizando...
+        `;
+        botonSubmit.disabled = true;
+
+        // Enviar a la API
+        const response = await fetch(`/api/potencias/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        console.log("📥 Respuesta recibida, status:", response.status);
+
+        const data = await response.json();
+        console.log("📦 Datos de respuesta:", data);
+
+        if (response.ok && data.success) {
+            mostrarNotificacionPremium(data.message || 'Medición actualizada correctamente', 'success');
+            
+            // Redirigir después de 1.5 segundos
+            setTimeout(() => {
+                window.location.href = '/potencias';
+            }, 1500);
+        } else {
+            botonSubmit.innerHTML = textoOriginal;
+            botonSubmit.disabled = false;
+            throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
+        }
+
+    } catch (error) {
+        console.error("❌ Error actualizando potencia:", error);
+        mostrarNotificacionPremium(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+// Mostrar notificación (versión premium mejorada)
+function mostrarNotificacionPremium(mensaje, tipo) {
+    // Eliminar notificaciones existentes
+    const notificacionesExistentes = document.querySelectorAll('.notificacion-premium');
+    notificacionesExistentes.forEach(n => n.remove());
+
+    // Crear notificación
+    const notificacion = document.createElement('div');
+    notificacion.className = `notificacion-premium fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-xl text-white font-semibold transform transition-all duration-300 ${
+        tipo === 'success' ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
+        tipo === 'error' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
+        'bg-gradient-to-r from-amber-500 to-orange-600'
+    }`;
+    
+    notificacion.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tipo === 'success' ? 'M5 13l4 4L19 7' : 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}"></path>
+            </svg>
+            ${mensaje}
+        </div>
+    `;
+    
+    document.body.appendChild(notificacion);
+    
+    // Animación de entrada
+    setTimeout(() => {
+        notificacion.classList.add('translate-y-0', 'opacity-100');
+        notificacion.classList.remove('-translate-y-4', 'opacity-0');
+    }, 10);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        notificacion.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => {
+            document.body.removeChild(notificacion);
+        }, 300);
+    }, 3000);
+}
+
+// Mantener la función original para compatibilidad
+function mostrarNotificacion(mensaje, tipo) {
+    mostrarNotificacionPremium(mensaje, tipo);
+}
+
+// Agregar efectos visuales premium
+function agregarEfectosVisuales() {
+    // Efectos visuales en inputs
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('ring-2', 'ring-blue-100', 'rounded-xl');
+            this.classList.add('ring-2', 'ring-blue-200');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('ring-2', 'ring-blue-100', 'rounded-xl');
+            this.classList.remove('ring-2', 'ring-blue-200');
+        });
+    });
+    
+    // Animación de aparición escalonada
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Auto-focus en el primer campo
+    setTimeout(() => {
+        const primerInput = document.querySelector('input, select');
+        if (primerInput) primerInput.focus();
+    }, 300);
+}
+</script>
+
+<style>
+.notificacion-premium {
+    transform: translateY(-20px);
+    opacity: 0;
+    animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Efectos adicionales para select */
+select option:checked {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Agregar Nuevo Cliente - Fibra Manager{% endblock %}
+
+{% block head %}
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .input-glow:focus {
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+    }
+    .capacity-warning {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 1px solid #fecaca;
+        border-left: 4px solid #ef4444;
+    }
+    .capacity-normal {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #22c55e;
+    }
+    .nap-option-full {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        color: #dc2626;
+        font-weight: bold;
+    }
+    .nap-option-available {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        color: #16a34a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Premium -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-3 rounded-xl mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                        Agregar Nuevo Cliente
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">
+                        Registra un nuevo cliente en la red de fibra óptica
+                    </p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Botón de Volver Premium -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <a href="{{ url_for('ver_nat', nat_id=nat_destino.id) if nat_destino else url_for('index') }}" 
+               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                {% if nat_destino %}Volver a {{ nat_destino.nombre }}{% else %}Volver al Listado{% endif %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash Premium -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-gradient-to-r from-{{ 'red' if category == 'danger' else 'green' }}-500 to-{{ 'red' if category == 'danger' else 'green' }}-600 text-white rounded-xl p-4 mb-6 shadow-lg fade-in">
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="font-semibold">{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Columna del Formulario -->
+        <div class="lg:col-span-2">
+            <div class="glass-effect rounded-2xl shadow-xl overflow-hidden fade-in">
+                <!-- Header del Formulario -->
+                <div class="bg-gradient-to-r from-emerald-600 to-green-600 p-6">
+                    <h2 class="text-white text-xl font-bold flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Información del Cliente
+                    </h2>
+                    <p class="text-emerald-100 mt-2">Completa los datos del nuevo cliente</p>
+                </div>
+
+                <!-- Cuerpo del Formulario -->
+                <div class="p-8">
+                    <form method="POST" action="{{ url_for('agregar_cliente') }}" class="space-y-6">
+                        
+                        <!-- Campo NAP de Destino -->
+                        <div class="space-y-2">
+                            <label for="nat_id" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <span class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-1 rounded-lg mr-2">
+                                    📡
+                                </span>
+                                NAP/Caja de Destino *
+                            </label>
+                            <select id="nat_id" name="nat_id" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300 bg-white">
+                                <option value="" class="text-gray-400">-- Selecciona una NAP --</option>
+                                {% for nat in nats %}
+                                    <option value="{{ nat.id }}" 
+                                        {% if nat.puertos_usados >= nat.puertos_total %}disabled class="nap-option-full"{% else %}class="nap-option-available"{% endif %}
+                                        {% if nat_destino and nat.id == nat_destino.id %}selected{% endif %}>
+                                        
+                                        {{ nat.nombre }} 
+                                        {% if nat.puertos_usados >= nat.puertos_total %} 
+                                            🔴 (LLENA - {{ nat.puertos_usados }}/{{ nat.puertos_total }})
+                                        {% else %} 
+                                            🟢 ({{ nat.puertos_usados }}/{{ nat.puertos_total }} Usados)
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <!-- Indicador de Capacidad -->
+                            {% if nat_destino %}
+                                <div class="mt-3 p-4 rounded-xl {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}capacity-warning{% else %}capacity-normal{% endif %}">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <span class="text-2xl mr-3">
+                                                {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}🔴{% else %}🟢{% endif %}
+                                            </span>
+                                            <div>
+                                                <p class="font-bold {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}text-red-800{% else %}text-green-800{% endif %}">
+                                                    {{ nat_destino.nombre }}
+                                                </p>
+                                                <p class="text-sm {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}text-red-700{% else %}text-green-700{% endif %}">
+                                                    {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}
+                                                    ¡ADVERTENCIA! NAP llena ({{ nat_destino.puertos_usados }}/{{ nat_destino.puertos_total }})
+                                                    {% else %}
+                                                    Puertos libres: {{ nat_destino.puertos_total - nat_destino.puertos_usados }} de {{ nat_destino.puertos_total }}
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}text-red-600{% else %}text-green-600{% endif %}">
+                                                {{ "%.1f"|format((nat_destino.puertos_usados / nat_destino.puertos_total * 100)) }}%
+                                            </div>
+                                            <div class="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                                                <div class="h-2 rounded-full {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}bg-red-500{% else %}bg-green-500{% endif %}" 
+                                                     style="width: {{ (nat_destino.puertos_usados / nat_destino.puertos_total * 100) }}%">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campos de Información del Cliente -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Nombre -->
+                            <div class="space-y-2">
+                                <label for="nombre" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-1 rounded-lg mr-2">
+                                        👤
+                                    </span>
+                                    Nombre del Cliente *
+                                </label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300" 
+                                       id="nombre" 
+                                       name="nombre" 
+                                       required
+                                       value="{{ request.form.nombre if request.form.nombre else '' }}"
+                                       placeholder="Ej: Juan Pérez Hernández">
+                            </div>
+
+                            <!-- Plan -->
+                            <div class="space-y-2">
+                                <label for="plan" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-1 rounded-lg mr-2">
+                                        ⚡
+                                    </span>
+                                    Plan Contratado *
+                                </label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300" 
+                                       id="plan" 
+                                       name="plan" 
+                                       required
+                                       value="{{ request.form.plan if request.form.plan else '' }}"
+                                       placeholder="Ej: 100 Mbps, 200 Mbps Fibra">
+                            </div>
+                        </div>
+
+                        <!-- Dirección -->
+                        <div class="space-y-2">
+                            <label for="direccion" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <span class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-1 rounded-lg mr-2">
+                                    📍
+                                </span>
+                                Dirección / Referencia *
+                            </label>
+                            <input type="text" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300" 
+                                   id="direccion" 
+                                   name="direccion" 
+                                   required
+                                   value="{{ request.form.direccion if request.form.direccion else '' }}"
+                                   placeholder="Ej: Calle Principal #123, Colonia Centro">
+                        </div>
+
+                        <!-- Contacto -->
+                        <div class="space-y-2">
+                            <label for="contacto" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <span class="bg-gradient-to-r from-pink-500 to-pink-600 text-white p-1 rounded-lg mr-2">
+                                    📞
+                                </span>
+                                Teléfono / Contacto
+                            </label>
+                            <input type="text" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300" 
+                                   id="contacto" 
+                                   name="contacto" 
+                                   value="{{ request.form.contacto if request.form.contacto else '' }}"
+                                   placeholder="Ej: 555-123-4567">
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
+                            <a href="{{ url_for('ver_nat', nat_id=nat_destino.id) if nat_destino else url_for('index') }}" 
+                               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-2 sm:order-1">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                                Cancelar
+                            </a>
+                            
+                            <button type="submit" 
+                                    class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-1 sm:order-2">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Guardar Nuevo Cliente
+                            </button>
+                        </div>
+
+                        <p class="text-gray-500 text-xs text-right italic mt-4">* Campos obligatorios</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Información -->
+        <div class="space-y-6">
+            <!-- Información de Capacidad -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Estado de Capacidad
+                </h3>
+                <div class="space-y-4">
+                    {% for nat in nats if nat.puertos_total > 0 %}
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
+                        <span class="text-sm font-medium text-gray-700">{{ nat.nombre }}</span>
+                        <div class="text-right">
+                            <span class="text-xs font-bold {% if nat.puertos_usados >= nat.puertos_total %}text-red-600{% else %}text-green-600{% endif %}">
+                                {{ nat.puertos_usados }}/{{ nat.puertos_total }}
+                            </span>
+                            <div class="w-16 bg-gray-200 rounded-full h-1.5 mt-1">
+                                <div class="h-1.5 rounded-full {% if nat.puertos_usados >= nat.puertos_total %}bg-red-500{% else %}bg-green-500{% endif %}" 
+                                     style="width: {{ (nat.puertos_usados / nat.puertos_total * 100) }}%">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Consejos Rápidos -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+                <h3 class="text-lg font-bold text-blue-800 mb-3">💡 Consejos Rápidos</h3>
+                <ul class="text-sm text-blue-700 space-y-2">
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Verifica la capacidad disponible en la NAP</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Usa nombres completos para mejor identificación</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Especifica claramente la dirección para instalaciones</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Registra el contacto para soporte técnico</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Información de NAPs -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    NAPs Disponibles
+                </h3>
+                <div class="space-y-3 text-sm">
+                    {% for nat in nats %}
+                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border {% if nat.puertos_usados >= nat.puertos_total %}border-red-200 bg-red-50{% else %}border-green-200 bg-green-50{% endif %}">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-lg">
+                                {% if nat.puertos_usados >= nat.puertos_total %}🔴{% else %}🟢{% endif %}
+                            </span>
+                            <span class="font-medium {% if nat.puertos_usados >= nat.puertos_total %}text-red-700{% else %}text-green-700{% endif %}">
+                                {{ nat.nombre }}
+                            </span>
+                        </div>
+                        <span class="text-xs font-bold {% if nat.puertos_usados >= nat.puertos_total %}text-red-600{% else %}text-green-600{% endif %}">
+                            {{ nat.puertos_usados }}/{{ nat.puertos_total }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Nota Importante -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+                <h3 class="text-lg font-bold text-amber-800 mb-3">⚠️ Nota Importante</h3>
+                <p class="text-sm text-amber-700">
+                    Al agregar un cliente a una NAP llena, el sistema permitirá el registro pero mostrará 
+                    una advertencia. Considera redistribuir clientes o expandir la capacidad.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para Mejorar la Experiencia -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Actualizar información de capacidad cuando cambie la NAP seleccionada
+    const natSelect = document.getElementById('nat_id');
+    const capacityIndicator = document.querySelector('.capacity-warning, .capacity-normal');
+    
+    natSelect.addEventListener('change', function() {
+        // Aquí podrías agregar lógica para actualizar dinámicamente
+        // la información de capacidad sin recargar la página
+        if (this.value) {
+            this.classList.add('ring-2', 'ring-emerald-200');
+            setTimeout(() => {
+                this.classList.remove('ring-2', 'ring-emerald-200');
+            }, 1000);
+        }
+    });
+    
+    // Validación de formulario
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const natId = natSelect.value;
+        const nombre = document.getElementById('nombre').value;
+        const plan = document.getElementById('plan').value;
+        const direccion = document.getElementById('direccion').value;
+        
+        if (!natId || !nombre || !plan || !direccion) {
+            e.preventDefault();
+            alert('Por favor, completa todos los campos obligatorios.');
+            return;
+        }
+        
+        // Verificar si se está seleccionando una NAP llena
+        const selectedOption = natSelect.options[natSelect.selectedIndex];
+        if (selectedOption.disabled) {
+            const confirmar = confirm('⚠️ Estás intentando agregar un cliente a una NAP llena. ¿Estás seguro de continuar?');
+            if (!confirmar) {
+                e.preventDefault();
+            }
+        }
+    });
+    
+    // Efectos visuales en inputs
+    const inputs = document.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('ring-2', 'ring-emerald-100', 'rounded-xl');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('ring-2', 'ring-emerald-100', 'rounded-xl');
+        });
+    });
+    
+    // Animación de aparición escalonada
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Auto-focus en el primer campo
+    setTimeout(() => {
+        document.getElementById('nombre').focus();
+    }, 300);
+});
+</script>
+{% endblock %}

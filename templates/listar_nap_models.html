@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}Modelos de NAP - Fibra Manager{% endblock %}
+
+{% block head %}
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .search-glow:focus {
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    .badge-pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    .table-row-hover {
+        transition: all 0.2s ease;
+    }
+    .table-row-hover:hover {
+        background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    .model-image {
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .model-image:hover {
+        transform: scale(1.05);
+        border-color: #6366f1;
+        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+    }
+    html.dark .from-emerald-600.bg-clip-text {
+        -webkit-text-fill-color: #6ee7b7;
+        color: #6ee7b7;
+    }
+    html.dark .model-image:hover {
+        border-color: #818cf8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Mejorado -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-3 rounded-xl mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.246.335 2.91-1.026z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                        Catálogo de Modelos NAP/FAT
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">Define los modelos de cajas de distribución para tu red</p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Botón de Acción Mejorado -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <a href="{{ url_for('agregar_nap_model') }}" 
+               class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Nuevo Modelo
+            </a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-gradient-to-r from-{{ 'red' if category == 'danger' else 'green' }}-500 to-{{ 'red' if category == 'danger' else 'green' }}-600 text-white rounded-xl p-4 mb-6 shadow-lg fade-in">
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="font-semibold">{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Guía compacta (horizontal) -->
+    <div class="fm-info-box rounded-xl px-4 py-3 mb-4 fade-in">
+        <div class="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-5">
+            <h3 class="text-sm font-semibold text-emerald-800 flex items-center shrink-0 whitespace-nowrap">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Guía de Modelos NAP
+            </h3>
+            <div class="flex items-center gap-5 flex-1 lg:justify-between text-xs overflow-x-auto pb-0.5 flex-nowrap min-w-0">
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-1.5 rounded-md shrink-0">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10m0 0h16v-8H4m0 8h4m0-4h4m-4 0v-4"></path>
+                        </svg>
+                    </div>
+                    <span class="text-gray-700"><strong>Modelo</strong> · Especificaciones</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium fm-tag-blue">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        24 Puertos
+                    </span>
+                    <span class="text-gray-700"><strong>Capacidad</strong> · Puertos máx.</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="w-8 h-7 fm-img-placeholder rounded-md flex items-center justify-center shrink-0">
+                        <span class="text-[10px] text-gray-500">🖼️</span>
+                    </div>
+                    <span class="text-gray-700"><strong>Imagen</strong> · Referencia</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="text-yellow-600 fm-badge-pill p-1.5 rounded-md shrink-0">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        </svg>
+                    </div>
+                    <span class="text-gray-700"><strong>Editar</strong> · Modificar</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de Control Avanzado -->
+    <div class="glass-effect fm-panel rounded-2xl shadow-xl p-6 mb-6 fade-in">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <!-- Búsqueda Avanzada -->
+            <div class="flex-1 max-w-lg">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <input type="text" id="buscador" 
+                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 search-glow transition-all duration-300" 
+                           placeholder="🔍 Buscar por nombre, capacidad...">
+                </div>
+            </div>
+
+            <!-- Estadísticas Rápidas -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-gray-900">{{ modelos|length }}</div>
+                    <div class="text-sm text-gray-600">Total Modelos</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-gray-900">
+                        {{ modelos|selectattr('naps')|map(attribute='naps')|map('length')|sum }}
+                    </div>
+                    <div class="text-sm text-gray-600">📡 NAPs Activas</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-gray-900">
+                        {{
+                            modelos
+                            | map(attribute='capacidad_max')
+                            | select('ne', none)
+                            | list
+                            | max
+                            if modelos|selectattr('capacidad_max', 'ne', none)|list|length > 0
+                            else 'N/A'
+                            }}
+
+                    </div>
+                    <div class="text-sm text-gray-600">🚀 Máx Capacidad</div>
+                </div>
+                <div class="text-center">
+                    <div id="contador-filtrado" class="text-2xl font-bold text-emerald-600">{{ modelos|length }}</div>
+                    <div class="text-sm text-gray-600">Mostrando</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Premium -->
+    <div class="fm-card fm-table-wrap rounded-2xl shadow-xl overflow-hidden fade-in">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gradient-to-r from-gray-800 to-gray-900">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-1/12">
+                            <div class="flex items-center">
+                                <span>ID</span>
+                                <button class="ml-1 sort-btn" data-sort="id">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-3/12">
+                            <div class="flex items-center">
+                                <span>Modelo</span>
+                                <button class="ml-1 sort-btn" data-sort="nombre">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-2/12">
+                            <div class="flex items-center">
+                                <span>Capacidad</span>
+                                <button class="ml-1 sort-btn" data-sort="capacidad">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-4/12">Imagen de Referencia</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider w-2/12">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="fm-table-body divide-y divide-gray-200" id="tabla-body">
+                    {% for modelo in modelos %}
+                    {% set cap_busqueda = (modelo.capacidad_max ~ ' puertos') if modelo.capacidad_max is not none else 'empalme caja empalme' %}
+                    {% set tipo_busqueda = 'distribucion nap fat' if modelo.tipo_caja == 'distribucion' else 'empalme' %}
+                    <tr class="table-row-hover nap-modelo-fila" 
+                        data-id="{{ modelo.id }}"
+                        data-nombre="{{ modelo.nombre|lower }}"
+                        data-capacidad="{{ modelo.capacidad_max if modelo.capacidad_max is not none else 'empalme' }}"
+                        data-busqueda="{{ (modelo.id|string ~ ' ' ~ modelo.nombre ~ ' ' ~ cap_busqueda ~ ' ' ~ tipo_busqueda)|lower }}">
+                        
+                        <!-- ID -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl fm-badge-pill font-bold text-sm shadow-sm">
+                                {{ modelo.id }}
+                            </span>
+                        </td>
+                        
+                        <!-- Nombre del Modelo -->
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-3 rounded-xl mr-3">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10m0 0h16v-8H4m0 8h4m0-4h4m-4 0v-4"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-900">{{ modelo.nombre }}</div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        <span class="font-medium">{{ modelo.naps|length }}</span> cajas usando este modelo
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Capacidad -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium fm-tag-blue shadow-sm">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                {% if modelo.capacidad_max is not none %}
+                                    {{ modelo.capacidad_max }} Puertos
+                                {% else %}
+                                    <span class="text-gray-400 italic">Caja de empalme</span>
+                                {% endif %}
+                            </span>
+                        </td>
+                        
+                        <!-- Imagen -->
+                        <td class="px-6 py-4">
+                            {% if modelo.imagen_url %}
+                                <img src="{{ modelo.imagen_url }}" alt="Imagen de {{ modelo.nombre }}" 
+                                     class="model-image fm-model-img rounded-lg shadow h-16 w-auto max-w-xs object-contain border p-2" 
+                                     onerror="this.onerror=null;this.src='https://placehold.co/200x100/F8F8F8/9CA3AF?text=Imagen+No+Disponible';"
+                                     title="{{ modelo.nombre }}">
+                            {% else %}
+                                <div class="flex items-center justify-center h-16 w-32 fm-img-placeholder rounded-lg">
+                                    <span class="text-gray-400 text-xs text-center px-2">🖼️ Sin imagen<br>cargada</span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Acciones -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <a href="{{ url_for('editar_nap_model', model_id=modelo.id) }}" 
+                                   class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 hover:bg-yellow-100 p-3 rounded-xl transition-all duration-200 transform hover:scale-110 flex items-center justify-center" 
+                                   title="Editar Modelo">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                    </svg>
+                                </a>
+                                
+                                <form action="{{ url_for('eliminar_nap_model', model_id=modelo.id) }}" method="POST" class="inline-block" 
+                                      onsubmit="return confirm('¿Estás seguro de eliminar el modelo {{ modelo.nombre }}? Esto afectará a {{ modelo.naps|length }} NAP/Cajas que lo utilizan.');">
+                                    <button type="submit" 
+                                            class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-3 rounded-xl transition-all duration-200 transform hover:scale-110 flex items-center justify-center" 
+                                            title="Eliminar Modelo">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-gray-500 mb-2">No hay modelos registrados</h3>
+                                <p class="text-gray-400 mb-4">Comienza definiendo el primer modelo de NAP para tu red</p>
+                                <a href="{{ url_for('agregar_nap_model') }}" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 inline-flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Agregar Primer Modelo
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript: búsqueda en tiempo real -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buscador = document.getElementById('buscador');
+    const tablaBody = document.getElementById('tabla-body');
+    const contadorFiltrado = document.getElementById('contador-filtrado');
+    const sortButtons = document.querySelectorAll('.sort-btn');
+
+    if (!buscador || !tablaBody) return;
+
+    let currentSort = { field: 'id', direction: 'asc' };
+    const allRows = Array.from(tablaBody.querySelectorAll('tr.nap-modelo-fila'));
+
+    function normalizar(texto) {
+        return (texto || '').toString().toLowerCase().trim();
+    }
+
+    function filaCoincide(row, termino) {
+        if (!termino) return true;
+        const texto = row.getAttribute('data-busqueda') || '';
+        return normalizar(texto).includes(termino);
+    }
+
+    function filtrarTabla() {
+        const termino = normalizar(buscador.value);
+        let visibles = 0;
+
+        allRows.forEach(function(row) {
+            const mostrar = filaCoincide(row, termino);
+            row.style.display = mostrar ? '' : 'none';
+            if (mostrar) visibles++;
+        });
+
+        if (contadorFiltrado) {
+            contadorFiltrado.textContent = visibles;
+        }
+        aplicarOrdenamiento();
+    }
+
+    function aplicarOrdenamiento() {
+        const rows = allRows.filter(function(tr) {
+            return tr.style.display !== 'none';
+        });
+
+        rows.sort(function(a, b) {
+            let aValue;
+            let bValue;
+
+            switch (currentSort.field) {
+                case 'nombre':
+                    aValue = a.getAttribute('data-nombre') || '';
+                    bValue = b.getAttribute('data-nombre') || '';
+                    break;
+                case 'capacidad':
+                    aValue = a.getAttribute('data-capacidad') === 'empalme'
+                        ? -1
+                        : parseInt(a.getAttribute('data-capacidad'), 10) || 0;
+                    bValue = b.getAttribute('data-capacidad') === 'empalme'
+                        ? -1
+                        : parseInt(b.getAttribute('data-capacidad'), 10) || 0;
+                    break;
+                case 'id':
+                default:
+                    aValue = parseInt(a.getAttribute('data-id'), 10) || 0;
+                    bValue = parseInt(b.getAttribute('data-id'), 10) || 0;
+            }
+
+            if (currentSort.direction === 'asc') {
+                return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+            }
+            return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+        });
+
+        rows.forEach(function(row) {
+            tablaBody.appendChild(row);
+        });
+    }
+
+    buscador.addEventListener('input', filtrarTabla);
+    buscador.addEventListener('keyup', filtrarTabla);
+
+    sortButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const field = this.getAttribute('data-sort');
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            aplicarOrdenamiento();
+        });
+    });
+
+    const cards = document.querySelectorAll('.hover-lift');
+    cards.forEach(function(card) {
+        card.addEventListener('mouseenter', function() {
+            card.style.transform = 'translateY(-3px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            card.style.transform = 'translateY(0)';
+        });
+    });
+
+    document.querySelectorAll('.fade-in').forEach(function(element, index) {
+        element.style.animationDelay = (index * 0.1) + 's';
+    });
+});
+</script>
+{% endblock %}

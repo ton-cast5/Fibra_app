@@ -1,0 +1,1417 @@
+<!-- templates/inventario.html -->
+{% extends "base.html" %}
+
+{% block title %} Gestión - Fibra Manager{% endblock %}
+
+{% block head %}
+<!-- Incluir jsPDF y autotable para los reportes premium -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .input-glow:focus {
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+    }
+    .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    /* Colores para los estados */
+    .badge-excelente { 
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white; 
+    }
+    .badge-normal { 
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white; 
+    }
+    .badge-bajo { 
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white; 
+    }
+    .badge-critico { 
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white; 
+    }
+    
+    .card-glow {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .badge-pulse {
+        animation: pulse 3s infinite cubic-bezier(0.4, 0, 0.6, 1);
+    }
+    
+    @keyframes pulse {
+        0%, 100% { 
+            transform: scale(1); 
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        50% { 
+            transform: scale(1.05);
+            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+    }
+    
+    .btn-premium {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        border: none;
+        transition: all 0.4s ease;
+    }
+    
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .download-card {
+        background: linear-gradient(145deg,
+            rgba(255, 255, 255, 0.95) 0%,
+            rgba(249, 250, 251, 0.95) 100%);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    .download-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04);
+    }
+    .fm-stat-mini {
+        background: linear-gradient(to bottom right, #eff6ff, #ecfeff);
+        border: 1px solid transparent;
+    }
+    .fm-stat-mini.emerald { background: linear-gradient(to bottom right, #ecfdf5, #f0fdf4); }
+    .fm-stat-mini.orange { background: linear-gradient(to bottom right, #fff7ed, #fffbeb); }
+    .fm-stat-mini.amber { background: linear-gradient(to bottom right, #fffbeb, #fefce8); }
+    .fm-stat-mini.purple { background: linear-gradient(to bottom right, #faf5ff, #fdf4ff); }
+    .inv-legend-box {
+        background: linear-gradient(to right, rgba(238, 242, 255, 0.8), rgba(250, 245, 255, 0.8));
+        border: 1px solid rgba(199, 210, 254, 0.5);
+    }
+    .inv-tipo-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+    }
+
+    html.dark .download-card {
+        background: var(--fm-surface) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .download-card:hover {
+        border-color: var(--fm-accent) !important;
+        box-shadow: var(--fm-shadow-lg) !important;
+    }
+    html.dark .fm-stat-mini,
+    html.dark .fm-stat-mini.emerald,
+    html.dark .fm-stat-mini.orange,
+    html.dark .fm-stat-mini.amber,
+    html.dark .fm-stat-mini.purple {
+        background: var(--fm-surface-hover) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .inv-legend-box {
+        background: linear-gradient(to right, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08)) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .inv-tipo-card {
+        background: var(--fm-surface-hover) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .from-purple-600.bg-clip-text,
+    html.dark .from-purple-600.to-indigo-600.bg-clip-text {
+        -webkit-text-fill-color: #c4b5fd;
+        color: #c4b5fd;
+    }
+    html.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
+    html.dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.2) !important; }
+    html.dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.2) !important; }
+    html.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
+    html.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
+    html.dark .text-blue-800 { color: #93c5fd !important; }
+    html.dark .text-green-800 { color: #6ee7b7 !important; }
+    html.dark .text-yellow-800 { color: #fde047 !important; }
+    html.dark .text-red-800 { color: #fca5a5 !important; }
+    html.dark .text-emerald-800 { color: #6ee7b7 !important; }
+    html.dark .text-indigo-800 { color: #c7d2fe !important; }
+    html.dark .from-gray-200 { --tw-gradient-from: var(--fm-border) !important; }
+    html.dark .bg-gradient-to-br.from-blue-500\/10,
+    html.dark [class*="from-blue-500/10"],
+    html.dark [class*="from-orange-500/10"],
+    html.dark [class*="from-teal-500/10"] {
+        background: rgba(99, 102, 241, 0.08) !important;
+    }
+    
+    .floating-icon {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Premium (igual que agregar_cliente.html) -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-3 rounded-xl mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                        📦 Inventario
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">
+                        Reportes ejecutivos y análisis detallados de tu infraestructura
+                    </p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Reloj en tiempo real -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <div class="glass-effect fm-panel rounded-xl px-4 py-3 text-center min-w-[11rem]">
+                <p class="text-xs text-gray-500 uppercase tracking-wide">Hora del sistema</p>
+                <p id="reloj-inventario-fecha" class="text-sm font-medium text-gray-600 mt-1">{{ fecha_actual.split(' ')[0] if ' ' in fecha_actual else fecha_actual }}</p>
+                <p id="reloj-inventario-hora" class="text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight" aria-live="polite">{{ fecha_actual.split(' ')[1] if ' ' in fecha_actual else '' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Premium -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {% macro stat_card(title, count, icon, color_from, color_to) %}
+        <div class="glass-effect fm-panel rounded-2xl p-6 hover-lift">
+            <div class="flex items-center justify-between mb-4">
+                <div class="bg-gradient-to-br {{ color_from }} {{ color_to }} text-white p-3 rounded-xl">
+                    {{ icon|safe }}
+                </div>
+                <span class="text-3xl font-bold text-gray-900">{{ count }}</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ title }}</h3>
+            <div class="h-1 w-full bg-gradient-to-r from-gray-200 to-transparent rounded-full"></div>
+        </div>
+        {% endmacro %}
+
+        {{ stat_card('👥 Clientes Activos', clientes_activos, 
+            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M9 10a3 3 0 11-6 0 3 3 0 016 0zm3 9a6 6 0 00-9-5.143v1.286A6 6 0 009 21h6z"></path></svg>',
+            'from-blue-500', 'to-cyan-500') }}
+        
+        {{ stat_card('📡 Cajas NAP', total_naps,
+            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>',
+            'from-orange-500', 'to-amber-500') }}
+        
+        {{ stat_card('🔗 Empalmes', cajas_empalme,
+            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            'from-emerald-500', 'to-teal-500') }}
+        
+        {{ stat_card('📡 Distribución', cajas_distribucion,
+            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L6 22h12L12 2zM12 2v6m0 4v4m0 4v2"></path></svg>',
+            'from-purple-500', 'to-violet-500') }}
+    </div>
+
+    <!-- Sección Principal de Reportes -->
+    <div class="mb-12">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">
+                    <span class="gradient-text">📊 Reportes Ejecutivos</span>
+                </h2>
+                <p class="text-gray-600">Selecciona el reporte que necesitas descargar</p>
+            </div>
+        </div>
+
+        <!-- Cards de Reportes Premium -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            <!-- Card Clientes -->
+            <div class="download-card fade-in rounded-2xl p-8 hover-lift card-glow" style="animation-delay: 0.1s">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-4 rounded-2xl">
+                        <div class="text-3xl">👥</div>
+                    </div>
+                    <span class="text-xs font-semibold px-3 py-1 rounded-full fm-tag-blue">ACTIVOS: {{ clientes_activos }}</span>
+                </div>
+                
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">Reporte de Clientes</h3>
+                <p class="text-gray-600 mb-6">Listado completo con estado, planes y contactos</p>
+                
+                <div class="space-y-4 mb-8">
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="font-medium text-gray-700">Tasa de activación</span>
+                            <span class="font-bold text-gray-900">{{ ((clientes_activos/total_clientes)*100)|round(1) if total_clientes > 0 else 0 }}%</span>
+                        </div>
+                        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+                            <div class="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" 
+                                 style="width: {{ (clientes_activos/total_clientes*100) if total_clientes > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="text-center p-3 rounded-xl fm-stat-mini">
+                            <div class="text-lg font-bold text-blue-600">{{ total_clientes }}</div>
+                            <div class="text-xs text-gray-600">Total</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
+                            <div class="text-lg font-bold text-emerald-600">{{ clientes_activos }}</div>
+                            <div class="text-xs text-gray-600">Activos</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="generarPDFClientesConNotificacion()" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        PDF
+                    </button>
+                    <a href="{{ url_for('descargar_excel_clientes') }}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Excel
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Card NAPs -->
+            <div class="download-card fade-in rounded-2xl p-8 hover-lift card-glow" style="animation-delay: 0.2s">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="bg-gradient-to-br from-orange-500/10 to-amber-500/10 p-4 rounded-2xl">
+                        <div class="text-3xl">📡</div>
+                    </div>
+                    <span class="text-xs font-semibold px-3 py-1 rounded-full {{ 'fm-tag-red badge-pulse' if ocupacion_promedio >= 80 else 'fm-tag-amber' if ocupacion_promedio >= 50 else 'fm-tag-green' }}">
+                        {{ ocupacion_promedio }}% OCUPADO
+                    </span>
+                </div>
+                
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">Reporte de Cajas NAP</h3>
+                <p class="text-gray-600 mb-6">Capacidad, ubicación y estado de distribución</p>
+                
+                <div class="space-y-4 mb-8">
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="font-medium text-gray-700">Uso de capacidad</span>
+                            <span class="font-bold {{ 'text-red-600' if ocupacion_promedio >= 80 else 'text-yellow-600' if ocupacion_promedio >= 50 else 'text-green-600' }}">
+                                {{ ocupacion_promedio }}%
+                            </span>
+                        </div>
+                        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
+                            <div class="h-full rounded-full {{ 'bg-gradient-to-r from-red-500 to-pink-500' if ocupacion_promedio >= 80 else 'bg-gradient-to-r from-yellow-500 to-amber-500' if ocupacion_promedio >= 50 else 'bg-gradient-to-r from-green-500 to-emerald-500' }}" 
+                                 style="width: {{ ocupacion_promedio }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="text-center p-3 rounded-xl fm-stat-mini orange">
+                            <div class="text-lg font-bold text-orange-600">{{ total_naps }}</div>
+                            <div class="text-xs text-gray-600">Cajas</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini amber">
+                            <div class="text-lg font-bold text-amber-600">{{ puertos_totales }}</div>
+                            <div class="text-xs text-gray-600">Puertos</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
+                            <div class="text-lg font-bold text-emerald-600">{{ puertos_ocupados }}</div>
+                            <div class="text-xs text-gray-600">Usados</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="generarPDFNapsConNotificacion()" class="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        PDF
+                    </button>
+                    <a href="{{ url_for('descargar_excel_naps') }}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Excel
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Card Resumen tipos -->
+            <div class="download-card fade-in rounded-2xl p-8 hover-lift card-glow" style="animation-delay: 0.3s">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="bg-gradient-to-br from-teal-500/10 to-emerald-500/10 p-4 rounded-2xl">
+                        <div class="text-3xl">📦</div>
+                    </div>
+                    <span class="text-xs font-semibold px-3 py-1 rounded-full fm-tag-green">{{ cajas_distribucion + cajas_empalme }} cajas</span>
+                </div>
+                
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">Distribución y empalmes</h3>
+                <p class="text-gray-600 mb-6">Resumen por tipo de caja en la red</p>
+                
+                <div class="space-y-3 mb-8">
+                    {% for item in resumen_tipos %}
+                    <div class="inv-tipo-card p-4 rounded-xl transition-colors w-full"
+                         style="border-left: 4px solid {{ item.color }}">
+                        <div class="font-semibold text-gray-900">{{ item.nombre }}</div>
+                        <div class="text-sm text-gray-500 mt-1">{{ item.nats_count }} instaladas</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="generarPDFDistribucionEmpalmesConNotificacion()" class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        PDF
+                    </button>
+                    <a href="{{ url_for('descargar_excel_todo') }}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventario Completo -->
+        <div class="glass-effect fm-panel rounded-2xl shadow-xl p-8 mb-8 hover-lift">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="mb-8 lg:mb-0 lg:mr-8">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 rounded-2xl mr-4">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-1">📦 Inventario Completo</h3>
+                            <p class="text-gray-600">Documento ejecutivo con todos los componentes</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-3 rounded-xl fm-stat-mini">
+                            <div class="text-lg font-bold text-blue-600">5</div>
+                            <div class="text-xs text-gray-600">Secciones</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini purple">
+                            <div class="text-lg font-bold text-purple-600">{{ total_clientes + total_naps }}</div>
+                            <div class="text-xs text-gray-600">Registros</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
+                            <div class="text-lg font-bold text-emerald-600">1</div>
+                            <div class="text-xs text-gray-600">Formato</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="mostrarModalInventarioCompleto()" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        PDF COMPLETO
+                    </button>
+                    <a href="{{ url_for('descargar_excel_todo') }}" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        EXCEL COMPLETO
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reporte de Asistencia Laboral -->
+        <div class="glass-effect fm-panel rounded-2xl shadow-xl p-8 mb-8 hover-lift">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="mb-8 lg:mb-0 lg:mr-8">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-gradient-to-r from-teal-500 to-cyan-600 text-white p-4 rounded-2xl mr-4">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-1">Asistencia Laboral</h3>
+                            <p class="text-gray-600">Control de entradas, salidas y personal en jornada</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="text-center p-3 rounded-xl fm-stat-mini">
+                            <div class="text-lg font-bold text-teal-600">{{ total_trabajadores }}</div>
+                            <div class="text-xs text-gray-600">Personal</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
+                            <div class="text-lg font-bold text-emerald-600">{{ dentro_hoy }}</div>
+                            <div class="text-xs text-gray-600">Dentro hoy</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini blue">
+                            <div class="text-lg font-bold text-blue-600">{{ entradas_hoy }}</div>
+                            <div class="text-xs text-gray-600">Entradas hoy</div>
+                        </div>
+                        <div class="text-center p-3 rounded-xl fm-stat-mini purple">
+                            <div class="text-lg font-bold text-purple-600">{{ registros_mes }}</div>
+                            <div class="text-xs text-gray-600">Registros (30d)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="mostrarModalAsistenciaCompleto()" class="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        PDF ASISTENCIA
+                    </button>
+                    <a href="{{ url_for('descargar_excel_asistencias') }}" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        EXCEL ASISTENCIA
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leyenda Interactiva -->
+        <div class="inv-legend-box rounded-2xl p-8">
+            <h3 class="text-xl font-bold text-indigo-800 mb-6 flex items-center">
+                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                📋 Guía de Estados y Niveles
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                        <div class="absolute inset-0 rounded-full bg-red-500 animate-ping"></div>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-gray-900">Crítico</div>
+                        <div class="text-sm text-gray-600">>80% capacidad</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
+                    <div>
+                        <div class="font-semibold text-gray-900">Moderado</div>
+                        <div class="text-sm text-gray-600">50-80% capacidad</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                    <div>
+                        <div class="font-semibold text-gray-900">Óptimo</div>
+                        <div class="text-sm text-gray-600"><50% capacidad</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-gray-900">Descarga</div>
+                        <div class="text-sm text-gray-600">Datos en tiempo real</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Premium (CÓDIGO CORREGIDO) -->
+<script>
+// --- SISTEMA DE GENERACIÓN DE REPORTES CON DATOS REALES ---
+
+// Paleta corporativa formal para todos los PDF del inventario
+const pdfTheme = {
+    brand: {
+        name: "Internet SP",
+        tagline: "Infraestructura de Red y Fibra Optica",
+        department: "Departamento Tecnico",
+        contact: "soporte@fibramanager.com",
+    },
+    colors: {
+        primary: [15, 40, 71],
+        primaryMid: [30, 58, 95],
+        accent: [37, 99, 235],
+        accentLine: [180, 154, 90],
+        text: [30, 41, 59],
+        textMuted: [71, 85, 105],
+        textLight: [148, 163, 184],
+        white: [255, 255, 255],
+        tableHead: [15, 40, 71],
+        tableAlt: [241, 245, 249],
+        tableBorder: [203, 213, 225],
+        success: [21, 128, 61],
+        danger: [185, 28, 28],
+        warning: [161, 98, 7],
+    },
+};
+
+const companyConfig = {
+    name: pdfTheme.brand.name,
+    logoColor: pdfTheme.colors.primary,
+    accentColor: pdfTheme.colors.accent,
+    address: pdfTheme.brand.tagline,
+    contact: pdfTheme.brand.contact,
+};
+
+const { jsPDF } = window.jspdf;
+
+// Función para texto sin emojis (solución para compatibilidad)
+function textoPDF(texto) {
+    // Reemplazar emojis con texto descriptivo
+    const emojiMap = {
+        '👥': 'Clientes',
+        '📡': 'Cajas NAP',
+        '🔗': 'Empalmes',
+        '🏗️': 'Elementos Fisicos',
+        '📊': 'Estadisticas',
+        '✅': 'Activos',
+        '🎯': 'Recomendaciones',
+        '🏆': 'Conclusiones',
+        '📈': 'Tendencias',
+        '🎨': 'Fibras'
+    };
+    
+    let resultado = texto;
+    for (const [emoji, textoReemplazo] of Object.entries(emojiMap)) {
+        resultado = resultado.replace(new RegExp(emoji, 'g'), textoReemplazo);
+    }
+    
+    return resultado;
+}
+
+// Función para fecha en español
+function fechaEspanol() {
+    const fecha = new Date();
+    const opciones = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    
+    return fecha.toLocaleDateString('es-ES', opciones);
+}
+
+function getCorporateTableStyles(overrides = {}) {
+    const c = pdfTheme.colors;
+    return {
+        theme: 'grid',
+        headStyles: {
+            fillColor: c.tableHead,
+            textColor: c.white,
+            fontSize: 9,
+            fontStyle: 'bold',
+            halign: 'center',
+            cellPadding: 4,
+            lineColor: c.tableBorder,
+            lineWidth: 0.2,
+        },
+        bodyStyles: {
+            fontSize: 8.5,
+            textColor: c.text,
+            cellPadding: 3.5,
+            lineColor: c.tableBorder,
+            lineWidth: 0.15,
+        },
+        alternateRowStyles: {
+            fillColor: c.tableAlt,
+        },
+        margin: { left: 14, right: 14 },
+        ...overrides,
+    };
+}
+
+function drawCorporatePageHeader(doc, title, startY = 48) {
+    const c = pdfTheme.colors;
+    const b = pdfTheme.brand;
+    const pageWidth = doc.internal.pageSize.width;
+
+    doc.setFillColor(...c.primary);
+    doc.rect(0, 0, pageWidth, 36, 'F');
+
+    doc.setFillColor(...c.accentLine);
+    doc.rect(0, 36, pageWidth, 1.2, 'F');
+
+    doc.setTextColor(...c.white);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(textoPDF(title).toUpperCase(), 14, 14);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text(`Fecha de emision: ${fechaEspanol()}`, 14, 22);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(b.name, pageWidth - 14, 13, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(b.department, pageWidth - 14, 20, { align: 'right' });
+    doc.text(b.contact, pageWidth - 14, 26, { align: 'right' });
+
+    return startY;
+}
+
+function addCorporateSectionTitle(doc, title, y = 20) {
+    const c = pdfTheme.colors;
+    const pageWidth = doc.internal.pageSize.width;
+
+    doc.setFillColor(...c.primaryMid);
+    doc.rect(14, y - 6, pageWidth - 28, 10, 'F');
+
+    doc.setTextColor(...c.white);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(textoPDF(title).toUpperCase(), 18, y);
+
+    doc.setDrawColor(...c.accentLine);
+    doc.setLineWidth(0.6);
+    doc.line(14, y + 6, pageWidth - 14, y + 6);
+
+    return y + 14;
+}
+
+function drawCorporateCoverPage(doc, reportTitle, reportSubtitle) {
+    const c = pdfTheme.colors;
+    const b = pdfTheme.brand;
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    doc.setFillColor(...c.primary);
+    doc.rect(0, 0, pageWidth, 95, 'F');
+
+    doc.setFillColor(...c.accentLine);
+    doc.rect(0, 95, pageWidth, 2, 'F');
+
+    doc.setTextColor(...c.white);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.text(b.name.toUpperCase(), pageWidth / 2, 38, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(b.tagline, pageWidth / 2, 50, { align: 'center' });
+    doc.text(b.department, pageWidth / 2, 58, { align: 'center' });
+
+    doc.setTextColor(...c.primary);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text(textoPDF(reportTitle).toUpperCase(), pageWidth / 2, 125, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(...c.textMuted);
+    doc.text(textoPDF(reportSubtitle), pageWidth / 2, 142, { align: 'center' });
+
+    doc.setDrawColor(...c.tableBorder);
+    doc.setLineWidth(0.5);
+    doc.line(50, 155, pageWidth - 50, 155);
+
+    doc.setFontSize(10);
+    doc.setTextColor(...c.textLight);
+    doc.text(`Documento generado el ${fechaEspanol()}`, pageWidth / 2, 168, { align: 'center' });
+    doc.text('Uso interno y confidencial', pageWidth / 2, 176, { align: 'center' });
+
+    doc.setFillColor(...c.tableAlt);
+    doc.rect(14, pageHeight - 42, pageWidth - 28, 22, 'F');
+    doc.setTextColor(...c.textMuted);
+    doc.setFontSize(8);
+    doc.text(b.contact, pageWidth / 2, pageHeight - 30, { align: 'center' });
+}
+
+function createBasePDF(title) {
+    const doc = new jsPDF();
+    doc.setFont('helvetica');
+    drawCorporatePageHeader(doc, title);
+    return doc;
+}
+
+function addFooter(doc) {
+    const c = pdfTheme.colors;
+    const b = pdfTheme.brand;
+    const pageCount = doc.internal.getNumberOfPages();
+
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+
+        doc.setFillColor(...c.primary);
+        doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+
+        doc.setFontSize(7.5);
+        doc.setTextColor(...c.white);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+            `Documento confidencial | ${b.name} | Uso exclusivo interno`,
+            14,
+            pageHeight - 5
+        );
+        doc.text(`Pagina ${i} de ${pageCount}`, pageWidth - 14, pageHeight - 5, { align: 'right' });
+    }
+}
+
+// Función para obtener datos REALES del servidor
+async function obtenerDatosReal(endpoint) {
+    try {
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error obteniendo datos:', error);
+        return null;
+    }
+}
+
+// --- FUNCIONES CORREGIDAS CON DATOS REALES ---
+
+async function generarPDFClientes() {
+    mostrarNotificacionPremium('Generando reporte de clientes...', 'info');
+    
+    try {
+        const datos = await obtenerDatosReal('/api/clientes');
+        const doc = createBasePDF("Reporte de Clientes");
+        
+        let headers = [["ID", "NOMBRE", "DIRECCION", "PLAN", "ESTADO", "CONTACTO"]];
+        let data = [];
+        
+        if (datos && datos.length > 0) {
+            // Usar datos REALES de la API
+            datos.forEach(cliente => {
+                const estado = cliente.activo ? "ACTIVO" : "INACTIVO";
+                data.push([
+                    cliente.id,
+                    cliente.nombre || 'Sin nombre',
+                    cliente.direccion || 'Sin direccion',
+                    cliente.plan || 'Sin plan',
+                    estado,
+                    cliente.contacto || 'Sin contacto'
+                ]);
+            });
+        } else {
+            // Fallback si no hay datos
+            const fallbackData = window.clientesData || [];
+            if (fallbackData.length > 0) {
+                fallbackData.forEach(cliente => {
+                    data.push([
+                        cliente.id,
+                        cliente.nombre,
+                        cliente.direccion,
+                        cliente.plan || 'Sin plan',
+                        cliente.activo ? 'ACTIVO' : 'INACTIVO',
+                        cliente.contacto || 'Sin contacto'
+                    ]);
+                });
+            }
+        }
+
+        doc.autoTable({
+            head: headers,
+            body: data,
+            startY: 48,
+            ...getCorporateTableStyles({
+                columnStyles: {
+                    4: { halign: 'center', fontStyle: 'bold' },
+                    5: { halign: 'right' },
+                },
+                didParseCell: function(cellData) {
+                    if (cellData.section === 'body' && cellData.column.index === 4) {
+                        if (cellData.cell.raw === 'INACTIVO') {
+                            cellData.cell.styles.textColor = pdfTheme.colors.danger;
+                        } else if (cellData.cell.raw === 'ACTIVO') {
+                            cellData.cell.styles.textColor = pdfTheme.colors.success;
+                        }
+                    }
+                },
+            }),
+        });
+
+        addFooter(doc);
+        doc.save("Reporte_Clientes_" + new Date().toISOString().split('T')[0] + ".pdf");
+        mostrarNotificacionPremium('Reporte de clientes generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando PDF de clientes:', error);
+        mostrarNotificacionPremium('Error generando reporte de clientes', 'error');
+    }
+}
+
+async function generarPDFNaps() {
+    mostrarNotificacionPremium('Generando reporte de NAPs...', 'info');
+    
+    try {
+        const datos = await obtenerDatosReal('/api/naps');
+        const doc = createBasePDF("Reporte de Cajas NAP");
+
+        let headers = [["ID", "NOMBRE", "PUERTOS TOTAL", "PUERTOS USADOS", "OCUPACION", "HILO CONEXION"]];
+        let data = [];
+        
+        if (datos && datos.length > 0) {
+            datos.forEach(nap => {
+                const puertosUsados = nap.clientes_count || 0;
+                const porcentajeUso = nap.puertos_total > 0 ? 
+                    Math.round((puertosUsados / nap.puertos_total) * 100) : 0;
+                
+                data.push([
+                    nap.id,
+                    nap.nombre || 'Sin nombre',
+                    nap.puertos_total || 0,
+                    puertosUsados,
+                    `${porcentajeUso}%`,
+                    nap.hilo_conexion || 'No definido'
+                ]);
+            });
+        } else {
+            // Fallback con datos del template
+            const fallbackData = window.napsData || [];
+            if (fallbackData.length > 0) {
+                fallbackData.forEach(nap => {
+                    const porcentajeUso = nap.puertos_total > 0 ? 
+                        Math.round((nap.puertos_ocupados / nap.puertos_total) * 100) : 0;
+                    
+                    data.push([
+                        nap.id,
+                        nap.nombre,
+                        nap.puertos_total,
+                        nap.puertos_ocupados || 0,
+                        `${porcentajeUso}%`,
+                        nap.hilo_conexion || 'No definido'
+                    ]);
+                });
+            }
+        }
+
+        doc.autoTable({
+            head: headers,
+            body: data,
+            startY: 48,
+            ...getCorporateTableStyles({
+                columnStyles: {
+                    4: { fontStyle: 'bold', halign: 'center' },
+                },
+                didParseCell: function(cellData) {
+                    if (cellData.section === 'body' && cellData.column.index === 4) {
+                        const porcentaje = parseInt(String(cellData.cell.raw), 10);
+                        if (porcentaje >= 80) {
+                            cellData.cell.styles.textColor = pdfTheme.colors.danger;
+                            cellData.cell.styles.fontStyle = 'bold';
+                        } else if (porcentaje >= 60) {
+                            cellData.cell.styles.textColor = pdfTheme.colors.warning;
+                        }
+                    }
+                },
+            }),
+        });
+
+        addFooter(doc);
+        doc.save("Reporte_NAPs_" + new Date().toISOString().split('T')[0] + ".pdf");
+        mostrarNotificacionPremium('Reporte de NAPs generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando PDF de NAPs:', error);
+        mostrarNotificacionPremium('Error generando reporte de NAPs', 'error');
+    }
+}
+
+// --- INVENTARIO COMPLETO CORREGIDO ---
+async function generarInventarioCompletoReal() {
+    mostrarNotificacionPremium('Generando inventario completo...', 'info');
+    
+    try {
+        // 1. Obtener TODOS los datos de todas las APIs
+        const [clientesData, napsData] = await Promise.all([
+            obtenerDatosReal('/api/clientes'),
+            obtenerDatosReal('/api/naps')
+        ]);
+        
+        const doc = new jsPDF();
+        doc.setFont('helvetica');
+
+        drawCorporateCoverPage(
+            doc,
+            'Inventario Completo de Infraestructura',
+            'Control, respaldo y analisis de infraestructura de red'
+        );
+
+        const pageWidth = doc.internal.pageSize.width;
+
+        doc.addPage();
+        drawCorporatePageHeader(doc, 'Inventario Completo - Clientes');
+        let tableStartY = addCorporateSectionTitle(doc, 'Seccion 1: Cartera de Clientes', 44);
+
+        if (clientesData && clientesData.length > 0) {
+            const clientesHeaders = [['ID', 'NOMBRE', 'DIRECCION', 'PLAN', 'ESTADO', 'CONTACTO']];
+            const clientesRows = clientesData.map(c => [
+                c.id,
+                c.nombre || '',
+                c.direccion || '',
+                c.plan || '',
+                c.activo ? 'ACTIVO' : 'INACTIVO',
+                c.contacto || '',
+            ]);
+
+            doc.autoTable({
+                head: clientesHeaders,
+                body: clientesRows,
+                startY: tableStartY,
+                ...getCorporateTableStyles({
+                    didParseCell: function(cellData) {
+                        if (cellData.section === 'body' && cellData.column.index === 4) {
+                            if (cellData.cell.raw === 'INACTIVO') {
+                                cellData.cell.styles.textColor = pdfTheme.colors.danger;
+                            } else if (cellData.cell.raw === 'ACTIVO') {
+                                cellData.cell.styles.textColor = pdfTheme.colors.success;
+                            }
+                        }
+                    },
+                }),
+            });
+        }
+
+        doc.addPage();
+        drawCorporatePageHeader(doc, 'Inventario Completo - Cajas NAP');
+        tableStartY = addCorporateSectionTitle(doc, 'Seccion 2: Cajas NAP y Empalmes', 44);
+
+        if (napsData && napsData.length > 0) {
+            const napsHeaders = [['ID', 'NOMBRE', 'PUERTOS TOTAL', 'HILO CONEXION', 'LATITUD', 'LONGITUD']];
+            const napsRows = napsData.map(n => [
+                n.id,
+                n.nombre || '',
+                n.puertos_total || 0,
+                n.hilo_conexion || '',
+                n.latitud || '',
+                n.longitud || '',
+            ]);
+
+            doc.autoTable({
+                head: napsHeaders,
+                body: napsRows,
+                startY: tableStartY,
+                ...getCorporateTableStyles(),
+            });
+        }
+
+        doc.addPage();
+        drawCorporatePageHeader(doc, 'Inventario Completo - Resumen');
+        const summaryY = addCorporateSectionTitle(doc, 'Resumen Ejecutivo', 44);
+
+        const c = pdfTheme.colors;
+        const totalClientes = clientesData ? clientesData.length : 0;
+        const clientesActivos = clientesData ? clientesData.filter(cl => cl.activo).length : 0;
+        const totalNaps = napsData ? napsData.length : 0;
+        const pctActivos = totalClientes > 0 ? Math.round((clientesActivos / totalClientes) * 100) : 0;
+
+        doc.setFillColor(...c.tableAlt);
+        doc.rect(14, summaryY, pageWidth - 28, 38, 'F');
+        doc.setDrawColor(...c.tableBorder);
+        doc.setLineWidth(0.3);
+        doc.rect(14, summaryY, pageWidth - 28, 38, 'S');
+
+        doc.setFontSize(10);
+        doc.setTextColor(...c.primary);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Indicadores clave', 18, summaryY + 10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...c.text);
+        doc.setFontSize(9.5);
+        doc.text(`Clientes totales: ${totalClientes}`, 18, summaryY + 18);
+        doc.text(`Clientes activos: ${clientesActivos} (${pctActivos}%)`, 18, summaryY + 25);
+        doc.text(`Cajas en red: ${totalNaps}`, 18, summaryY + 32);
+
+        let yPos = summaryY + 48;
+        const lineHeight = 6.5;
+        const summaryText = [
+            'ALCANCE DEL DOCUMENTO',
+            `Consolidado al ${new Date().toLocaleDateString('es-MX')} con informacion operativa de clientes y cajas.`,
+            '',
+            'HALLAZGOS',
+            '- La red mantiene visibilidad centralizada de activos y ocupacion.',
+            '- Los indicadores permiten priorizar expansion y mantenimiento.',
+            '',
+            'RECOMENDACIONES',
+            '1. Monitorear cajas NAP con ocupacion superior al 80%.',
+            '2. Planificar capacidad en zonas de crecimiento sostenido.',
+            '3. Ejecutar revision preventiva trimestral de infraestructura.',
+            '',
+            'CONCLUSION',
+            'La operacion se encuentra en condiciones estables para continuar el plan de servicio.',
+        ];
+
+        summaryText.forEach((line) => {
+            if (line === 'ALCANCE DEL DOCUMENTO' || line === 'HALLAZGOS' || line === 'RECOMENDACIONES' || line === 'CONCLUSION') {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...c.primaryMid);
+                doc.setFontSize(9.5);
+            } else {
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...c.text);
+                doc.setFontSize(9);
+            }
+            doc.text(textoPDF(line), 14, yPos, { maxWidth: pageWidth - 28 });
+            yPos += line ? lineHeight : 3;
+        });
+        
+        addFooter(doc);
+        
+        // Nombre del archivo con timestamp
+        const fileName = `Inventario_Completo_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        
+        mostrarNotificacionPremium('Inventario completo generado exitosamente', 'success');
+        
+    } catch (error) {
+        console.error('Error generando inventario completo:', error);
+        mostrarNotificacionPremium('Error generando inventario completo', 'error');
+    }
+}
+
+// --- FUNCIONES DE INTERFAZ ---
+
+function mostrarNotificacionPremium(mensaje, tipo) {
+    // Eliminar notificaciones existentes
+    const notificacionesExistentes = document.querySelectorAll('.notificacion-inventario');
+    notificacionesExistentes.forEach(n => n.remove());
+
+    // Crear notificación
+    const notificacion = document.createElement('div');
+    notificacion.className = `notificacion-inventario fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-xl text-white font-semibold transform transition-all duration-300 ${
+        tipo === 'success' ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
+        tipo === 'error' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
+        tipo === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
+        'bg-gradient-to-r from-blue-500 to-indigo-600'
+    }`;
+    
+    notificacion.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${
+                    tipo === 'success' ? 'M5 13l4 4L19 7' : 
+                    tipo === 'error' ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' :
+                    'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                }"></path>
+            </svg>
+            ${mensaje}
+        </div>
+    `;
+    
+    document.body.appendChild(notificacion);
+    
+    // Animación de entrada
+    setTimeout(() => {
+        notificacion.classList.add('translate-y-0', 'opacity-100');
+        notificacion.classList.remove('-translate-y-4', 'opacity-0');
+    }, 10);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        notificacion.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => {
+            if (notificacion.parentNode) {
+                notificacion.parentNode.removeChild(notificacion);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Sobrescribir las funciones con notificaciones
+async function generarPDFClientesConNotificacion() {
+    await generarPDFClientes();
+}
+
+async function generarPDFNapsConNotificacion() {
+    await generarPDFNaps();
+}
+
+async function generarPDFDistribucionEmpalmes() {
+    mostrarNotificacionPremium('Generando reporte de distribucion y empalmes...', 'info');
+
+    try {
+        const datos = await obtenerDatosReal('/api/naps');
+        const doc = createBasePDF('Distribucion y Empalmes');
+
+        const naps = Array.isArray(datos) ? datos : [];
+        const distribucion = naps.filter(n => n.tipo_caja === 'distribucion');
+        const empalmes = naps.filter(n => n.tipo_caja === 'empalme');
+        const pageWidth = doc.internal.pageSize.width;
+        const c = pdfTheme.colors;
+
+        let y = addCorporateSectionTitle(doc, 'Resumen por tipo de caja', 44);
+
+        doc.setFillColor(...c.tableAlt);
+        doc.rect(14, y, pageWidth - 28, 28, 'F');
+        doc.setDrawColor(...c.tableBorder);
+        doc.setLineWidth(0.3);
+        doc.rect(14, y, pageWidth - 28, 28, 'S');
+
+        doc.setFontSize(9.5);
+        doc.setTextColor(...c.text);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Distribucion (NAP): ${distribucion.length} instaladas`, 18, y + 10);
+        doc.text(`Empalmes: ${empalmes.length} instaladas`, 18, y + 18);
+        doc.text(`Total en red: ${naps.length} cajas`, 18, y + 25);
+
+        function tablaPorTipo(titulo, lista, startY) {
+            let tableY = addCorporateSectionTitle(doc, titulo, startY);
+            if (!lista.length) {
+                doc.setFontSize(9);
+                doc.setTextColor(...c.textMuted);
+                doc.text('Sin cajas registradas de este tipo.', 14, tableY + 4);
+                return tableY + 14;
+            }
+
+            const headers = [['ID', 'NOMBRE', 'MODELO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO']];
+            const rows = lista.map(n => {
+                const usados = n.clientes_count || n.puertos_ocupados || 0;
+                const pct = n.puertos_total > 0 ? Math.round((usados / n.puertos_total) * 100) : 0;
+                return [
+                    n.id,
+                    n.nombre || '',
+                    n.nap_model_nombre || '',
+                    n.puertos_total || 0,
+                    usados,
+                    `${pct}%`,
+                    n.hilo_conexion || '',
+                ];
+            });
+
+            doc.autoTable({
+                head: headers,
+                body: rows,
+                startY: tableY,
+                ...getCorporateTableStyles({
+                    columnStyles: { 5: { halign: 'center', fontStyle: 'bold' } },
+                }),
+            });
+
+            return doc.lastAutoTable.finalY + 12;
+        }
+
+        let nextY = tablaPorTipo('Distribucion (NAP)', distribucion, y + 36);
+        if (nextY > doc.internal.pageSize.height - 60) {
+            doc.addPage();
+            drawCorporatePageHeader(doc, 'Distribucion y Empalmes');
+            nextY = 48;
+        }
+        tablaPorTipo('Empalmes', empalmes, nextY);
+
+        addFooter(doc);
+        doc.save('Reporte_Distribucion_Empalmes_' + new Date().toISOString().split('T')[0] + '.pdf');
+        mostrarNotificacionPremium('Reporte generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando PDF distribucion/empalmes:', error);
+        mostrarNotificacionPremium('Error generando el reporte', 'error');
+    }
+}
+
+async function generarPDFDistribucionEmpalmesConNotificacion() {
+    await generarPDFDistribucionEmpalmes();
+}
+
+// Reemplazar la función del botón "Inventario Completo"
+function mostrarModalInventarioCompleto() {
+    if (confirm('¿Generar inventario completo con todos los datos?\n\nEste proceso puede tomar unos segundos.')) {
+        generarInventarioCompletoReal();
+    }
+}
+
+async function generarPDFAsistenciaCompleto() {
+    mostrarNotificacionPremium('Generando reporte de asistencia...', 'info');
+
+    try {
+        const payload = await obtenerDatosReal('/api/asistencias/export?dias=30');
+        if (!payload) {
+            throw new Error('Sin datos de asistencia');
+        }
+
+        const doc = new jsPDF();
+        doc.setFont('helvetica');
+        const res = payload.resumen || {};
+        const periodo = payload.periodo || {};
+
+        drawCorporateCoverPage(
+            doc,
+            'Reporte de Asistencia Laboral',
+            `Control de entradas y salidas | ${periodo.desde || ''} al ${periodo.hasta || ''}`
+        );
+
+        const pageWidth = doc.internal.pageSize.width;
+        const c = pdfTheme.colors;
+
+        doc.addPage();
+        drawCorporatePageHeader(doc, 'Asistencia - Resumen Ejecutivo');
+        let y = addCorporateSectionTitle(doc, 'Indicadores del periodo', 44);
+
+        doc.setFillColor(...c.tableAlt);
+        doc.rect(14, y, pageWidth - 28, 42, 'F');
+        doc.setDrawColor(...c.tableBorder);
+        doc.setLineWidth(0.3);
+        doc.rect(14, y, pageWidth - 28, 42, 'S');
+
+        doc.setFontSize(9.5);
+        doc.setTextColor(...c.text);
+        doc.setFont('helvetica', 'normal');
+        const lineasResumen = [
+            `Trabajadores activos: ${res.total_trabajadores ?? 0}`,
+            `Registros en periodo: ${res.registros_periodo ?? 0}`,
+            `Entradas: ${res.entradas_periodo ?? 0} | Salidas: ${res.salidas_periodo ?? 0}`,
+            `Personal dentro hoy: ${res.dentro_hoy ?? 0}`,
+            `Entradas hoy: ${res.entradas_hoy ?? 0} | Salidas hoy: ${res.salidas_hoy ?? 0}`,
+        ];
+        lineasResumen.forEach((linea, i) => {
+            doc.text(linea, 18, y + 10 + i * 7);
+        });
+
+        doc.addPage();
+        drawCorporatePageHeader(doc, 'Asistencia - Registro Detallado');
+        const tableStartY = addCorporateSectionTitle(doc, 'Movimientos registrados', 44);
+
+        const registros = payload.registros || [];
+        const headers = [['ID', 'TRABAJADOR', 'TIPO', 'FECHA', 'HORA']];
+        const rows = registros.map(r => [
+            r.id,
+            r.trabajador || '',
+            (r.tipo_label || r.tipo || '').toUpperCase(),
+            r.fecha || '',
+            r.hora || '',
+        ]);
+
+        if (rows.length > 0) {
+            doc.autoTable({
+                head: headers,
+                body: rows,
+                startY: tableStartY,
+                ...getCorporateTableStyles({
+                    columnStyles: { 2: { halign: 'center', fontStyle: 'bold' } },
+                    didParseCell: function(cellData) {
+                        if (cellData.section === 'body' && cellData.column.index === 2) {
+                            const val = String(cellData.cell.raw || '').toUpperCase();
+                            if (val.includes('ENTRADA')) {
+                                cellData.cell.styles.textColor = pdfTheme.colors.success;
+                            } else if (val.includes('SALIDA')) {
+                                cellData.cell.styles.textColor = pdfTheme.colors.primaryMid;
+                            }
+                        }
+                    },
+                }),
+            });
+        } else {
+            doc.setFontSize(10);
+            doc.setTextColor(...c.textMuted);
+            doc.text('No hay registros de asistencia en el periodo seleccionado.', 14, tableStartY + 8);
+        }
+
+        addFooter(doc);
+        doc.save('Reporte_Asistencia_' + new Date().toISOString().split('T')[0] + '.pdf');
+        mostrarNotificacionPremium('Reporte de asistencia generado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error generando PDF de asistencia:', error);
+        mostrarNotificacionPremium('Error generando reporte de asistencia', 'error');
+    }
+}
+
+function mostrarModalAsistenciaCompleto() {
+    if (confirm('¿Generar reporte de asistencia laboral (ultimos 30 dias)?\n\nIncluye resumen ejecutivo y registro detallado.')) {
+        generarPDFAsistenciaCompleto();
+    }
+}
+
+(function () {
+    var fechaEl = document.getElementById('reloj-inventario-fecha');
+    var horaEl = document.getElementById('reloj-inventario-hora');
+    if (!fechaEl || !horaEl) return;
+
+    function pad(n) {
+        return String(n).padStart(2, '0');
+    }
+
+    function actualizarReloj() {
+        var now = new Date();
+        fechaEl.textContent = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear();
+        horaEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    }
+
+    actualizarReloj();
+    setInterval(actualizarReloj, 1000);
+})();
+
+// Inicialización cuando el DOM está listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Asegurar que los botones usen las funciones correctas
+    const btnInventarioCompleto = document.querySelector('[onclick*="mostrarModalInventarioCompleto"]');
+    if (btnInventarioCompleto) {
+        btnInventarioCompleto.onclick = mostrarModalInventarioCompleto;
+    }
+    
+    // También puedes eliminar el atributo onclick antiguo y agregar el nuevo
+    const btns = document.querySelectorAll('button');
+    btns.forEach(btn => {
+        if (btn.onclick && btn.onclick.toString().includes('mostrarModalInventarioCompleto')) {
+            btn.onclick = mostrarModalInventarioCompleto;
+        }
+    });
+});
+
+</script>
+
+<style>
+.notificacion-inventario {
+    transform: translateY(-20px);
+    opacity: 0;
+    animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+</style>
+{% endblock %}

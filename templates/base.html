@@ -1,0 +1,841 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function () {
+            var stored = localStorage.getItem('fibra-theme');
+            if (stored === 'dark') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <title>{% block title %}Fibra Manager{% endblock %}</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Incluir jsPDF y html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4f46e5',
+                        'success': '#10b981',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    {% block head %}{% endblock %}
+    
+    <style>
+        /* ESTILOS FORZADOS EN BLANCO */
+        .nav-link-white {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-gray-700 hover:text-white flex items-center;
+        }
+        
+        .mobile-menu-white {
+            @apply text-white hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium;
+        }
+        
+        .mobile-submenu-white {
+            @apply text-white hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium ml-4;
+        }
+        
+        .dropdown-item-base {
+            @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center;
+        }
+        
+        /* Estilos mejorados para los dropdowns */
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            margin-top: 0.5rem;
+            width: 14rem;
+            border-radius: 0.375rem;
+            background-color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease-in-out;
+            z-index: 50;
+        }
+        
+        .dropdown-container:hover .dropdown-menu,
+        .dropdown-menu:hover {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .dropdown-menu::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 20px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 6px solid white;
+        }
+        
+        /* ESTILO FORZADO PARA EL BOTÓN MÓVIL */
+        .mobile-btn-white {
+            color: white !important;
+        }
+        
+        /* FORZAR BLANCO EN TODO EL NAV EXCEPTO LOS DROPDOWNS */
+        nav a:not(.dropdown-menu a), 
+        nav button {
+            color: white !important;
+        }
+        
+        /* TEXTOS ESPECÍFICOS EN NEGRO */
+        .dropdown-item-base {
+            color: #374151 !important; /* gray-700 */
+        }
+        
+        /* Estilos específicos para los botones de Inventarios */
+        .btn-inventarios {
+            background: linear-gradient(135deg, #ffffff00, #ffffff00);
+        }
+        
+        .btn-inventarios:hover {
+            background: linear-gradient(135deg, #ffffff00, #ffffff00);
+        }
+        
+        /* Estilos para tabla de inventario */
+        .pdf-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+        
+        .pdf-table th {
+            background-color: #4f46e5;
+            color: white;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .pdf-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        
+        .pdf-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Componentes UI (adaptan modo claro y oscuro) */
+        .fm-card {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+        }
+        .fm-subcard {
+            background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+            border: 1px solid #e5e7eb;
+        }
+        .fm-panel {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid #e2e8f0;
+        }
+        .fm-table-wrap {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+        }
+        .fm-table-body {
+            background-color: #ffffff;
+        }
+        .fm-info-box {
+            background: linear-gradient(to right, #ecfdf5, #f0fdf4);
+            border: 1px solid #a7f3d0;
+        }
+        .fm-badge-pill {
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+        .fm-deco-circle {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .fm-select {
+            background-color: #ffffff;
+            border-color: #d1d5db;
+            color: #0f172a;
+        }
+        .fm-tag-indigo {
+            background: linear-gradient(to right, #e0e7ff, #ede9fe);
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+        }
+        .fm-tag-green {
+            background: linear-gradient(to right, #d1fae5, #ecfdf5);
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .fm-tag-red {
+            background: linear-gradient(to right, #fee2e2, #fce7f3);
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .fm-tag-blue {
+            background: linear-gradient(to right, #dbeafe, #bfdbfe);
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .fm-id-badge {
+            background: linear-gradient(to right, #d1fae5, #ecfdf5);
+            color: #065f46;
+        }
+        .fm-img-placeholder {
+            background: linear-gradient(to right, #f1f5f9, #e2e8f0);
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+        }
+        .fm-model-img {
+            background-color: #f8fafc;
+            border-color: #e2e8f0;
+        }
+        .fm-tag-amber {
+            background: linear-gradient(to right, #fef3c7, #fde68a);
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        /* --- Tema oscuro (paleta alineada con indigo del sistema) --- */
+        :root {
+            --fm-bg: #f8fafc;
+            --fm-surface: #ffffff;
+            --fm-surface-hover: #f1f5f9;
+            --fm-border: #e2e8f0;
+            --fm-text: #0f172a;
+            --fm-text-secondary: #475569;
+            --fm-text-muted: #94a3b8;
+            --fm-accent: #4f46e5;
+            --fm-accent-light: #818cf8;
+            --fm-nav: #1f2937;
+            --fm-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+            --fm-shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.12);
+        }
+
+        html.dark {
+            color-scheme: dark;
+            --fm-bg: #0c1222;
+            --fm-surface: #151d2e;
+            --fm-surface-hover: #1c2740;
+            --fm-border: #2a3548;
+            --fm-text: #f1f5f9;
+            --fm-text-secondary: #cbd5e1;
+            --fm-text-muted: #8896ab;
+            --fm-accent: #818cf8;
+            --fm-accent-light: #a5b4fc;
+            --fm-nav: #0f1628;
+            --fm-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+            --fm-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        html.dark body {
+            background-color: var(--fm-bg);
+            color: var(--fm-text-secondary);
+        }
+
+        html.dark h1, html.dark h2, html.dark h3, html.dark h4 {
+            color: var(--fm-text);
+        }
+
+        html.dark nav {
+            background: linear-gradient(180deg, #151d2e 0%, var(--fm-nav) 100%) !important;
+            border-bottom: 1px solid var(--fm-border) !important;
+            box-shadow: var(--fm-shadow);
+        }
+
+        html.dark nav a.nav-link-white:hover,
+        html.dark nav a.mobile-menu-white:hover,
+        html.dark nav a.mobile-submenu-white:hover {
+            background-color: rgba(99, 102, 241, 0.18) !important;
+            border-radius: 0.375rem;
+        }
+
+        html.dark .dropdown-menu {
+            background-color: var(--fm-surface);
+            border-color: var(--fm-border);
+            box-shadow: var(--fm-shadow-lg);
+        }
+        html.dark .dropdown-menu::before { border-bottom-color: var(--fm-surface); }
+        html.dark .dropdown-item-base {
+            color: var(--fm-text-secondary) !important;
+        }
+        html.dark .dropdown-item-base:hover {
+            background-color: var(--fm-surface-hover) !important;
+            color: var(--fm-text) !important;
+        }
+
+        html.dark .bg-white {
+            background-color: var(--fm-surface) !important;
+            color: var(--fm-text-secondary);
+        }
+        html.dark .bg-gray-50,
+        html.dark .bg-gray-100 {
+            background-color: var(--fm-bg) !important;
+        }
+        html.dark .bg-gray-200 {
+            background-color: var(--fm-border) !important;
+        }
+
+        /* Fondos de estado: tintes suaves, no colores saturados */
+        html.dark .bg-green-50 { background-color: rgba(16, 185, 129, 0.1) !important; }
+        html.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.1) !important; }
+        html.dark .bg-purple-50 { background-color: rgba(139, 92, 246, 0.1) !important; }
+        html.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.1) !important; }
+        html.dark .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.1) !important; }
+        html.dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.1) !important; }
+        html.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.12) !important; }
+        html.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.1) !important; }
+        html.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.1) !important; }
+        html.dark .bg-pink-50 { background-color: rgba(236, 72, 153, 0.1) !important; }
+        html.dark .bg-slate-50 { background-color: var(--fm-bg) !important; }
+
+        html.dark .from-gray-50 { --tw-gradient-from: var(--fm-bg) !important; }
+        html.dark .to-gray-100 { --tw-gradient-to: var(--fm-surface) !important; }
+        html.dark .from-gray-50.to-slate-50,
+        html.dark [class*="from-gray-50"][class*="to-slate"] {
+            background: linear-gradient(to right, var(--fm-surface), var(--fm-bg)) !important;
+        }
+        html.dark .from-blue-50, html.dark .to-indigo-50 {
+            background: linear-gradient(to right, rgba(59, 130, 246, 0.08), rgba(99, 102, 241, 0.08)) !important;
+        }
+
+        html.dark .text-gray-900,
+        html.dark .text-gray-800,
+        html.dark .text-gray-700 { color: var(--fm-text) !important; }
+        html.dark .text-gray-600,
+        html.dark .text-gray-500,
+        html.dark .text-gray-400 { color: var(--fm-text-muted) !important; }
+
+        html.dark .text-indigo-700,
+        html.dark .text-indigo-600 { color: var(--fm-accent-light) !important; }
+        html.dark .text-indigo-500 { color: #6366f1 !important; }
+        html.dark .text-green-600, html.dark .text-green-700 { color: #34d399 !important; }
+        html.dark .text-green-800 { color: #6ee7b7 !important; }
+        html.dark .text-blue-600, html.dark .text-blue-700 { color: #60a5fa !important; }
+        html.dark .text-blue-800 { color: #93c5fd !important; }
+        html.dark .text-purple-600, html.dark .text-purple-700 { color: #a78bfa !important; }
+        html.dark .text-purple-800 { color: #c4b5fd !important; }
+        html.dark .text-red-600, html.dark .text-red-700 { color: #f87171 !important; }
+        html.dark .text-amber-600, html.dark .text-amber-700 { color: #fbbf24 !important; }
+        html.dark .text-emerald-600 { color: #34d399 !important; }
+        html.dark .text-orange-600 { color: #fb923c !important; }
+        html.dark .text-pink-700 { color: #f472b6 !important; }
+
+        html.dark .border,
+        html.dark .border-gray-100,
+        html.dark .border-gray-200,
+        html.dark .border-gray-300,
+        html.dark .border-slate-700 {
+            border-color: var(--fm-border) !important;
+        }
+
+        html.dark input,
+        html.dark select,
+        html.dark textarea {
+            background-color: var(--fm-surface-hover);
+            color: var(--fm-text);
+            border-color: var(--fm-border);
+        }
+        html.dark input:focus,
+        html.dark select:focus,
+        html.dark textarea:focus {
+            border-color: var(--fm-accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+        }
+        html.dark input::placeholder,
+        html.dark textarea::placeholder { color: var(--fm-text-muted); }
+
+        html.dark table { color: var(--fm-text-secondary); }
+        html.dark table thead,
+        html.dark thead tr {
+            background-color: var(--fm-surface-hover) !important;
+            color: var(--fm-text) !important;
+        }
+        html.dark tbody tr {
+            border-color: var(--fm-border);
+        }
+        html.dark tbody tr:hover {
+            background-color: var(--fm-surface-hover) !important;
+        }
+
+        html.dark .pdf-table th {
+            background-color: #4338ca;
+            color: #e0e7ff;
+        }
+        html.dark .pdf-table td {
+            border-color: var(--fm-border);
+            color: var(--fm-text-secondary);
+            background-color: var(--fm-surface);
+        }
+        html.dark .pdf-table tr:nth-child(even) td {
+            background-color: var(--fm-surface-hover);
+        }
+
+        html.dark .shadow,
+        html.dark .shadow-sm { box-shadow: var(--fm-shadow) !important; }
+        html.dark .shadow-lg,
+        html.dark .shadow-xl,
+        html.dark .shadow-2xl { box-shadow: var(--fm-shadow-lg) !important; }
+        html.dark .hover-lift:hover { box-shadow: var(--fm-shadow-lg) !important; }
+
+        html.dark .hover\:bg-gray-50:hover,
+        html.dark .hover\:bg-gray-100:hover {
+            background-color: var(--fm-surface-hover) !important;
+        }
+
+        html.dark a.border-gray-300,
+        html.dark button.border-gray-300 {
+            border-color: var(--fm-border) !important;
+            color: var(--fm-text-secondary);
+        }
+        html.dark a.border-gray-300:hover {
+            background-color: var(--fm-surface-hover) !important;
+            color: var(--fm-text);
+        }
+
+        html.dark .bg-indigo-600,
+        html.dark .bg-indigo-700 {
+            background-color: #4f46e5 !important;
+        }
+        html.dark .bg-indigo-600:hover,
+        html.dark .hover\:bg-indigo-700:hover {
+            background-color: #6366f1 !important;
+        }
+
+        html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+            border-color: var(--fm-border);
+        }
+
+        html.dark .ring-gray-200 { --tw-ring-color: var(--fm-border); }
+
+        html.dark .bg-gradient-to-r.from-red-500 {
+            opacity: 0.95;
+        }
+
+        html.dark .glass-effect {
+            background: rgba(21, 29, 46, 0.92) !important;
+            border-color: rgba(42, 53, 72, 0.85) !important;
+        }
+        html.dark .table-row-hover:hover {
+            background: linear-gradient(90deg, #151d2e 0%, #1c2740 100%) !important;
+        }
+        html.dark .client-status-active {
+            border-left-color: #34d399 !important;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, transparent 100%) !important;
+        }
+        html.dark .client-status-inactive {
+            border-left-color: #f87171 !important;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%) !important;
+        }
+        html.dark .search-glow:focus {
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.28) !important;
+        }
+        html.dark .from-violet-50, html.dark .to-purple-50,
+        html.dark .from-pink-50, html.dark .to-rose-50,
+        html.dark .from-cyan-50, html.dark .to-blue-50 {
+            background: var(--fm-surface) !important;
+        }
+        html.dark [class*="from-"][class*="50"][class*="to-"] {
+            border: 1px solid var(--fm-border);
+        }
+        html.dark .gradient-text {
+            background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        html.dark .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.28) !important;
+            border-color: var(--fm-accent) !important;
+        }
+        html.dark .modal-content,
+        html.dark [class*="rounded-2xl"].bg-white {
+            background-color: var(--fm-surface) !important;
+        }
+
+        html.dark .fm-card,
+        html.dark .fm-table-wrap,
+        html.dark .fm-table-body {
+            background-color: var(--fm-surface) !important;
+            border-color: var(--fm-border) !important;
+        }
+        html.dark .fm-subcard {
+            background: var(--fm-surface-hover) !important;
+            border-color: var(--fm-border) !important;
+        }
+        html.dark .fm-panel,
+        html.dark .glass-effect.fm-panel {
+            background: rgba(21, 29, 46, 0.96) !important;
+            border-color: var(--fm-border) !important;
+        }
+        html.dark .fm-info-box {
+            background: linear-gradient(to right, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0.06)) !important;
+            border-color: rgba(16, 185, 129, 0.28) !important;
+        }
+        html.dark .fm-badge-pill {
+            background-color: var(--fm-surface-hover) !important;
+            color: var(--fm-text-secondary) !important;
+            border: 1px solid var(--fm-border);
+        }
+        html.dark .fm-deco-circle {
+            background-color: rgba(255, 255, 255, 0.12) !important;
+        }
+        html.dark .fm-select {
+            background-color: var(--fm-surface-hover) !important;
+            border-color: var(--fm-border) !important;
+            color: var(--fm-text) !important;
+        }
+        html.dark .fm-tag-indigo {
+            background: rgba(99, 102, 241, 0.2) !important;
+            color: #c7d2fe !important;
+            border-color: rgba(99, 102, 241, 0.35) !important;
+        }
+        html.dark .fm-tag-green {
+            background: rgba(16, 185, 129, 0.18) !important;
+            color: #6ee7b7 !important;
+            border-color: rgba(16, 185, 129, 0.35) !important;
+        }
+        html.dark .fm-tag-red {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #fca5a5 !important;
+            border-color: rgba(239, 68, 68, 0.35) !important;
+        }
+        html.dark .fm-tag-blue {
+            background: rgba(59, 130, 246, 0.18) !important;
+            color: #93c5fd !important;
+            border-color: rgba(59, 130, 246, 0.35) !important;
+        }
+        html.dark .fm-tag-amber {
+            background: rgba(245, 158, 11, 0.18) !important;
+            color: #fcd34d !important;
+            border-color: rgba(245, 158, 11, 0.35) !important;
+        }
+        html.dark .fm-id-badge {
+            background: rgba(16, 185, 129, 0.18) !important;
+            color: #6ee7b7 !important;
+        }
+        html.dark .fm-img-placeholder {
+            background: var(--fm-surface-hover) !important;
+            border-color: var(--fm-border) !important;
+            color: var(--fm-text-muted) !important;
+        }
+        html.dark .fm-model-img {
+            background-color: var(--fm-surface-hover) !important;
+            border-color: var(--fm-border) !important;
+        }
+        html.dark .bg-indigo-100 {
+            background-color: rgba(99, 102, 241, 0.2) !important;
+        }
+        html.dark .text-indigo-800 { color: #c7d2fe !important; }
+        html.dark .border-indigo-200,
+        html.dark .border-green-200,
+        html.dark .border-red-200,
+        html.dark .border-blue-200,
+        html.dark .border-emerald-200 { border-color: var(--fm-border) !important; }
+        html.dark .text-emerald-800 { color: #6ee7b7 !important; }
+        html.dark .from-emerald-600.bg-clip-text,
+        html.dark .from-blue-600.bg-clip-text {
+            -webkit-text-fill-color: #93c5fd;
+            color: #93c5fd;
+        }
+        html.dark .bg-gradient-to-r.from-emerald-100,
+        html.dark .bg-gradient-to-r.from-green-100,
+        html.dark .bg-gradient-to-r.from-indigo-100,
+        html.dark .bg-gradient-to-r.from-purple-100,
+        html.dark .bg-gradient-to-r.from-red-100,
+        html.dark .bg-gradient-to-r.from-pink-100,
+        html.dark .bg-gradient-to-r.from-blue-100,
+        html.dark .bg-gradient-to-r.from-gray-100,
+        html.dark .bg-gradient-to-br.from-white {
+            background-image: none !important;
+        }
+        html.dark .hover\:bg-yellow-100:hover {
+            background-color: rgba(234, 179, 8, 0.15) !important;
+        }
+        html.dark .hover\:bg-red-100:hover {
+            background-color: rgba(239, 68, 68, 0.15) !important;
+        }
+        html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+        html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+            border-color: var(--fm-border) !important;
+        }
+        html.dark tbody tr { background-color: transparent !important; }
+        html.dark thead[class*="from-emerald-700"] {
+            background: linear-gradient(to right, #064e3b, #14532d) !important;
+        }
+        html.dark thead[class*="from-gray-800"] {
+            background: linear-gradient(to right, #1e293b, #0f1628) !important;
+        }
+        html.dark thead[class*="from-indigo-700"] {
+            background: linear-gradient(to right, #3730a3, #5b21b6) !important;
+        }
+
+        /* Botón flotante de tema */
+        #theme-toggle {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 100;
+            width: 3.25rem;
+            height: 3.25rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        #theme-toggle:hover { transform: scale(1.08); }
+        html:not(.dark) #theme-toggle {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: white;
+        }
+        html.dark #theme-toggle {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: #e0e7ff;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
+        }
+        #theme-toggle .theme-icon-hidden { display: none; }
+    </style>
+    
+    <!-- Responsive Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3B82F6">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Fibra Manager">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+</head>
+<body class="bg-gray-50 min-h-screen transition-colors duration-300">
+
+    <nav class="bg-gray-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a class="flex-shrink-0 text-white text-xl font-extrabold flex items-center" href="{{ url_for('dashboard') }}">
+                        <svg class="w-6 h-6 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 3m0 0l-3 3m3-3h18M3 12h18M3 18l3-3m0 0l-3-3m3 3h18"></path></svg>
+                        Fibra Manager
+                    </a>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        
+                        <a href="{{ url_for('dashboard') }}" class="nav-link-white">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            Dashboard
+                        </a>
+                        
+                        <a href="{{ url_for('mapa_nats') }}" class="nav-link-white">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Mapa Geográfico
+                        </a>
+
+                        <div class="dropdown-container">
+                            <a href="#" class="nav-link-white cursor-pointer">
+                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12h14m-8 6h-6m6 0h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 104 0"></path></svg>
+                                Inventario Lógico
+                            </a>
+                            <div class="dropdown-menu">
+                                <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                    <!-- AGREGADO: Listado de Clientes -->
+                                    <a href="{{ url_for('listar_clientes') }}" class="dropdown-item-base" role="menuitem">
+                                        <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M9 10a3 3 0 11-6 0 3 3 0 016 0zm3 9a6 6 0 00-9-5.143v1.286A6 6 0 0015 21H9z"></path></svg>
+                                        👥 Listado de Clientes
+                                    </a>
+                                    <a href="{{ url_for('index') }}" class="dropdown-item-base" role="menuitem">
+                                        <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8-4v10m0 0l-8-4m8 4l8-4m-8 4v10l-8 4m0-10v6m16-6v6"></path></svg>
+                                        📡 Cajas NAP/Empalme
+                                    </a>
+                                    <!-- NUEVA OPCIÓN: Potencias -->
+                                    <a href="/potencias" class="dropdown-item-base" role="menuitem">
+                                        <svg class="w-5 h-5 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        ⚡ Potencias
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-container">
+                            <a href="#" class="nav-link-white">
+                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                Configuración/Física
+                            </a>
+                            <div class="dropdown-menu">
+                                <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                    <!-- NUEVO: Repositorio de Archivos -->
+                                    <a href="/repositorio" class="dropdown-item-base" role="menuitem">
+                                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                        </svg>
+                                        📁 Repositorio
+                                    </a>
+                                    <!-- ACTUALIZADO: Ahora apunta al listado combinado -->
+                                    <a href="{{ url_for('listar_nap_models') }}" class="dropdown-item-base" role="menuitem">
+                                        <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a2 2 0 012 2v5a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zM7 7V5h5v2H7zM17 7h.01M17 3h5a2 2 0 012 2v5a2 2 0 01-2 2h-5a2 2 0 01-2-2V5a2 2 0 012-2zM17 7V5h5v2h-5zM7 17h.01M7 13h5a2 2 0 012 2v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5a2 2 0 012-2zM7 17v-2h5v2H7zM17 17h.01M17 13h5a2 2 0 012 2v5a2 2 0 01-2 2h-5a2 2 0 01-2-2v-5a2 2 0 012-2zM17 17v-2h5v2h-5z"></path></svg>
+                                        📦 Modelos de Cajas (Catálogo)
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- ⭐⭐⭐ NUEVO: Botón de Inventarios -->
+                        <div class="dropdown-container">
+                            <a href="#" class="nav-link-white btn-inventarios">
+                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Gestión
+                            </a>
+                            <div class="dropdown-menu">
+                                <div class="py-1" role="menu" aria-orientation="vertical">
+                                    <a href="{{ url_for('inventarios') }}" class="dropdown-item-base" role="menuitem">
+                                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Gestión de Inventarios
+                                    </a>
+                                    <a href="{{ url_for('gestion_asistencias') }}" class="dropdown-item-base" role="menuitem">
+                                        <svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        Gestión de Asistencias
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                
+                <div class="-mr-2 flex md:hidden">
+                    <button id="mobile-menu-button" type="button" class="mobile-btn-white inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Abrir menú principal</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="{{ url_for('dashboard') }}" class="mobile-menu-white">Dashboard</a>
+                <a href="{{ url_for('mapa_nats') }}" class="mobile-menu-white">Mapa Geográfico</a>
+                
+                <!-- AGREGADO: Menú móvil con Listado de Clientes -->
+                <a href="{{ url_for('listar_clientes') }}" class="mobile-submenu-white">↳ 👥 Listado de Clientes</a>
+                <a href="{{ url_for('index') }}" class="mobile-submenu-white">↳ 📡 Cajas NAP/Empalme</a>
+                <!-- NUEVA OPCIÓN: Potencias (móvil) -->
+                <a href="/potencias" class="mobile-submenu-white">↳ ⚡ Potencias</a>
+                
+                <!-- AGREGADO: Menú móvil para Repositorio -->
+                <a href="/repositorio" class="mobile-submenu-white">↳ 📁 Repositorio</a>
+                <!-- ACTUALIZADO: Menú móvil con nueva ruta -->
+                <a href="{{ url_for('listar_nap_models') }}" class="mobile-submenu-white">↳ 📦 Modelos de Cajas (Catálogo)</a>
+                
+                <a href="{{ url_for('inventarios') }}" class="mobile-submenu-white">↳ Gestión de Inventarios</a>
+                <a href="{{ url_for('gestion_asistencias') }}" class="mobile-submenu-white">↳ Gestión de Asistencias</a>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="w-full mb-4">
+                    {% for category, message in messages %}
+                        {% set bg_color = 'bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-700 text-red-700 dark:text-red-200' if category == 'danger' or category == 'error' else 'bg-green-100 dark:bg-green-900/40 border-green-400 dark:border-green-700 text-green-700 dark:text-green-200' %}
+                        <div class="{{ bg_color }} border px-4 py-3 rounded relative mb-2 flex justify-between items-center" role="alert">
+                            <span class="block sm:inline">{{ message }}</span>
+                            <span class="cursor-pointer ml-4" onclick="this.parentElement.style.display='none';">>
+                                <svg class="fill-current h-6 w-6 text-{{ 'red' if category == 'danger' or category == 'error' else 'green' }}-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 01-1.697 0L10 11.819l-2.651 3.03a1.2 1.2 0 11-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 111.697-1.697L10 8.183l2.651-3.03a1.2 1.2 0 111.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 010 1.698z"/></svg>
+                            </span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <button type="button" id="theme-toggle" aria-label="Cambiar tema claro u oscuro" title="Cambiar tema">
+        <svg id="theme-icon-sun" class="w-6 h-6 theme-icon-hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <svg id="theme-icon-moon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+    </button>
+
+    <script>
+        (function () {
+            var STORAGE_KEY = 'fibra-theme';
+            var btn = document.getElementById('theme-toggle');
+            var iconSun = document.getElementById('theme-icon-sun');
+            var iconMoon = document.getElementById('theme-icon-moon');
+            var metaTheme = document.querySelector('meta[name="theme-color"]');
+
+            function syncIcons() {
+                var isDark = document.documentElement.classList.contains('dark');
+                iconSun.classList.toggle('theme-icon-hidden', !isDark);
+                iconMoon.classList.toggle('theme-icon-hidden', isDark);
+                if (metaTheme) metaTheme.setAttribute('content', isDark ? '#0c1222' : '#4f46e5');
+            }
+
+            function applyTheme(mode) {
+                var isDark = mode === 'dark';
+                document.documentElement.classList.toggle('dark', isDark);
+                localStorage.setItem(STORAGE_KEY, mode);
+                syncIcons();
+            }
+
+            btn.addEventListener('click', function () {
+                applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
+            });
+
+            syncIcons();
+        })();
+
+        document.getElementById('mobile-menu-button')?.addEventListener('click', function () {
+            var menu = document.getElementById('mobile-menu');
+            if (menu) menu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

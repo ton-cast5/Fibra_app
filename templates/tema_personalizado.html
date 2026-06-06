@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Personalización - Fibra Manager{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --primary-color: {{ config.primary_color|default('#3B82F6') }};
+        --secondary-color: {{ config.secondary_color|default('#1E40AF') }};
+        --accent-color: {{ config.accent_color|default('#10B981') }};
+        --background-color: {{ config.background_color|default('#F8FAFC') }};
+        --text-color: {{ config.text_color|default('#1F2937') }};
+        --border-radius: {{ config.border_radius|default('12') }}px;
+    }
+    
+    .theme-preview {
+        background: var(--background-color);
+        color: var(--text-color);
+        border-radius: var(--border-radius);
+        transition: all 0.3s ease;
+    }
+    
+    .color-option {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 3px solid transparent;
+    }
+    
+    .color-option:hover {
+        transform: scale(1.1);
+    }
+    
+    .color-option.active {
+        border-color: #1F2937;
+        transform: scale(1.1);
+    }
+    
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .theme-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .theme-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .theme-card.active {
+        border: 3px solid var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-12 fade-in-up">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                🎨 Personalización
+            </h1>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Personaliza la apariencia de tu sistema Fibra Manager según tus preferencias
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Panel de Personalización -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 fade-in-up">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Configuración de Tema</h2>
+                    
+                    <!-- Selector de Tema Predefinido -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Temas Predefinidos</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="theme-card bg-blue-500 text-white p-4 rounded-xl text-center active" data-theme="blue">
+                                <div class="text-2xl mb-2">🔵</div>
+                                <div class="font-semibold">Azul Corporativo</div>
+                            </div>
+                            <div class="theme-card bg-green-500 text-white p-4 rounded-xl text-center" data-theme="green">
+                                <div class="text-2xl mb-2">🟢</div>
+                                <div class="font-semibold">Verde Natural</div>
+                            </div>
+                            <div class="theme-card bg-purple-500 text-white p-4 rounded-xl text-center" data-theme="purple">
+                                <div class="text-2xl mb-2">🟣</div>
+                                <div class="font-semibold">Púrpura Creativo</div>
+                            </div>
+                            <div class="theme-card bg-orange-500 text-white p-4 rounded-xl text-center" data-theme="orange">
+                                <div class="text-2xl mb-2">🟠</div>
+                                <div class="font-semibold">Naranja Energía</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personalización Avanzada -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Personalización Avanzada</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Color Primario -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Color Primario</label>
+                                <input type="color" id="primaryColor" value="#3B82F6" class="w-full h-12 rounded-lg cursor-pointer">
+                            </div>
+                            
+                            <!-- Color Secundario -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Color Secundario</label>
+                                <input type="color" id="secondaryColor" value="#1E40AF" class="w-full h-12 rounded-lg cursor-pointer">
+                            </div>
+                            
+                            <!-- Color de Acento -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Color de Acento</label>
+                                <input type="color" id="accentColor" value="#10B981" class="w-full h-12 rounded-lg cursor-pointer">
+                            </div>
+                            
+                            <!-- Radio de Bordes -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Radio de Bordes</label>
+                                <input type="range" id="borderRadius" min="0" max="20" value="12" class="w-full">
+                                <div class="text-sm text-gray-500 text-center mt-1" id="borderRadiusValue">12px</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modo Oscuro/Claro -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Modo de Visualización</h3>
+                        <div class="flex space-x-4">
+                            <button id="lightMode" class="flex-1 bg-white border-2 border-blue-500 text-blue-600 py-3 px-4 rounded-xl font-semibold transition-all duration-300 active">
+                                ☀️ Modo Claro
+                            </button>
+                            <button id="darkMode" class="flex-1 bg-gray-800 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300">
+                                🌙 Modo Oscuro
+                            </button>
+                            <button id="autoMode" class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300">
+                                ⚡ Automático
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="flex space-x-4">
+                        <button onclick="aplicarTema()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105">
+                            💾 Aplicar Tema
+                        </button>
+                        <button onclick="resetTema()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300">
+                            🔄 Restablecer
+                        </button>
+                        <button onclick="exportarTema()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300">
+                            📤 Exportar Tema
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista Previa -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-2xl shadow-xl p-6 sticky top-8 fade-in-up" style="animation-delay: 0.2s">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Vista Previa</h2>
+                    
+                    <div id="themePreview" class="theme-preview p-6 rounded-2xl space-y-4">
+                        <!-- Header de Vista Previa -->
+                        <div class="flex items-center justify-between p-4 rounded-xl" style="background: var(--primary-color); color: white;">
+                            <div class="font-bold text-lg">Fibra Manager</div>
+                            <div class="flex space-x-2">
+                                <div class="w-3 h-3 bg-white rounded-full"></div>
+                                <div class="w-3 h-3 bg-white rounded-full"></div>
+                                <div class="w-3 h-3 bg-white rounded-full"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tarjeta de Métrica -->
+                        <div class="p-4 rounded-xl" style="background: var(--secondary-color); color: white;">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div class="text-2xl font-bold">1,248</div>
+                                    <div class="text-sm opacity-90">Clientes Activos</div>
+                                </div>
+                                <div class="text-2xl">👥</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botones -->
+                        <div class="flex space-x-2">
+                            <button class="flex-1 py-2 px-4 rounded-lg text-white font-semibold text-center" style="background: var(--accent-color);">
+                                Acción Primaria
+                            </button>
+                            <button class="flex-1 py-2 px-4 rounded-lg border text-center" style="border-color: var(--primary-color); color: var(--primary-color);">
+                                Secundario
+                            </button>
+                        </div>
+                        
+                        <!-- Lista de Items -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-white bg-opacity-50">
+                                <span>Item de lista 1</span>
+                                <span>→</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-white bg-opacity-50">
+                                <span>Item de lista 2</span>
+                                <span>→</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Código del Tema -->
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">CSS Personalizado</h3>
+                        <div class="bg-gray-800 text-green-400 p-4 rounded-xl font-mono text-sm overflow-x-auto">
+                            <pre id="themeCode">:root {
+  --primary-color: #3B82F6;
+  --secondary-color: #1E40AF;
+  --accent-color: #10B981;
+  --border-radius: 12px;
+}</pre>
+                        </div>
+                        <button onclick="copiarCSS()" class="w-full mt-3 bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-300">
+                            📋 Copiar CSS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Configuración inicial del tema
+let currentTheme = {
+    primary: '#3B82F6',
+    secondary: '#1E40AF',
+    accent: '#10B981',
+    borderRadius: 12,
+    mode: 'light'
+};
+
+// Actualizar vista previa en tiempo real
+function actualizarVistaPrevia() {
+    document.documentElement.style.setProperty('--primary-color', currentTheme.primary);
+    document.documentElement.style.setProperty('--secondary-color', currentTheme.secondary);
+    document.documentElement.style.setProperty('--accent-color', currentTheme.accent);
+    document.documentElement.style.setProperty('--border-radius', currentTheme.borderRadius + 'px');
+    
+    // Actualizar código CSS
+    document.getElementById('themeCode').textContent = `:root {
+  --primary-color: ${currentTheme.primary};
+  --secondary-color: ${currentTheme.secondary};
+  --accent-color: ${currentTheme.accent};
+  --border-radius: ${currentTheme.borderRadius}px;
+}`;
+}
+
+// Event Listeners para controles de color
+document.getElementById('primaryColor').addEventListener('input', function(e) {
+    currentTheme.primary = e.target.value;
+    actualizarVistaPrevia();
+});
+
+document.getElementById('secondaryColor').addEventListener('input', function(e) {
+    currentTheme.secondary = e.target.value;
+    actualizarVistaPrevia();
+});
+
+document.getElementById('accentColor').addEventListener('input', function(e) {
+    currentTheme.accent = e.target.value;
+    actualizarVistaPrevia();
+});
+
+document.getElementById('borderRadius').addEventListener('input', function(e) {
+    currentTheme.borderRadius = e.target.value;
+    document.getElementById('borderRadiusValue').textContent = e.target.value + 'px';
+    actualizarVistaPrevia();
+});
+
+// Temas predefinidos
+const temasPredefinidos = {
+    blue: {
+        primary: '#3B82F6',
+        secondary: '#1E40AF',
+        accent: '#10B981'
+    },
+    green: {
+        primary: '#10B981',
+        secondary: '#047857',
+        accent: '#3B82F6'
+    },
+    purple: {
+        primary: '#8B5CF6',
+        secondary: '#7C3AED',
+        accent: '#EC4899'
+    },
+    orange: {
+        primary: '#F59E0B',
+        secondary: '#D97706',
+        accent: '#EF4444'
+    }
+};
+
+document.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', function() {
+        // Remover clase active de todos
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        // Agregar clase active al clickeado
+        this.classList.add('active');
+        
+        const tema = this.dataset.theme;
+        const colores = temasPredefinidos[tema];
+        
+        // Actualizar controles
+        document.getElementById('primaryColor').value = colores.primary;
+        document.getElementById('secondaryColor').value = colores.secondary;
+        document.getElementById('accentColor').value = colores.accent;
+        
+        // Actualizar tema actual
+        currentTheme.primary = colores.primary;
+        currentTheme.secondary = colores.secondary;
+        currentTheme.accent = colores.accent;
+        
+        actualizarVistaPrevia();
+    });
+});
+
+// Modos de visualización
+document.getElementById('lightMode').addEventListener('click', function() {
+    document.querySelectorAll('#lightMode, #darkMode, #autoMode').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    this.classList.add('active', 'bg-blue-500', 'text-white');
+    currentTheme.mode = 'light';
+    aplicarModoVisualizacion();
+});
+
+document.getElementById('darkMode').addEventListener('click', function() {
+    document.querySelectorAll('#lightMode, #darkMode, #autoMode').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    this.classList.add('active', 'bg-blue-500', 'text-white');
+    currentTheme.mode = 'dark';
+    aplicarModoVisualizacion();
+});
+
+document.getElementById('autoMode').addEventListener('click', function() {
+    document.querySelectorAll('#lightMode, #darkMode, #autoMode').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    this.classList.add('active', 'bg-blue-500', 'text-white');
+    currentTheme.mode = 'auto';
+    aplicarModoVisualizacion();
+});
+
+function aplicarModoVisualizacion() {
+    if (currentTheme.mode === 'dark' || (currentTheme.mode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+}
+
+// Funciones de acción
+function aplicarTema() {
+    // Guardar tema en localStorage
+    localStorage.setItem('fibraManagerTheme', JSON.stringify(currentTheme));
+    
+    // Aplicar tema globalmente
+    aplicarModoVisualizacion();
+    
+    // Mostrar notificación
+    if (typeof notificationSystem !== 'undefined') {
+        notificationSystem.show('🎨 Tema aplicado exitosamente', 'success');
+    }
+    
+    console.log('Tema aplicado:', currentTheme);
+}
+
+function resetTema() {
+    currentTheme = {
+        primary: '#3B82F6',
+        secondary: '#1E40AF',
+        accent: '#10B981',
+        borderRadius: 12,
+        mode: 'light'
+    };
+    
+    // Actualizar controles
+    document.getElementById('primaryColor').value = currentTheme.primary;
+    document.getElementById('secondaryColor').value = currentTheme.secondary;
+    document.getElementById('accentColor').value = currentTheme.accent;
+    document.getElementById('borderRadius').value = currentTheme.borderRadius;
+    document.getElementById('borderRadiusValue').textContent = currentTheme.borderRadius + 'px';
+    
+    // Resetear temas predefinidos
+    document.querySelectorAll('.theme-card').forEach(card => {
+        card.classList.remove('active');
+        if (card.dataset.theme === 'blue') {
+            card.classList.add('active');
+        }
+    });
+    
+    // Resetear modo
+    document.querySelectorAll('#lightMode, #darkMode, #autoMode').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    document.getElementById('lightMode').classList.add('active', 'bg-blue-500', 'text-white');
+    
+    actualizarVistaPrevia();
+    
+    if (typeof notificationSystem !== 'undefined') {
+        notificationSystem.show('🔄 Tema restablecido', 'info');
+    }
+}
+
+function exportarTema() {
+    const temaData = {
+        nombre: 'Tema Personalizado Fibra Manager',
+        version: '1.0',
+        fecha: new Date().toISOString(),
+        config: currentTheme
+    };
+    
+    const blob = new Blob([JSON.stringify(temaData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'tema-fibra-manager.json';
+    link.click();
+    
+    if (typeof notificationSystem !== 'undefined') {
+        notificationSystem.show('📤 Tema exportado exitosamente', 'success');
+    }
+}
+
+function copiarCSS() {
+    const cssCode = document.getElementById('themeCode').textContent;
+    navigator.clipboard.writeText(cssCode).then(() => {
+        if (typeof notificationSystem !== 'undefined') {
+            notificationSystem.show('📋 CSS copiado al portapapeles', 'success');
+        }
+    });
+}
+
+// Cargar tema guardado al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    const temaGuardado = localStorage.getItem('fibraManagerTheme');
+    if (temaGuardado) {
+        currentTheme = JSON.parse(temaGuardado);
+        
+        // Actualizar controles con tema guardado
+        document.getElementById('primaryColor').value = currentTheme.primary;
+        document.getElementById('secondaryColor').value = currentTheme.secondary;
+        document.getElementById('accentColor').value = currentTheme.accent;
+        document.getElementById('borderRadius').value = currentTheme.borderRadius;
+        document.getElementById('borderRadiusValue').textContent = currentTheme.borderRadius + 'px';
+        
+        actualizarVistaPrevia();
+        aplicarModoVisualizacion();
+    }
+    
+    // Animaciones
+    const elements = document.querySelectorAll('.fade-in-up');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+    });
+});
+</script>
+{% endblock %}

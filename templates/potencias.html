@@ -1,0 +1,998 @@
+{% extends "base.html" %}
+
+{% block title %}Potencias - Fibra Manager{% endblock %}
+
+{% block head %}
+<!-- Chart.js para gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .input-glow:focus {
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+    }
+    .badge-excelente { 
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white; 
+    }
+    .badge-normal { 
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white; 
+    }
+    .badge-bajo { 
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white; 
+    }
+    .badge-critico { 
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white; 
+    }
+    
+    .potencia-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    /* Estilos para la paginación */
+    .btn-pagina-activa {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        border-color: #3b82f6;
+    }
+    
+    .btn-pagina-desactivada {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Tarjetas estadísticas con gradientes */
+    .stat-card-excelente {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border: 1px solid #a7f3d0;
+    }
+    .stat-card-normal {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border: 1px solid #bfdbfe;
+    }
+    .stat-card-bajo {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 1px solid #fde68a;
+    }
+    .stat-card-critico {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        border: 1px solid #fecaca;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Premium -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-3 rounded-xl mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent">
+                        Gestión de Potencias
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">
+                        Monitoreo y gestión de mediciones de potencia en fibra óptica
+                    </p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Botón para ir a la página de nueva medición -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <button onclick="exportarCSV()" class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Exportar CSV
+            </button>
+            <a href="/potencias/nueva" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Nueva Medición
+            </a>
+        </div>
+    </div>
+
+    <!-- TARJETAS DE ESTADÍSTICAS -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-excelente">
+            <div class="flex items-center">
+                <div class="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-emerald-700">Excelente</p>
+                    <p class="text-3xl font-bold text-emerald-800" id="count-excelente">0</p>
+                </div>
+            </div>
+            <p class="text-xs text-emerald-600 mt-2">Pérdida ≤ 1.0 dB</p>
+        </div>
+        
+        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-normal">
+            <div class="flex items-center">
+                <div class="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-blue-700">Normal</p>
+                    <p class="text-3xl font-bold text-blue-800" id="count-normal">0</p>
+                </div>
+            </div>
+            <p class="text-xs text-blue-600 mt-2">Pérdida 1.1 - 2.5 dB</p>
+        </div>
+        
+        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-bajo">
+            <div class="flex items-center">
+                <div class="p-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.288 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-amber-700">Bajo</p>
+                    <p class="text-3xl font-bold text-amber-800" id="count-bajo">0</p>
+                </div>
+            </div>
+            <p class="text-xs text-amber-600 mt-2">Pérdida 2.6 - 3.5 dB</p>
+        </div>
+        
+        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-critico">
+            <div class="flex items-center">
+                <div class="p-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 text-white mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-red-700">Crítico</p>
+                    <p class="text-3xl font-bold text-red-800" id="count-critico">0</p>
+                </div>
+            </div>
+            <p class="text-xs text-red-600 mt-2">Pérdida > 3.5 dB</p>
+        </div>
+    </div>
+
+    <!-- FILTROS Y BÚSQUEDA -->
+    <div class="glass-effect rounded-2xl shadow-xl p-6 mb-8 hover-lift">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <span class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-1 rounded-lg mr-2">
+                        👤
+                    </span>
+                    Cliente
+                </label>
+                <select id="filtro-cliente" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
+                    <option value="">Todos los clientes</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <span class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-1 rounded-lg mr-2">
+                        📊
+                    </span>
+                    Estado
+                </label>
+                <select id="filtro-estado" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
+                    <option value="">Todos los estados</option>
+                    <option value="excelente">Excelente</option>
+                    <option value="normal">Normal</option>
+                    <option value="bajo">Bajo</option>
+                    <option value="critico">Crítico</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <span class="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-1 rounded-lg mr-2">
+                        📅
+                    </span>
+                    Desde
+                </label>
+                <input type="date" id="filtro-desde" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <span class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-1 rounded-lg mr-2">
+                        📅
+                    </span>
+                    Hasta
+                </label>
+                <input type="date" id="filtro-hasta" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                <span class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-1 rounded-lg mr-2">
+                    🔍
+                </span>
+                Búsqueda
+            </label>
+            <div class="relative">
+                <input type="text" id="buscar-potencias" placeholder="Buscar por cliente, NAP, observaciones..." 
+                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
+                <svg class="w-5 h-5 absolute left-4 top-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICO Y TABLA -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- GRÁFICO -->
+        <div class="lg:col-span-1">
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift h-full">
+                <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+                    </svg>
+                    Distribución por Estado
+                </h2>
+                <div class="h-64">
+                    <canvas id="chart-estados"></canvas>
+                </div>
+                <p class="text-xs text-gray-500 text-center mt-4">Gráfico de distribución de estados de pérdida</p>
+            </div>
+        </div>
+        
+        <!-- TABLA -->
+        <div class="lg:col-span-2">
+            <div class="glass-effect rounded-2xl shadow-xl overflow-hidden fade-in">
+                <!-- Header de la tabla -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+                    <h2 class="text-white text-xl font-bold flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        Registros de Mediciones
+                    </h2>
+                    <p class="text-blue-100 mt-2">Lista completa de mediciones registradas</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cliente</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Entrada</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Salida</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Pérdida</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-potencias-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Se llena con JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- PAGINACIÓN -->
+                <div class="bg-white px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                    <div>
+                        <p class="text-sm text-gray-700" id="info-paginacion">
+                            Mostrando <span id="desde">0</span> a <span id="hasta">0</span> de <span id="total">0</span> resultados
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-xl shadow-sm -space-x-px">
+                            <button id="btn-pagina-anterior" class="relative inline-flex items-center px-3 py-2 rounded-l-xl border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-300">
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            
+                            <div id="numeros-pagina" class="flex">
+                                <!-- Números de página -->
+                            </div>
+                            
+                            <button id="btn-pagina-siguiente" class="relative inline-flex items-center px-3 py-2 rounded-r-xl border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-300">
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para la página de listado (MANTENIENDO TODO TU CÓDIGO ORIGINAL) -->
+<script>
+// Variables globales
+let todasPotencias = [];
+let potenciasFiltradas = [];
+let paginaActual = 1;
+const itemsPorPagina = 10;
+let chartEstados = null;
+
+// Inicializar cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("📊 Página de listado de potencias cargada");
+    cargarDatosIniciales();
+    inicializarEventos();
+    inicializarGrafico();
+    agregarEfectosVisuales();
+});
+
+// Cargar datos iniciales desde la base de datos
+async function cargarDatosIniciales() {
+    try {
+        console.log("Cargando datos desde la base de datos...");
+        
+        // Mostrar indicador de carga
+        mostrarCargando();
+        
+        // Hacer la petición al backend Flask
+        const response = await fetch('/api/potencias');
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Transformar los datos de la base de datos al formato esperado
+            todasPotencias = data.potencias.map(potencia => ({
+                id: potencia.id,
+                fecha: potencia.fecha_medicion,
+                cliente_id: potencia.cliente_id,
+                cliente_nombre: potencia.cliente_nombre || "Cliente Desconocido",
+                nap_nombre: potencia.nap_nombre || "Sin NAP",
+                potencia_entrada: parseFloat(potencia.potencia_entrada) || 0,
+                potencia_salida: parseFloat(potencia.potencia_salida) || 0,
+                perdida: parseFloat(potencia.perdida) || 0,
+                estado: potencia.estado || "normal",
+                tecnico: potencia.tecnico || "Técnico Desconocido",
+                observaciones: potencia.observaciones || ""
+            }));
+            
+            console.log(`✅ ${todasPotencias.length} mediciones cargadas de la base de datos`);
+            
+            // Cargar clientes para filtro
+            await cargarClientesParaFiltro();
+            
+            // Mostrar datos
+            filtrarPotencias();
+            actualizarEstadisticas();
+        } else {
+            console.error("❌ Error en la respuesta del servidor:", data.message);
+            mostrarError("Error al cargar los datos: " + (data.message || "Error desconocido"));
+            todasPotencias = [];
+            filtrarPotencias();
+        }
+        
+    } catch (error) {
+        console.error("❌ Error al cargar datos desde la base de datos:", error);
+        mostrarError("Error interno al procesar los datos. Revisa la consola.");
+        todasPotencias = [];
+        filtrarPotencias();
+    } finally {
+        ocultarCargando();
+    }
+}
+
+// Mostrar estado de carga
+function mostrarCargando() {
+    const cuerpo = document.getElementById('tabla-potencias-body');
+    cuerpo.innerHTML = `
+        <tr>
+            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2">Cargando datos...</p>
+            </td>
+        </tr>
+    `;
+}
+
+// Mostrar error
+function mostrarError(mensaje) {
+    const cuerpo = document.getElementById('tabla-potencias-body');
+    cuerpo.innerHTML = `
+        <tr>
+            <td colspan="7" class="px-6 py-12 text-center text-red-600">
+                <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p>${mensaje}</p>
+                <button onclick="cargarDatosIniciales()" class="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300">
+                    Reintentar
+                </button>
+            </td>
+        </tr>
+    `;
+}
+
+// Ocultar estado de carga
+function ocultarCargando() {
+    // Eliminar cualquier indicador de carga si existe
+}
+
+// Cargar clientes para el filtro desde la base de datos
+async function cargarClientesParaFiltro() {
+    try {
+        const response = await fetch('/api/clientes');
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const filtro = document.getElementById('filtro-cliente');
+        
+        // Limpiar opciones existentes (excepto la primera)
+        while (filtro.options.length > 1) {
+            filtro.remove(1);
+        }
+        
+        const clientes = Array.isArray(data)
+        ? data
+        : data.clientes;
+
+    if (clientes && clientes.length > 0) {
+        // Ordenar clientes alfabéticamente
+        const clientesOrdenados = clientes.sort((a, b) =>
+            a.nombre.localeCompare(b.nombre)
+        );
+
+        clientesOrdenados.forEach(cliente => {
+            const option = document.createElement('option');
+            option.value = cliente.id;
+            option.textContent = cliente.nombre;
+            option.className = 'text-gray-700';
+            filtro.appendChild(option);
+        });
+
+        console.log(`✅ ${clientesOrdenados.length} clientes cargados para filtro`);
+    } else {
+        console.warn("⚠️ No se pudieron cargar los clientes para el filtro");
+    }
+
+    } catch (error) {
+        console.warn("⚠️ Error al cargar los clientes para el filtro:", error);
+    }
+}
+
+// Inicializar eventos
+function inicializarEventos() {
+    // Eventos de filtros
+    const filtros = ['filtro-cliente', 'filtro-estado', 'filtro-desde', 'filtro-hasta'];
+    filtros.forEach(id => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.addEventListener('change', filtrarPotencias);
+        }
+    });
+    
+    // Evento de búsqueda
+    const buscarInput = document.getElementById('buscar-potencias');
+    if (buscarInput) {
+        buscarInput.addEventListener('keyup', filtrarPotencias);
+    }
+    
+    // Eventos de paginación
+    document.getElementById('btn-pagina-anterior').addEventListener('click', function() {
+        cambiarPagina(paginaActual - 1);
+    });
+    
+    document.getElementById('btn-pagina-siguiente').addEventListener('click', function() {
+        cambiarPagina(paginaActual + 1);
+    });
+}
+
+// Filtrar potencias
+function filtrarPotencias() {
+    const filtroCliente = document.getElementById('filtro-cliente').value;
+    const filtroEstado = document.getElementById('filtro-estado').value;
+    const filtroDesde = document.getElementById('filtro-desde').value;
+    const filtroHasta = document.getElementById('filtro-hasta').value;
+    const busqueda = document.getElementById('buscar-potencias').value.toLowerCase();
+    
+    potenciasFiltradas = todasPotencias.filter(potencia => {
+        // Filtro por cliente
+        if (filtroCliente && parseInt(potencia.cliente_id) !== parseInt(filtroCliente)) {
+            return false;
+        }
+        
+        // Filtro por estado
+        if (filtroEstado && potencia.estado !== filtroEstado) {
+            return false;
+        }
+        
+        // Filtro por fecha
+        if (filtroDesde) {
+            const fechaPotencia = new Date(potencia.fecha).toISOString().split('T')[0];
+            if (fechaPotencia < filtroDesde) return false;
+        }
+        
+        if (filtroHasta) {
+            const fechaPotencia = new Date(potencia.fecha).toISOString().split('T')[0];
+            if (fechaPotencia > filtroHasta) return false;
+        }
+        
+        // Búsqueda por texto
+        if (busqueda) {
+            const textoBusqueda = busqueda.toLowerCase();
+            const clienteNombre = (potencia.cliente_nombre || '').toLowerCase();
+            const napNombre = (potencia.nap_nombre || '').toLowerCase();
+            const observaciones = (potencia.observaciones || '').toLowerCase();
+            const tecnico = (potencia.tecnico || '').toLowerCase();
+            
+            if (!clienteNombre.includes(textoBusqueda) &&
+                !napNombre.includes(textoBusqueda) &&
+                !observaciones.includes(textoBusqueda) &&
+                !tecnico.includes(textoBusqueda)) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+    
+    paginaActual = 1;
+    actualizarTabla();
+    actualizarEstadisticas();
+    actualizarGrafico();
+}
+
+// Actualizar tabla
+function actualizarTabla() {
+    const cuerpo = document.getElementById('tabla-potencias-body');
+    
+    const inicio = (paginaActual - 1) * itemsPorPagina;
+    const fin = inicio + itemsPorPagina;
+    const potenciasPagina = potenciasFiltradas.slice(inicio, fin);
+    
+    if (potenciasPagina.length === 0) {
+        cuerpo.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    No se encontraron mediciones de potencia
+                </td>
+            </tr>
+        `;
+    } else {
+        cuerpo.innerHTML = '';
+        
+        potenciasPagina.forEach(potencia => {
+            const fila = document.createElement('tr');
+            const claseEstado = `badge-${potencia.estado}`;
+            const perdida = parseFloat(potencia.perdida) || 0;
+            
+            // Determinar color para las potencias
+            const colorEntrada = potencia.potencia_entrada > -15 ? 'text-red-600' : 'text-gray-900';
+            const colorSalida = potencia.potencia_salida > -15 ? 'text-red-600' : 'text-gray-900';
+            const colorPerdida = perdida > 3 ? 'text-red-600' : perdida > 2 ? 'text-yellow-600' : 'text-green-600';
+            
+            fila.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900 font-medium">${formatearFecha(potencia.fecha)}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-semibold text-gray-900">${potencia.cliente_nombre}</div>
+                    <div class="text-xs text-gray-500">${potencia.nap_nombre}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-bold ${colorEntrada}">
+                        ${potencia.potencia_entrada.toFixed(1)} dBm
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-bold ${colorSalida}">
+                        ${potencia.potencia_salida.toFixed(1)} dBm
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-bold ${colorPerdida}">
+                        ${perdida.toFixed(1)} dB
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-3 py-1 text-xs font-semibold rounded-full ${claseEstado}">
+                        ${potencia.estado ? potencia.estado.toUpperCase() : 'N/A'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <a href="/potencias/editar/${potencia.id}" class="text-blue-600 hover:text-blue-900 mr-4 transition-colors duration-300">
+                        <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Editar
+                    </a>
+                    <button onclick="eliminarPotencia(${potencia.id})" class="text-red-600 hover:text-red-900 transition-colors duration-300">
+                        <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Eliminar
+                    </button>
+                </td>
+            `;
+            cuerpo.appendChild(fila);
+        });
+    }
+    
+    actualizarPaginacion();
+}
+
+// Eliminar potencia (FIXED)
+async function eliminarPotencia(id) {
+    if (!confirm('¿Estás seguro de eliminar esta medición? Esta acción no se puede deshacer.')) return;
+
+    const idNum = Number(id);
+
+    try {
+        const response = await fetch(`/api/potencias/${idNum}`, { 
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Eliminar del array local (🔥 FIX de tipos)
+            todasPotencias = todasPotencias.filter(p => Number(p.id) !== idNum);
+            filtrarPotencias();
+
+            mostrarNotificacion('✅ Medición eliminada correctamente', 'success');
+        } else {
+            throw new Error(data.message || 'Error al eliminar');
+        }
+
+    } catch (error) {
+        console.error('Error al eliminar medición:', error);
+        mostrarNotificacion('❌ Error al eliminar la medición: ' + error.message, 'error');
+    }
+}
+
+// Actualizar estadísticas
+function actualizarEstadisticas() {
+    const conteos = { excelente: 0, normal: 0, bajo: 0, critico: 0 };
+    
+    potenciasFiltradas.forEach(potencia => {
+        if (potencia.estado && conteos.hasOwnProperty(potencia.estado)) {
+            conteos[potencia.estado]++;
+        }
+    });
+    
+    document.getElementById('count-excelente').textContent = conteos.excelente;
+    document.getElementById('count-normal').textContent = conteos.normal;
+    document.getElementById('count-bajo').textContent = conteos.bajo;
+    document.getElementById('count-critico').textContent = conteos.critico;
+}
+
+// Inicializar gráfico
+function inicializarGrafico() {
+    const ctx = document.getElementById('chart-estados').getContext('2d');
+    chartEstados = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Excelente', 'Normal', 'Bajo', 'Crítico'],
+            datasets: [{
+                data: [0, 0, 0, 0],
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                borderWidth: 1,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '65%'
+        }
+    });
+}
+
+// Actualizar gráfico
+function actualizarGrafico() {
+    const conteos = { excelente: 0, normal: 0, bajo: 0, critico: 0 };
+    
+    potenciasFiltradas.forEach(potencia => {
+        if (potencia.estado && conteos.hasOwnProperty(potencia.estado)) {
+            conteos[potencia.estado]++;
+        }
+    });
+    
+    chartEstados.data.datasets[0].data = [
+        conteos.excelente,
+        conteos.normal,
+        conteos.bajo,
+        conteos.critico
+    ];
+    chartEstados.update();
+}
+
+// Funciones auxiliares
+function cambiarPagina(pagina) {
+    const totalPaginas = Math.ceil(potenciasFiltradas.length / itemsPorPagina);
+    if (pagina < 1 || pagina > totalPaginas) return;
+    paginaActual = pagina;
+    actualizarTabla();
+}
+
+function actualizarPaginacion() {
+    const total = potenciasFiltradas.length;
+    const inicio = Math.min((paginaActual - 1) * itemsPorPagina + 1, total);
+    const fin = Math.min(paginaActual * itemsPorPagina, total);
+    const totalPaginas = Math.ceil(total / itemsPorPagina);
+    
+    document.getElementById('desde').textContent = inicio;
+    document.getElementById('hasta').textContent = fin;
+    document.getElementById('total').textContent = total;
+    
+    const numerosPagina = document.getElementById('numeros-pagina');
+    numerosPagina.innerHTML = '';
+    
+    // Mostrar números de página (máximo 5)
+    let inicioPagina = Math.max(1, paginaActual - 2);
+    let finPagina = Math.min(totalPaginas, inicioPagina + 4);
+    
+    if (finPagina - inicioPagina < 4) {
+        inicioPagina = Math.max(1, finPagina - 4);
+    }
+    
+    for (let i = inicioPagina; i <= finPagina; i++) {
+        const button = document.createElement('button');
+        button.className = `relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-all duration-300 ${
+            i === paginaActual 
+            ? 'z-10 bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-600 text-white' 
+            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+        }`;
+        button.textContent = i;
+        button.onclick = () => cambiarPagina(i);
+        numerosPagina.appendChild(button);
+    }
+    
+    // Habilitar/deshabilitar botones de navegación
+    const btnAnterior = document.getElementById('btn-pagina-anterior');
+    const btnSiguiente = document.getElementById('btn-pagina-siguiente');
+    
+    if (paginaActual === 1) {
+        btnAnterior.classList.add('btn-pagina-desactivada');
+        btnAnterior.disabled = true;
+    } else {
+        btnAnterior.classList.remove('btn-pagina-desactivada');
+        btnAnterior.disabled = false;
+    }
+    
+    if (paginaActual === totalPaginas) {
+        btnSiguiente.classList.add('btn-pagina-desactivada');
+        btnSiguiente.disabled = true;
+    } else {
+        btnSiguiente.classList.remove('btn-pagina-desactivada');
+        btnSiguiente.disabled = false;
+    }
+}
+
+function formatearFecha(fechaString) {
+    try {
+        const fecha = new Date(fechaString);
+        if (isNaN(fecha.getTime())) {
+            return fechaString;
+        }
+        
+        return fecha.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        console.error('Error formateando fecha:', e);
+        return fechaString;
+    }
+}
+
+// Exportar datos a CSV
+function exportarCSV() {
+    if (potenciasFiltradas.length === 0) {
+        mostrarNotificacion('No hay datos para exportar', 'warning');
+        return;
+    }
+    
+    // Crear encabezados CSV
+    let csv = 'Fecha,Cliente,NAP,Potencia Entrada (dBm),Potencia Salida (dBm),Pérdida (dB),Estado,Técnico,Observaciones\n';
+    
+    // Agregar datos
+    potenciasFiltradas.forEach(potencia => {
+        const fecha = formatearFecha(potencia.fecha);
+        const observaciones = (potencia.observaciones || '').replace(/"/g, '""');
+        
+        csv += `"${fecha}","${potencia.cliente_nombre}","${potencia.nap_nombre}",${potencia.potencia_entrada},${potencia.potencia_salida},${potencia.perdida},${potencia.estado},"${potencia.tecnico}","${observaciones}"\n`;
+    });
+    
+    // Crear y descargar archivo
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `potencias_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    mostrarNotificacion('✅ CSV exportado correctamente', 'success');
+}
+
+// Mostrar notificación premium
+function mostrarNotificacion(mensaje, tipo) {
+    // Eliminar notificaciones existentes
+    const notificacionesExistentes = document.querySelectorAll('.notificacion-premium');
+    notificacionesExistentes.forEach(n => n.remove());
+
+    // Crear notificación
+    const notificacion = document.createElement('div');
+    notificacion.className = `notificacion-premium fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-xl text-white font-semibold transform transition-all duration-300 ${
+        tipo === 'success' ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
+        tipo === 'error' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
+        tipo === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
+        'bg-gradient-to-r from-blue-500 to-indigo-600'
+    }`;
+    
+    notificacion.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${
+                    tipo === 'success' ? 'M5 13l4 4L19 7' : 
+                    tipo === 'error' ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' :
+                    'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                }"></path>
+            </svg>
+            ${mensaje}
+        </div>
+    `;
+    
+    document.body.appendChild(notificacion);
+    
+    // Animación de entrada
+    setTimeout(() => {
+        notificacion.classList.add('translate-y-0', 'opacity-100');
+        notificacion.classList.remove('-translate-y-4', 'opacity-0');
+    }, 10);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        notificacion.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => {
+            document.body.removeChild(notificacion);
+        }, 300);
+    }, 3000);
+}
+
+// Agregar efectos visuales premium
+function agregarEfectosVisuales() {
+    // Efectos visuales en inputs
+    const inputs = document.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('ring-2', 'ring-blue-100', 'rounded-xl');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('ring-2', 'ring-blue-100', 'rounded-xl');
+        });
+    });
+    
+    // Animación de aparición escalonada
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Efectos hover en tarjetas
+    const tarjetas = document.querySelectorAll('.hover-lift');
+    tarjetas.forEach(tarjeta => {
+        tarjeta.addEventListener('mouseenter', function() {
+            this.classList.add('shadow-lg');
+        });
+        tarjeta.addEventListener('mouseleave', function() {
+            this.classList.remove('shadow-lg');
+        });
+    });
+}
+</script>
+
+<style>
+.notificacion-premium {
+    transform: translateY(-20px);
+    opacity: 0;
+    animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Efectos para tabla */
+tbody tr {
+    transition: all 0.2s ease;
+}
+
+tbody tr:hover {
+    background-color: #f9fafb;
+}
+</style>
+{% endblock %}

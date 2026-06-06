@@ -1,0 +1,882 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de NAT: {{ nat.nombre }} - Fibra Manager{% endblock %}
+
+{% block head %}
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .progress-bar {
+        transition: width 1.5s ease-in-out;
+    }
+    .client-status-active {
+        border-left: 4px solid #10b981;
+        background: linear-gradient(90deg, #f0fdf4 0%, transparent 100%);
+    }
+    .client-status-inactive {
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(90deg, #fef2f2 0%, transparent 100%);
+    }
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    .search-glow:focus {
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    .badge-pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    .table-row-hover {
+        transition: all 0.2s ease;
+    }
+    .table-row-hover:hover {
+        background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    }
+    .status-critical {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border-color: #fecaca;
+    }
+    .status-warning {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border-color: #fde68a;
+    }
+    .status-normal {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border-color: #bbf7d0;
+    }
+    .nat-info-box {
+        border-radius: 0.75rem;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+    }
+    .nat-info-indigo { background: linear-gradient(to right, #eef2ff, #faf5ff); border-color: #c7d2fe; }
+    .nat-info-blue { background: linear-gradient(to right, #eff6ff, #ecfeff); border-color: #bfdbfe; }
+    .nat-info-pink { background: linear-gradient(to right, #fdf2f8, #fff1f2); border-color: #fbcfe8; }
+    .nat-info-gray { background: linear-gradient(to right, #f9fafb, #f8fafc); border-color: #e5e7eb; }
+    .nat-info-orange { background: linear-gradient(to right, #fff7ed, #fffbeb); border-color: #fed7aa; }
+    .nat-row-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+    }
+    .nat-gps-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+    }
+    .nat-model-footer { background: #ffffff; }
+    .nat-model-img-bg { background: #f8fafc; }
+
+    html.dark .from-indigo-600.bg-clip-text,
+    html.dark .from-indigo-600.to-purple-600.bg-clip-text {
+        -webkit-text-fill-color: #a5b4fc;
+        color: #a5b4fc;
+    }
+    html.dark .metric-card {
+        background: var(--fm-surface) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .metric-card::before {
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    }
+    html.dark .status-critical {
+        background: rgba(239, 68, 68, 0.12) !important;
+        border-color: rgba(239, 68, 68, 0.35) !important;
+    }
+    html.dark .status-warning {
+        background: rgba(234, 179, 8, 0.12) !important;
+        border-color: rgba(234, 179, 8, 0.35) !important;
+    }
+    html.dark .status-normal {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border-color: rgba(16, 185, 129, 0.35) !important;
+    }
+    html.dark .nat-info-indigo {
+        background: rgba(99, 102, 241, 0.12) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .nat-info-blue {
+        background: rgba(59, 130, 246, 0.1) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .nat-info-pink {
+        background: rgba(236, 72, 153, 0.1) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .nat-info-gray {
+        background: var(--fm-surface-hover) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .nat-info-orange {
+        background: rgba(249, 115, 22, 0.1) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .text-indigo-700 { color: #a5b4fc !important; }
+    html.dark .text-blue-700 { color: #93c5fd !important; }
+    html.dark .text-pink-700 { color: #f9a8d4 !important; }
+    html.dark .text-orange-700 { color: #fdba74 !important; }
+    html.dark .nat-row-card,
+    html.dark .nat-gps-box,
+    html.dark .nat-model-footer {
+        background: var(--fm-surface-hover) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .nat-model-img-bg {
+        background: var(--fm-surface-hover) !important;
+    }
+    html.dark .nat-alert-critical {
+        background: rgba(239, 68, 68, 0.12) !important;
+        border-color: #f87171 !important;
+    }
+    html.dark .nat-alert-warning {
+        background: rgba(234, 179, 8, 0.12) !important;
+        border-color: #fbbf24 !important;
+    }
+    html.dark .text-red-800, html.dark .text-red-700 { color: #fca5a5 !important; }
+    html.dark .text-yellow-800, html.dark .text-yellow-700 { color: #fde047 !important; }
+    html.dark .border-t.border-gray-200 { border-color: var(--fm-border) !important; }
+    html.dark thead.bg-gray-100 {
+        background: var(--fm-surface-hover) !important;
+    }
+    html.dark thead.bg-gray-100 th {
+        color: var(--fm-text-secondary) !important;
+    }
+    html.dark .bg-indigo-100 { background: rgba(99, 102, 241, 0.2) !important; }
+    html.dark .text-indigo-800 { color: #c7d2fe !important; }
+    html.dark .from-indigo-50.to-purple-50 {
+        background: rgba(99, 102, 241, 0.1) !important;
+        border-color: var(--fm-border) !important;
+    }
+    .nat-hilo-swatch {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.5rem;
+        border: 2px solid rgba(0, 0, 0, 0.12);
+        flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+    }
+    html.dark .nat-hilo-swatch {
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+    .nat-actions {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        flex-wrap: nowrap;
+    }
+    .nat-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 0.625rem;
+        border: 1px solid transparent;
+        transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+    .nat-btn:hover {
+        transform: translateY(-1px);
+    }
+    .nat-btn:focus-visible {
+        outline: 2px solid #6366f1;
+        outline-offset: 2px;
+    }
+    .nat-btn-edit {
+        color: #b45309;
+        background: rgba(234, 179, 8, 0.12);
+        border-color: rgba(234, 179, 8, 0.35);
+    }
+    .nat-btn-edit:hover {
+        background: rgba(234, 179, 8, 0.22);
+        border-color: rgba(234, 179, 8, 0.5);
+    }
+    .nat-btn-delete {
+        color: #dc2626;
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+    .nat-btn-delete:hover {
+        background: rgba(239, 68, 68, 0.18);
+        border-color: rgba(239, 68, 68, 0.45);
+    }
+    .nat-btn-on {
+        color: #059669;
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.35);
+    }
+    .nat-btn-on:hover {
+        background: rgba(16, 185, 129, 0.18);
+    }
+    .nat-btn-off {
+        color: #dc2626;
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.35);
+    }
+    .nat-btn-off:hover {
+        background: rgba(239, 68, 68, 0.18);
+    }
+    html.dark .nat-btn-edit { color: #fbbf24; }
+    html.dark .nat-btn-delete,
+    html.dark .nat-btn-off { color: #f87171; }
+    html.dark .nat-btn-on { color: #34d399; }
+    .nat-quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 1rem;
+        border: 1px solid #e5e7eb;
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    }
+    html.dark .nat-quick-actions {
+        background: var(--fm-surface);
+        border-color: var(--fm-border);
+    }
+    .nat-quick-actions-label {
+        font-size: 0.8125rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        white-space: nowrap;
+    }
+    html.dark .nat-quick-actions-label { color: var(--fm-text-secondary); }
+    .nat-quick-actions-btns {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
+    }
+    .nat-quick-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border-radius: 0.75rem;
+        white-space: nowrap;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .nat-quick-action-btn:hover { transform: translateY(-1px); }
+    .nat-quick-action-btn svg { width: 1.125rem; height: 1.125rem; margin-right: 0.375rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Premium -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-3 rounded-xl mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                        {{ nat.nombre }}
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mr-2
+                            {% if nat.tipo_caja == 'empalme' %}fm-tag-indigo{% else %}fm-tag-green{% endif %}">
+                            {% if nat.tipo_caja == 'empalme' %}🔗 Empalme{% else %}📡 Distribución{% endif %}
+                        </span>
+                        {{ nat.modelo.nombre if nat.modelo else 'Modelo Genérico' }}
+                    </p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Indicador de Estado Premium -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <a href="{{ url_for('mapa_nats') }}" 
+               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Volver al Listado
+            </a>
+            
+            {% set uso_porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}
+            {% if uso_porcentaje >= 100 %}
+            <span class="inline-flex items-center px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-500 to-red-600 shadow-lg badge-pulse">
+                🔴 SATURADA
+            </span>
+            {% elif uso_porcentaje >= 80 %}
+            <span class="inline-flex items-center px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-lg">
+                🟡 CRÍTICA
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-green-500 to-green-600 shadow-lg">
+                🟢 NORMAL
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-gradient-to-r from-{{ 'red' if category == 'danger' else 'green' }}-500 to-{{ 'red' if category == 'danger' else 'green' }}-600 text-white rounded-xl p-4 mb-6 shadow-lg fade-in">
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="font-semibold">{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Acciones rápidas (barra superior horizontal) -->
+    <div class="nat-quick-actions fm-panel shadow-md mb-6 fade-in">
+        <span class="nat-quick-actions-label">Acciones rápidas</span>
+        <div class="nat-quick-actions-btns">
+            <a href="{{ url_for('agregar_cliente', nat_id=nat.id) }}"
+               class="nat-quick-action-btn bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md {{ 'opacity-50 pointer-events-none' if uso_porcentaje >= 100 }}"
+               {% if uso_porcentaje >= 100 %}aria-disabled="true" tabindex="-1"{% endif %}
+               title="{% if uso_porcentaje >= 100 %}NAP saturada{% else %}Registrar cliente{% endif %}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Nuevo cliente
+            </a>
+            <a href="{{ url_for('editar_nat', nat_id=nat.id) }}"
+               class="nat-quick-action-btn bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white shadow-md">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-9-6l8-8m-2 2l-8 8"></path>
+                </svg>
+                Editar NAP
+            </a>
+            <a href="{{ url_for('mapa_nats') }}?highlight={{ nat.id }}"
+               class="nat-quick-action-btn bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Ver en mapa
+            </a>
+            <form method="POST" action="{{ url_for('eliminar_nat', nat_id=nat.id) }}" class="inline-flex"
+                  onsubmit="return confirm('¿Estás seguro de eliminar la NAP {{ nat.nombre }}? Se eliminarán también {{ clientes|length }} cliente(s) asociados.');">
+                <button type="submit"
+                        class="nat-quick-action-btn bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Eliminar NAP
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Columna Principal Premium -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Tarjetas de Métricas Premium -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="metric-card hover-lift {% if uso_porcentaje >= 100 %}status-critical{% elif uso_porcentaje >= 80 %}status-warning{% else %}status-normal{% endif %}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Ocupación</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ "%.1f"|format(uso_porcentaje) }}%</p>
+                        </div>
+                        <div class="text-2xl">
+                            {% if uso_porcentaje >= 100 %}🔴
+                            {% elif uso_porcentaje >= 80 %}🟡
+                            {% else %}🟢{% endif %}
+                        </div>
+                    </div>
+                    <div class="mt-3 bg-gray-200 rounded-full h-2">
+                        <div class="h-2 rounded-full progress-bar 
+                            {% if uso_porcentaje >= 100 %}bg-red-500
+                            {% elif uso_porcentaje >= 80 %}bg-yellow-500
+                            {% else %}bg-green-500{% endif %}" 
+                             style="width: {{ uso_porcentaje }}%">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card hover-lift">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Puertos</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ nat.puertos_usados }}/{{ nat.puertos_total }}</p>
+                        </div>
+                        <div class="text-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-xl">
+                            🔌
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 font-medium">
+                        {{ nat.puertos_total - nat.puertos_usados }} puertos libres
+                    </p>
+                </div>
+
+                <div class="metric-card hover-lift">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Clientes Activos</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ clientes|selectattr('activo')|list|length }}</p>
+                        </div>
+                        <div class="text-2xl bg-gradient-to-r from-green-500 to-green-600 text-white p-3 rounded-xl">
+                            👥
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 font-medium">
+                        {{ clientes|rejectattr('activo')|list|length }} clientes inactivos
+                    </p>
+                </div>
+            </div>
+
+            <!-- Información Detallada Premium -->
+            <div class="glass-effect fm-panel rounded-2xl shadow-xl p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2 rounded-lg mr-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    Información Técnica
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="nat-info-box nat-info-indigo">
+                            <label class="block text-sm font-semibold text-indigo-700">Tipo de caja</label>
+                            <p class="mt-1 text-lg font-bold text-indigo-600">{% if nat.tipo_caja == 'empalme' %}Empalme{% else %}Distribución (NAP){% endif %}</p>
+                        </div>
+                        
+                        <div class="nat-info-box nat-info-blue">
+                            <label class="block text-sm font-semibold text-blue-700">Modelo de NAP</label>
+                            <p class="mt-1 text-lg font-bold text-gray-900">{{ nat.modelo.nombre if nat.modelo else 'Genérico' }}</p>
+                            {% if nat.modelo %}
+                            <p class="text-sm text-blue-600 font-medium mt-1">Capacidad máxima: {{ nat.modelo.capacidad_max }} puertos</p>
+                            {% endif %}
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="nat-info-box nat-info-gray">
+                            <label class="block text-sm font-semibold text-gray-700">Ubicación GPS</label>
+                            <p class="mt-1 text-sm font-mono nat-gps-box p-2">{{ nat.ubicacion or 'No especificada' }}</p>
+                        </div>
+                        
+                        <div class="nat-info-box nat-info-orange">
+                            <label class="block text-sm font-semibold text-orange-700">Color del hilo</label>
+                            {% set hilo_val = (nat.hilo_conexion or '')|trim %}
+                            {% set hilo_lower = hilo_val|lower %}
+                            {% set hilo_ns = namespace(hex='') %}
+                            {% if 'azul' in hilo_lower or 'blue' in hilo_lower %}{% set hilo_ns.hex = '#2563eb' %}
+                            {% elif 'naranj' in hilo_lower or 'orange' in hilo_lower %}{% set hilo_ns.hex = '#ea580c' %}
+                            {% elif 'verde' in hilo_lower or 'green' in hilo_lower %}{% set hilo_ns.hex = '#16a34a' %}
+                            {% elif 'marron' in hilo_lower or 'marrón' in hilo_lower or 'brown' in hilo_lower %}{% set hilo_ns.hex = '#92400e' %}
+                            {% elif 'gris' in hilo_lower or 'gray' in hilo_lower or 'grey' in hilo_lower %}{% set hilo_ns.hex = '#6b7280' %}
+                            {% elif 'blanc' in hilo_lower or 'white' in hilo_lower %}{% set hilo_ns.hex = '#f8fafc' %}
+                            {% elif 'rojo' in hilo_lower or 'red' in hilo_lower %}{% set hilo_ns.hex = '#dc2626' %}
+                            {% elif 'negro' in hilo_lower or 'black' in hilo_lower %}{% set hilo_ns.hex = '#1f2937' %}
+                            {% elif 'amarill' in hilo_lower or 'yellow' in hilo_lower %}{% set hilo_ns.hex = '#ca8a04' %}
+                            {% elif 'violet' in hilo_lower or 'morado' in hilo_lower or 'purple' in hilo_lower %}{% set hilo_ns.hex = '#7c3aed' %}
+                            {% elif 'rosa' in hilo_lower or 'rose' in hilo_lower or 'pink' in hilo_lower %}{% set hilo_ns.hex = '#db2777' %}
+                            {% elif 'aqua' in hilo_lower or 'turquesa' in hilo_lower or 'cyan' in hilo_lower %}{% set hilo_ns.hex = '#0891b2' %}
+                            {% endif %}
+                            <div class="mt-2 flex items-center gap-3">
+                                {% if hilo_ns.hex %}
+                                <span class="nat-hilo-swatch" style="background-color: {{ hilo_ns.hex }};" title="{{ hilo_val }}"></span>
+                                {% else %}
+                                <span class="nat-hilo-swatch bg-gray-200" title="Sin color definido"></span>
+                                {% endif %}
+                                <p class="text-lg font-bold text-orange-600">{{ hilo_val or 'No especificado' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Análisis de Capacidad Premium -->
+                <div class="mt-8 pt-6 border-t border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Análisis de Capacidad
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 nat-row-card">
+                            <span class="text-gray-700 font-medium">Espacio utilizado</span>
+                            <span class="font-bold text-gray-900">{{ nat.puertos_usados }} puertos</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 nat-row-card">
+                            <span class="text-gray-700 font-medium">Espacio disponible</span>
+                            <span class="font-bold text-green-600">{{ nat.puertos_total - nat.puertos_usados }} puertos</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 nat-row-card">
+                            <span class="text-gray-700 font-medium">Capacidad total</span>
+                            <span class="font-bold text-blue-600">{{ nat.puertos_total }} puertos</span>
+                        </div>
+                    </div>
+                    
+                    {% if uso_porcentaje >= 80 %}
+                    <div class="mt-6 p-4 rounded-xl border-l-4 {% if uso_porcentaje >= 100 %}border-red-500 nat-alert-critical{% else %}border-yellow-500 nat-alert-warning{% endif %}">
+                        <div class="flex items-center">
+                            <span class="text-2xl mr-3">
+                                {% if uso_porcentaje >= 100 %}🔴{% else %}🟡{% endif %}
+                            </span>
+                            <div>
+                                <p class="font-bold {% if uso_porcentaje >= 100 %}text-red-800{% else %}text-yellow-800{% endif %}">
+                                    {% if uso_porcentaje >= 100 %}
+                                    ¡NAT SATURADA!
+                                    {% else %}
+                                    NAT en estado crítico
+                                    {% endif %}
+                                </p>
+                                <p class="text-sm {% if uso_porcentaje >= 100 %}text-red-700{% else %}text-yellow-700{% endif %} mt-1">
+                                    {% if uso_porcentaje >= 100 %}
+                                    No se pueden agregar más clientes activos. Considera urgentemente expandir la capacidad.
+                                    {% else %}
+                                    Considera expandir la capacidad pronto para evitar la saturación.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Lateral Premium -->
+        <div class="space-y-6">
+            <!-- Imagen del Modelo Premium -->
+            <div class="glass-effect fm-panel fm-card rounded-2xl shadow-xl overflow-hidden">
+                {% set imagen_path = nat.modelo.imagen_url if nat.modelo and nat.modelo.imagen_url else url_for('static', filename='nap_images/placeholder.jpg') %}
+                <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-4">
+                    <h4 class="text-white font-bold text-lg flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Modelo de Caja
+                    </h4>
+                </div>
+                <img src="{{ imagen_path }}" 
+                     alt="Imagen de {{ nat.modelo.nombre if nat.modelo else nat.nombre }}" 
+                     class="w-full h-48 object-contain nat-model-img-bg fm-model-img p-6"
+                     onerror="this.src='https://placehold.co/400x200/4F46E5/FFFFFF?text=NAP+{{ nat.modelo.nombre if nat.modelo else nat.nombre }}';">
+                
+                <div class="p-4 nat-model-footer">
+                    <h4 class="font-bold text-gray-900 text-lg">{{ nat.modelo.nombre if nat.modelo else 'Genérico' }}</h4>
+                    {% if nat.modelo %}
+                    <p class="text-sm text-gray-600 mt-2 font-medium">Capacidad: {{ nat.modelo.capacidad_max }} puertos</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Estadísticas Rápidas Premium -->
+            <div class="glass-effect fm-panel rounded-2xl shadow-xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-2 rounded-lg mr-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    Estadísticas
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-3 nat-row-card">
+                        <span class="text-gray-700 font-medium">Clientes totales</span>
+                        <span class="font-bold text-gray-900">{{ clientes|length }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 nat-row-card">
+                        <span class="text-gray-700 font-medium">Clientes activos</span>
+                        <span class="font-bold text-green-600">{{ clientes|selectattr('activo')|list|length }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 nat-row-card">
+                        <span class="text-gray-700 font-medium">Clientes inactivos</span>
+                        <span class="font-bold text-red-600">{{ clientes|rejectattr('activo')|list|length }}</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 nat-row-card">
+                        <span class="text-gray-700 font-medium">Tasa de actividad</span>
+                        <span class="font-bold text-blue-600">
+                            {% if clientes|length > 0 %}
+                            {{ "%.1f"|format((clientes|selectattr('activo')|list|length / clientes|length * 100)) }}%
+                            {% else %}0%{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Tabla de Clientes Premium -->
+    <div class="fm-card fm-table-wrap rounded-2xl shadow-xl overflow-hidden mt-8">
+        <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <h3 class="text-xl font-bold text-white flex items-center">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Clientes Conectados
+                    <span class="text-lg font-normal text-gray-300 ml-2">
+                        ({{ clientes|selectattr('activo')|list|length }} activos de {{ clientes|length }} total)
+                    </span>
+                </h3>
+                <div class="flex space-x-2 mt-4 lg:mt-0">
+                    <button onclick="filterClients('all')" class="px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-xl transition-all duration-300 hover:bg-indigo-600">
+                        Todos ({{ clientes|length }})
+                    </button>
+                    <button onclick="filterClients('active')" class="px-4 py-2 text-sm font-medium bg-green-500 text-white rounded-xl transition-all duration-300 hover:bg-green-600">
+                        Activos ({{ clientes|selectattr('activo')|list|length }})
+                    </button>
+                    <button onclick="filterClients('inactive')" class="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-xl transition-all duration-300 hover:bg-red-600">
+                        Inactivos ({{ clientes|rejectattr('activo')|list|length }})
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200" id="clients-table">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cliente</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Plan</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contacto</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Estado</th>
+                        <th class="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="fm-table-body divide-y divide-gray-200" id="clients-tbody">
+                    {% for cliente in clientes %}
+                    <tr class="table-row-hover client-row {% if cliente.activo %}client-status-active{% else %}client-status-inactive{% endif %}" 
+                        data-status="{% if cliente.activo %}active{% else %}inactive{% endif %}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-semibold text-gray-900">{{ cliente.nombre }}</div>
+                            <div class="text-xs text-gray-500 truncate max-w-xs">{{ cliente.direccion }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium fm-tag-indigo">
+                                {{ cliente.plan or 'N/A' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ cliente.contacto or 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            {% if cliente.activo %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium fm-tag-green">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Activo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium fm-tag-red">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <div class="nat-actions">
+                                <form method="POST"
+                                    action="{{ url_for('activar_cliente', cliente_id=cliente.id) }}"
+                                    class="inline-flex"
+                                    onsubmit="return confirm('¿Estás seguro de {{ 'DESACTIVAR' if cliente.activo else 'ACTIVAR' }} al cliente {{ cliente.nombre }}?');">
+                                    <button type="submit"
+                                            class="nat-btn {% if cliente.activo %}nat-btn-off{% else %}nat-btn-on{% endif %}"
+                                            title="{{ 'Desactivar cliente' if cliente.activo else 'Activar cliente' }}">
+                                        {% if cliente.activo %}
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        {% else %}
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}"
+                                   class="nat-btn nat-btn-edit"
+                                   title="Editar cliente">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                    </svg>
+                                </a>
+                                <form action="{{ url_for('eliminar_cliente', cliente_id=cliente.id) }}" method="POST" class="inline-flex"
+                                    onsubmit="return confirm('¿Estás seguro de eliminar permanentemente al cliente {{ cliente.nombre }}?');">
+                                    <button type="submit"
+                                            class="nat-btn nat-btn-delete"
+                                            title="Eliminar cliente">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-gray-500 mb-2">No hay clientes registrados</h3>
+                                <p class="text-gray-400 mb-4">Comienza agregando el primer cliente a esta NAT</p>
+                                <a href="{{ url_for('agregar_cliente', nat_id=nat.id) }}" 
+                                   class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 inline-flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Agregar Primer Cliente
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filtrado de clientes
+function filterClients(status) {
+    const rows = document.querySelectorAll('.client-row');
+    rows.forEach(row => {
+        if (status === 'all' || row.dataset.status === status) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Animaciones al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Efecto hover en tarjetas métricas
+    const metricCards = document.querySelectorAll('.hover-lift');
+    metricCards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            card.style.transform = 'translateY(-5px)';
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Efecto hover en filas de tabla
+    const tableRows = document.querySelectorAll('.table-row-hover');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', () => {
+            row.style.background = 'linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%)';
+        });
+        row.addEventListener('mouseleave', () => {
+            if (row.classList.contains('client-status-active')) {
+                row.style.background = 'linear-gradient(90deg, #f0fdf4 0%, transparent 100%)';
+            } else if (row.classList.contains('client-status-inactive')) {
+                row.style.background = 'linear-gradient(90deg, #fef2f2 0%, transparent 100%)';
+            } else {
+                row.style.background = '';
+            }
+        });
+    });
+});
+
+// Notificación si la NAT está crítica
+{% if uso_porcentaje >= 80 %}
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 p-4 rounded-xl shadow-lg z-50 animate-bounce';
+        notification.innerHTML = `
+            <div class="flex items-center ${ uso_porcentaje >= 100 ? 'bg-red-500' : 'bg-yellow-500' } text-white p-4 rounded-xl">
+                <span class="text-2xl mr-3">${ uso_porcentaje >= 100 ? '🔴' : '🟡' }</span>
+                <div>
+                    <p class="font-bold">${ uso_porcentaje >= 100 ? '¡NAT SATURADA!' : 'NAT en estado crítico' }</p>
+                    <p class="text-sm">${ uso_porcentaje >= 100 ? 
+                        'No se pueden agregar más clientes activos.' : 
+                        'Considera expandir la capacidad pronto.' }</p>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 10000);
+    }, 1000);
+});
+{% endif %}
+</script>
+{% endblock %}

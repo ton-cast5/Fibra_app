@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+
+{% block title %}NATs Registradas - Fibra Manager{% endblock %}
+
+{% block head %}
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .search-glow:focus {
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    .badge-pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    .table-row-hover {
+        transition: all 0.2s ease;
+    }
+    .table-row-hover:hover {
+        background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    html.dark .glass-effect {
+        background: rgba(21, 29, 46, 0.92);
+        border-color: rgba(42, 53, 72, 0.8);
+    }
+    html.dark .table-row-hover:hover {
+        background: linear-gradient(90deg, #151d2e 0%, #1c2740 100%) !important;
+    }
+    html.dark .search-glow:focus {
+        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+    }
+    html.dark .from-blue-600.to-blue-700.bg-clip-text {
+        -webkit-text-fill-color: #93c5fd;
+        color: #93c5fd;
+    }
+    .progress-bar {
+        transition: all 0.5s ease-in-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Mejorado -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-xl mr-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8-4v10m0 0l-8-4m8 4l8-4m-8 4v10l-8 4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+                        NATs / Empalmes Registrados
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">Gestión de cajas NAT y de Empalme</p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Botones de Acción Mejorados -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <a href="{{ url_for('agregar_nat') }}" 
+               class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Agregar Nueva NAT
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel de Control Avanzado -->
+    <div class="glass-effect rounded-2xl shadow-xl p-6 mb-6 fade-in">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <!-- Búsqueda Avanzada -->
+            <div class="flex-1 max-w-lg">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <input type="text" id="buscador" 
+                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 search-glow transition-all duration-300" 
+                           placeholder="🔍 Buscar por nombre o ubicación...">
+                </div>
+            </div>
+
+            <!-- Filtros Avanzados -->
+            <div class="flex flex-wrap gap-3">
+                <select id="filtro_tipo" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
+                    <option value="todos">📦 Todos los tipos</option>
+                    <option value="distribucion">📡 Distribución</option>
+                    <option value="empalme">🔗 Empalme</option>
+                </select>
+
+                <!-- Filtro por Estado -->
+                <select id="filtro_estado" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
+                    <option value="todos">🎯 Todos los Estados</option>
+                    <option value="critico">🔴 Crítico (>80%)</option>
+                    <option value="medio">🟡 Medio (50-80%)</option>
+                    <option value="normal">🟢 Normal (<50%)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900">{{ nats|length }}</div>
+                <div class="text-sm text-gray-600">Total NATs</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900">
+                    {% set total_puertos = 0 %}
+                    {% set puertos_usados = 0 %}
+                    {% for nat in nats %}
+                        {% set total_puertos = total_puertos + nat.puertos_total %}
+                        {% set puertos_usados = puertos_usados + nat.puertos_usados %}
+                    {% endfor %}
+                    {{ puertos_usados }}/{{ total_puertos }}
+                </div>
+                <div class="text-sm text-gray-600">Puertos Usados/Total</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-900">
+                    {% set criticas = 0 %}
+                    {% for nat in nats %}
+                        {% set porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}
+                        {% if porcentaje >= 80 %}
+                            {% set criticas = criticas + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ criticas }}
+                </div>
+                <div class="text-sm text-gray-600">🔴 NATs Críticas</div>
+            </div>
+            <div class="text-center">
+                <div id="contador-filtrado" class="text-2xl font-bold text-blue-600">{{ nats|length }}</div>
+                <div class="text-sm text-gray-600">Mostrando</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Premium -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gradient-to-r from-gray-800 to-gray-900">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                            <div class="flex items-center">
+                                <span>Nombre</span>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Ubicación</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Tipo</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Capacidad</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Saturación</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100" id="tabla-body">
+                    {% for nat in nats %}
+                    <tr class="table-row-hover" 
+                        data-tipo="{{ nat.tipo_caja }}"
+                        data-nombre="{{ nat.nombre.lower() }}"
+                        data-ubicacion="{{ (nat.ubicacion or '')|lower }}"
+                        data-estado="{% set porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}{% if porcentaje >= 80 %}critico{% elif porcentaje >= 50 %}medio{% else %}normal{% endif %}">
+                        
+                        <!-- Nombre -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-xl mr-3">
+                                    <span class="text-lg">📡</span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-900">{{ nat.nombre }}</div>
+                                    <div class="text-xs text-gray-500 mt-1">{{ nat.modelo.nombre if nat.modelo else 'Sin modelo' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Ubicación -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                📍 {{ nat.ubicacion }}
+                            </span>
+                        </td>
+                        
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if nat.tipo_caja == 'empalme' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">🔗 Empalme</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">📡 Distribución</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Capacidad -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-center">
+                                <div class="text-lg font-bold text-gray-900">{{ nat.puertos_usados }}/{{ nat.puertos_total }}</div>
+                                <div class="text-xs text-gray-500">puertos</div>
+                            </div>
+                        </td>
+                        
+                        <!-- Saturación -->
+                        <td class="px-6 py-4 whitespace-nowrap w-48">
+                            {% set porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}
+                            {% set width_style = "width: %0.0f%%"|format(porcentaje) %}
+                            
+                            {% if porcentaje >= 80 %}
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-red-500 to-red-600" 
+                                             style="{{ width_style }}"></div>
+                                    </div>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 badge-pulse min-w-12 justify-center">
+                                        🔴 {{ "%0.0f"|format(porcentaje) }}%
+                                    </span>
+                                </div>
+                            {% elif porcentaje >= 50 %}
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-yellow-400 to-yellow-500" 
+                                             style="{{ width_style }}"></div>
+                                    </div>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 min-w-12 justify-center">
+                                        🟡 {{ "%0.0f"|format(porcentaje) }}%
+                                    </span>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-green-500 to-green-600" 
+                                             style="{{ width_style }}"></div>
+                                    </div>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 min-w-12 justify-center">
+                                        🟢 {{ "%0.0f"|format(porcentaje) }}%
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Acciones -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <a href="{{ url_for('ver_nat', nat_id=nat.id) }}" 
+                                   class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-3 rounded-xl transition-all duration-200 transform hover:scale-110" 
+                                   title="Ver Clientes/Detalles">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                </a>
+                                
+                                <a href="{{ url_for('editar_nat', nat_id=nat.id) }}" 
+                                   class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 hover:bg-yellow-100 p-3 rounded-xl transition-all duration-200 transform hover:scale-110" 
+                                   title="Editar Configuración">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8-4v10m0 0l-8-4m8 4l8-4m-8 4v10l-8 4"></path>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-gray-500 mb-2">No hay NATs registradas</h3>
+                                <p class="text-gray-400 mb-4">Comienza agregando la primera NAT a tu red</p>
+                                <a href="{{ url_for('agregar_nat') }}" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 inline-flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Agregar Nueva NAT
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Leyenda Interactiva -->
+    <div class="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 fade-in">
+        <h3 class="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Guía Rápida de Estados
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">🟢 <50%</span>
+                <div>
+                    <div class="font-medium text-gray-700">Normal</div>
+                    <div class="text-gray-500">Capacidad óptima</div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">🟡 50-80%</span>
+                <div>
+                    <div class="font-medium text-gray-700">Medio</div>
+                    <div class="text-gray-500">Monitorear</div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 badge-pulse">🔴 80%+</span>
+                <div>
+                    <div class="font-medium text-gray-700">Crítico</div>
+                    <div class="text-gray-500">Requiere atención</div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-xl">
+                    <span class="text-lg">📡</span>
+                </div>
+                <div>
+                    <div class="font-medium text-gray-700">Caja NAT</div>
+                    <div class="text-gray-500">Punto de distribución</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Avanzado para Filtros y Búsqueda -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buscador = document.getElementById('buscador');
+    const filtroTipo = document.getElementById('filtro_tipo');
+    const filtroEstado = document.getElementById('filtro_estado');
+    const tablaBody = document.getElementById('tabla-body');
+    const contadorFiltrado = document.getElementById('contador-filtrado');
+    
+    let allRows = Array.from(tablaBody.querySelectorAll('tr')).filter(tr => tr.cells.length > 1);
+
+    function filtrarTabla() {
+        const searchTerm = buscador.value.toLowerCase();
+        const tipoFiltro = filtroTipo.value;
+        const estadoFiltro = filtroEstado.value;
+        
+        let visibles = 0;
+        
+        allRows.forEach(row => {
+            const tipo = row.getAttribute('data-tipo');
+            const nombre = row.getAttribute('data-nombre');
+            const ubicacion = row.getAttribute('data-ubicacion');
+            const estado = row.getAttribute('data-estado');
+            
+            let mostrar = true;
+            
+            // Filtro de búsqueda
+            if (searchTerm && !nombre.includes(searchTerm) && !ubicacion.includes(searchTerm)) {
+                mostrar = false;
+            }
+            
+            if (tipoFiltro !== 'todos' && tipo !== tipoFiltro) mostrar = false;
+            
+            // Filtro por estado
+            if (estadoFiltro !== 'todos' && estado !== estadoFiltro) {
+                mostrar = false;
+            }
+            
+            row.style.display = mostrar ? '' : 'none';
+            if (mostrar) visibles++;
+        });
+        
+        contadorFiltrado.textContent = visibles;
+    }
+    
+    // Event Listeners
+    buscador.addEventListener('input', filtrarTabla);
+    filtroTipo.addEventListener('change', filtrarTabla);
+    filtroEstado.addEventListener('change', filtrarTabla);
+    
+    // Efectos visuales
+    const cards = document.querySelectorAll('.hover-lift');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            card.style.transform = 'translateY(-3px)';
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Animación de aparición escalonada
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+    });
+});
+</script>
+{% endblock %}

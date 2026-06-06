@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}{% if nat %}Editar NAT{% else %}Agregar NAT{% endif %} - Fibra Manager{% endblock %}
+
+{% block head %}
+<style>
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .input-glow:focus {
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        border-color: #4f46e5;
+    }
+    .info-panel {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #bae6fd;
+        border-left: 4px solid #0ea5e9;
+    }
+    .warning-panel {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 1px solid #fecaca;
+        border-left: 4px solid #ef4444;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header Premium -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-3 rounded-xl mr-4">
+                    {% if nat %}
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                    </svg>
+                    {% else %}
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                        {% if nat %}Editar NAT: {{ nat.nombre }}{% else %}Registrar Nueva NAT{% endif %}
+                    </span>
+                    <p class="text-lg text-gray-600 font-normal mt-1">
+                        {% if nat %}Modifica la información de esta caja de distribución{% else %}Agrega una nueva caja de distribución a la red{% endif %}
+                    </p>
+                </div>
+            </h1>
+        </div>
+        
+        <!-- Botón de Volver Premium -->
+        <div class="flex space-x-3 mt-4 lg:mt-0">
+            <a href="{% if nat %}{{ url_for('ver_nat', nat_id=nat.id) }}{% else %}{{ url_for('index') }}{% endif %}" 
+               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                {% if nat %}Volver a {{ nat.nombre }}{% else %}Volver al Inicio{% endif %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash Premium -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-gradient-to-r from-{{ 'red' if category == 'danger' else 'green' }}-500 to-{{ 'red' if category == 'danger' else 'green' }}-600 text-white rounded-xl p-4 mb-6 shadow-lg fade-in">
+                    <div class="flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="font-semibold">{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Columna del Formulario -->
+        <div class="lg:col-span-2">
+            <div class="glass-effect rounded-2xl shadow-xl overflow-hidden fade-in">
+                <!-- Header del Formulario -->
+                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
+                    <h2 class="text-white text-xl font-bold flex items-center">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Información de la NAT
+                    </h2>
+                    <p class="text-indigo-100 mt-2">Completa los datos de la caja de distribución</p>
+                </div>
+
+                <!-- Cuerpo del Formulario -->
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <!-- Campo Nombre -->
+                        <div class="space-y-2">
+                            <label for="nombre" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <span class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-1 rounded-lg mr-2">
+                                    🏷️
+                                </span>
+                                Nombre de la NAT *
+                            </label>
+                            <input type="text" id="nombre" name="nombre" 
+                                   value="{{ nat.nombre if nat }}" 
+                                   required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 input-glow transition-all duration-300"
+                                   placeholder="Ej: NAP-001, CASA-01, etc.">
+                            <p class="text-xs text-gray-500 mt-1">Usa un nombre descriptivo para identificar la caja</p>
+                        </div>
+
+                        <!-- Campos de Ubicación SEPARADOS -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label for="latitud" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-green-500 to-green-600 text-white p-1 rounded-lg mr-2">
+                                        📍
+                                    </span>
+                                    Latitud *
+                                </label>
+                                <input type="text" id="latitud" name="latitud" 
+                                       value="{{ nat.latitud if nat }}" 
+                                       required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 input-glow transition-all duration-300"
+                                       placeholder="Ej: 19.4326">
+                            </div>
+                            <div class="space-y-2">
+                                <label for="longitud" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-green-500 to-green-600 text-white p-1 rounded-lg mr-2">
+                                        📍
+                                    </span>
+                                    Longitud *
+                                </label>
+                                <input type="text" id="longitud" name="longitud" 
+                                       value="{{ nat.longitud if nat }}" 
+                                       required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 input-glow transition-all duration-300"
+                                       placeholder="Ej: -99.1332">
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Ejemplo: 19.4326, -99.1332 (Coordenadas de Ciudad de México)</p>
+
+                        <div class="space-y-2">
+                            <label for="descripcion" class="block text-sm font-semibold text-gray-700">Descripción</label>
+                            <textarea id="descripcion" name="descripcion" rows="2"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 input-glow"
+                                      placeholder="Referencias de ubicación">{{ nat.descripcion if nat else '' }}</textarea>
+                        </div>
+
+                        <!-- Campo Modelo NAP -->
+                        <div class="space-y-2">
+                            <label for="nap_model_id" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <span class="bg-gradient-to-r from-red-500 to-red-600 text-white p-1 rounded-lg mr-2">
+                                    📦
+                                </span>
+                                Modelo de NAP *
+                            </label>
+                            <select id="nap_model_id" name="nap_model_id" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 input-glow transition-all duration-300 bg-white">
+                                <option value="" class="text-gray-400">-- Selecciona un Modelo --</option>
+                                {% for modelo in modelos %}
+                                    <option value="{{ modelo.id }}" 
+                                            {% if nat and nat.nap_model_id == modelo.id %}selected{% endif %}
+                                            data-capacidad="{{ modelo.capacidad_max }}">
+                                        {{ modelo.nombre }} ({{ modelo.capacidad_max }}P)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">La capacidad se ajustará automáticamente según el modelo seleccionado</p>
+                        </div>
+
+                        <!-- Campo Hilo de Conexión -->
+                        <div class="space-y-2">
+                            <label for="hilo_conexion" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                <span class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-1 rounded-lg mr-2">
+                                    🧵
+                                </span>
+                                Hilo de Conexión
+                            </label>
+                            <input type="text" id="hilo_conexion" name="hilo_conexion" 
+                                   value="{{ nat.hilo_conexion if nat }}" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 input-glow transition-all duration-300"
+                                   placeholder="Ej: HILO-01, PAR-1, etc.">
+                            <p class="text-xs text-gray-500 mt-1">Identificador del hilo o par de conexión</p>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
+                            <a href="{% if nat %}{{ url_for('ver_nat', nat_id=nat.id) }}{% else %}{{ url_for('index') }}{% endif %}" 
+                               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-2 sm:order-1">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                                Cancelar
+                            </a>
+                            
+                            <button type="submit" 
+                                    class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-1 sm:order-2">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                {% if nat %}Actualizar NAT{% else %}Registrar NAT{% endif %}
+                            </button>
+                        </div>
+
+                        <p class="text-gray-500 text-xs text-right italic mt-4">* Campos obligatorios</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Información -->
+        <div class="space-y-6">
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift info-panel">
+                <h3 class="text-lg font-bold text-blue-800 mb-4">Tipos de caja</h3>
+                <ul class="text-sm text-blue-700 space-y-2">
+                    <li><strong>Distribución (NAP):</strong> conecta clientes; define puertos según el modelo.</li>
+                    <li><strong>Empalme:</strong> punto de unión de fibras; sin puertos de cliente.</li>
+                    <li>Agrega coordenadas para ver la caja en el mapa.</li>
+                </ul>
+            </div>
+
+            <!-- Modelos de NAP -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    Modelos de NAP
+                </h3>
+                <div class="space-y-3 text-sm">
+                    {% for modelo in modelos %}
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                        <div>
+                            <span class="font-medium text-gray-700">{{ modelo.nombre }}</span>
+                            <p class="text-xs text-gray-500 mt-1">{{ modelo.descripcion if modelo.descripcion else "Sin descripción" }}</p>
+                        </div>
+                        <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                            {{ modelo.capacidad_max }}P
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Consejos Rápidos -->
+            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+                <h3 class="text-lg font-bold text-amber-800 mb-3">💡 Consejos Rápidos</h3>
+                <ul class="text-sm text-amber-700 space-y-2">
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Usa nombres descriptivos para identificar fácilmente</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Verifica las coordenadas en un mapa antes de guardar</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Planifica el orden de conexión antes de asignarlo</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">•</span>
+                        <span>Selecciona el modelo adecuado según la capacidad necesaria</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para Mejorar la Experiencia -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Actualizar información cuando se selecciona un modelo
+    const modelSelect = document.getElementById('nap_model_id');
+    
+    modelSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const capacidad = selectedOption.getAttribute('data-capacidad');
+        if (capacidad) {
+            // Efecto visual al seleccionar
+            this.classList.add('ring-2', 'ring-indigo-200');
+            setTimeout(() => {
+                this.classList.remove('ring-2', 'ring-indigo-200');
+            }, 1000);
+            
+            // Podrías mostrar la capacidad en algún lugar si lo deseas
+            console.log('Capacidad seleccionada:', capacidad + 'P');
+        }
+    });
+    
+    // Validación de formulario
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const nombre = document.getElementById('nombre').value;
+        const latitud = document.getElementById('latitud').value;
+        const longitud = document.getElementById('longitud').value;
+        const modelo = document.getElementById('nap_model_id').value;
+        
+        if (!nombre || !modelo) {
+            e.preventDefault();
+            alert('Por favor, completa todos los campos obligatorios.');
+            return;
+        }
+        
+        // Validación básica de coordenadas
+        if (isNaN(parseFloat(latitud)) || isNaN(parseFloat(longitud))) {
+            e.preventDefault();
+            alert('Las coordenadas deben ser valores numéricos válidos.');
+            return;
+        }
+    });
+    
+    // Efectos visuales en inputs
+    const inputs = document.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('ring-2', 'ring-indigo-100', 'rounded-xl');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('ring-2', 'ring-indigo-100', 'rounded-xl');
+        });
+    });
+    
+    // Animación de aparición escalonada
+    const elements = document.querySelectorAll('.fade-in');
+    elements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Auto-focus en el primer campo
+    setTimeout(() => {
+        document.getElementById('nombre').focus();
+    }, 300);
+});
+</script>
+{% endblock %}

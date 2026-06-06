@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Reportes - Fibra Manager{% endblock %}
+{% block head %}
+<style>
+    .fade-in { animation: fadeInUp 0.5s ease-out; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="fade-in">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Reportes</h1>
+    <p class="text-gray-500 mb-8">Resumen operativo de la red</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl border p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Clientes activos</p>
+            <p class="text-3xl font-bold text-indigo-600">{{ metricas.clientes_activos }}</p>
+        </div>
+        <div class="bg-white rounded-xl border p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Cajas registradas</p>
+            <p class="text-3xl font-bold text-purple-600">{{ metricas.total_nats }}</p>
+        </div>
+        <div class="bg-white rounded-xl border p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Ocupación promedio</p>
+            <p class="text-3xl font-bold text-emerald-600">{{ metricas.ocupacion_promedio }}%</p>
+        </div>
+        <div class="bg-white rounded-xl border p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Cajas críticas</p>
+            <p class="text-3xl font-bold text-amber-600">{{ metricas.nats_criticas }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl border p-6 shadow-sm mb-6">
+        <h2 class="text-lg font-semibold mb-4">Por tipo de caja</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+            {% for i in range(metricas.troncales_labels|length) %}
+            <div class="flex items-center justify-between p-4 rounded-lg bg-gray-50">
+                <span class="font-medium flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full" style="background:{{ metricas.troncales_colors[i] }}"></span>
+                    {{ metricas.troncales_labels[i] }}
+                </span>
+                <span class="text-gray-600">
+                    {{ metricas.troncales_ocupacion[i] }}
+                    {% if metricas.troncales_labels[i] == 'Distribución' %}%{% else %} cajas{% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="flex gap-3">
+        <a href="{{ url_for('descargar_excel_todo') }}" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors">Descargar Excel completo</a>
+        <a href="{{ url_for('dashboard') }}" class="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Volver al dashboard</a>
+    </div>
+</div>
+{% endblock %}

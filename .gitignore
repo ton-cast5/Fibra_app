@@ -1,0 +1,38 @@
+# Entorno y secretos
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+
+# Build / empaquetado local
+build/
+dist/
+*.spec
+*.exe
+
+# IDE y herramientas
+.idea/
+.vscode/
+.cursor/
+*.log
+
+# Vercel
+.vercel
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Datos locales
+uploads/
+static/nap_images/*
+!static/nap_images/.gitkeep
