@@ -12,7 +12,28 @@
         box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         border: 1px solid #e5e7eb;
     }
-    .map-wrap iframe, .map-wrap .folium-map { width: 100% !important; height: 100% !important; }
+    .map-wrap iframe,
+    .map-wrap .folium-map,
+    .map-wrap > div {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+    }
+    /* Móvil: el mapa va debajo de filtros/stats; evitar caja vacía alargada */
+    @media (max-width: 1023px) {
+        .map-wrap {
+            height: min(52vh, 380px);
+            min-height: 280px;
+            max-height: 380px;
+        }
+    }
+    @media (max-width: 639px) {
+        .map-wrap {
+            height: min(48vh, 340px);
+            min-height: 260px;
+            max-height: 340px;
+        }
+    }
     .filter-panel {
         background: #fff;
         border-radius: 14px;
