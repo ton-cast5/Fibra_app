@@ -658,6 +658,8 @@ def generar_mapa_mejorado():
         ).add_to(grupo)
 
     folium.LayerControl(collapsed=True, position='topright').add_to(mapa)
+    mapa.get_root().width = '100%'
+    mapa.get_root().height = '100%'
     mapa.get_root().html.add_child(folium.Element(
         '<script>setTimeout(function(){ window.dispatchEvent(new Event("mapaListo")); }, 600);</script>'
     ))

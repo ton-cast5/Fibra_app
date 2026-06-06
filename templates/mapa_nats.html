@@ -5,33 +5,48 @@
 {% block head %}
 <style>
     .map-wrap {
+        position: relative;
+        width: 100%;
         height: calc(100vh - 220px);
         min-height: 480px;
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         border: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
     }
+    /* Folium anida divs/iframe; forzar que llenen el contenedor sin huecos */
+    .map-wrap > div,
+    .map-wrap > div > div,
     .map-wrap iframe,
     .map-wrap .folium-map,
-    .map-wrap > div {
+    .map-wrap .leaflet-container {
         width: 100% !important;
         height: 100% !important;
         min-height: 0 !important;
+        flex: 1 1 auto;
     }
-    /* Móvil: el mapa va debajo de filtros/stats; evitar caja vacía alargada */
+    .map-wrap > div {
+        position: relative !important;
+        padding-bottom: 0 !important;
+        height: 100% !important;
+    }
+    .map-wrap > div > div {
+        position: absolute !important;
+        inset: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    /* Móvil: altura según ancho de pantalla — cuadro proporcional, mapa a tamaño completo */
     @media (max-width: 1023px) {
         .map-wrap {
-            height: min(52vh, 380px);
-            min-height: 280px;
-            max-height: 380px;
+            height: clamp(320px, 85vw, 460px);
+            min-height: unset;
         }
     }
     @media (max-width: 639px) {
         .map-wrap {
-            height: min(48vh, 340px);
-            min-height: 260px;
-            max-height: 340px;
+            height: clamp(300px, 95vw, 420px);
         }
     }
     .filter-panel {
@@ -186,6 +201,33 @@
         return document.querySelector('#map-container') || document;
     }
 
+    function ajustarTamanoMapa() {
+        const wrap = document.getElementById('map-container');
+        if (!wrap) return;
+        const alto = wrap.clientHeight;
+        wrap.querySelectorAll('iframe').forEach(function (iframe) {
+            iframe.style.width = '100%';
+            iframe.style.height = alto + 'px';
+            iframe.style.minHeight = alto + 'px';
+            try {
+                const win = iframe.contentWindow;
+                const doc = iframe.contentDocument;
+                if (!doc || !win) return;
+                doc.querySelectorAll('.folium-map, .leaflet-container').forEach(function (el) {
+                    el.style.width = '100%';
+                    el.style.height = alto + 'px';
+                });
+                if (win.L && win.L.Map && win.L.Map._instances) {
+                    Object.keys(win.L.Map._instances).forEach(function (id) {
+                        const map = win.L.Map._instances[id];
+                        if (map && map.invalidateSize) map.invalidateSize();
+                    });
+                }
+                win.dispatchEvent(new Event('resize'));
+            } catch (e) { /* iframe aún cargando */ }
+        });
+    }
+
     function aplicarFiltros() {
         const root = getMapRoot();
         root.querySelectorAll('.marker-caja').forEach(function(el) {
@@ -221,8 +263,12 @@
         aplicarFiltros();
     });
 
-    window.addEventListener('mapaListo', function() { setTimeout(aplicarFiltros, 200); });
-    setTimeout(aplicarFiltros, 1200);
+    window.addEventListener('mapaListo', function () {
+        setTimeout(function () { ajustarTamanoMapa(); aplicarFiltros(); }, 200);
+        setTimeout(ajustarTamanoMapa, 800);
+    });
+    window.addEventListener('resize', function () { ajustarTamanoMapa(); });
+    setTimeout(function () { ajustarTamanoMapa(); aplicarFiltros(); }, 1200);
 })();
 </script>
 {% endblock %}
