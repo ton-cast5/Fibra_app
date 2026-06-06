@@ -38,7 +38,10 @@ CORS(app)  # Habilitar CORS
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
-load_dotenv(override=True)
+if os.getenv('VERCEL') != '1':
+    load_dotenv(override=True)
+else:
+    load_dotenv(override=False)
 
 
 def _supabase_project_ref():
@@ -48,23 +51,30 @@ def _supabase_project_ref():
     return 'ckzkznyaajmqwrjdlcld'
 
 
+def _normalize_pg_url(url):
+    if url.startswith('postgres://'):
+        return url.replace('postgres://', 'postgresql://', 1)
+    return url
+
+
 def _resolve_database_url():
     """URL de PostgreSQL. Por defecto usa pooler Supabase (IPv4, compatible con Windows)."""
     placeholders = ('[YOUR-PASSWORD]', 'TU_PASSWORD', '[TU_PASSWORD]')
     project_ref = _supabase_project_ref()
 
+    database_url = (os.getenv('DATABASE_URL') or '').strip()
+    if database_url and not any(p in database_url for p in placeholders):
+        return _normalize_pg_url(database_url)
+
     pooler_url = (os.getenv('DATABASE_POOLER_URL') or '').strip()
     if pooler_url and not any(p in pooler_url for p in placeholders):
-        return pooler_url
+        return _normalize_pg_url(pooler_url)
 
     password = os.getenv('DB_PASSWORD', '').strip()
     if not password:
-        url = (os.getenv('DATABASE_URL') or '').strip()
-        if url and project_ref in url and not any(p in url for p in placeholders):
-            if 'pooler.supabase.com' in url:
-                return url
         raise ValueError(
-            f'Define DB_PASSWORD en .env (Supabase > Settings > Database > Database password).'
+            'Define DATABASE_URL o DB_PASSWORD en las variables de entorno '
+            '(Supabase > Settings > Database).'
         )
 
     use_pooler = os.getenv('DB_USE_POOLER', 'true').lower() in ('1', 'true', 'yes')
@@ -132,10 +142,12 @@ SUPABASE_KEY = SUPABASE_STORAGE_KEY or SUPABASE_ANON_KEY
 SUPABASE_STORAGE_URL = f"{SUPABASE_URL_STORAGE}/storage/v1"
 STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "documentos")
 
-# Configuración de la carpeta de imágenes 
-UPLOAD_FOLDER = os.path.join(basedir, 'static/nap_images')
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Configuración de la carpeta de imágenes
+if os.getenv('VERCEL') == '1':
+    UPLOAD_FOLDER = os.path.join('/tmp', 'nap_images')
+else:
+    UPLOAD_FOLDER = os.path.join(basedir, 'static/nap_images')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB límite
 
