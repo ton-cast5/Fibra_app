@@ -188,7 +188,6 @@
                                 <span>Nombre</span>
                             </div>
                         </th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Ubicación</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Región</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Tipo</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Capacidad</th>
@@ -219,13 +218,6 @@
                             </div>
                         </td>
                         
-                        <!-- Ubicación -->
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                                📍 {{ nat.ubicacion }}
-                            </span>
-                        </td>
-
                         <!-- Región -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if nat.region %}
@@ -315,7 +307,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center">
+                        <td colspan="6" class="px-6 py-12 text-center">
                             <div class="text-gray-400">
                                 <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8-4v10m0 0l-8-4m8 4l8-4m-8 4v10l-8 4"></path>
