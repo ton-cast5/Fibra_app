@@ -101,6 +101,26 @@
     .nat-info-pink { background: linear-gradient(to right, #fdf2f8, #fff1f2); border-color: #fbcfe8; }
     .nat-info-gray { background: linear-gradient(to right, #f9fafb, #f8fafc); border-color: #e5e7eb; }
     .nat-info-orange { background: linear-gradient(to right, #fff7ed, #fffbeb); border-color: #fed7aa; }
+    .nat-desc-box {
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        border: 1px solid #ddd6fe;
+        background: linear-gradient(135deg, #f5f3ff 0%, #faf5ff 50%, #f8fafc 100%);
+    }
+    .nat-desc-text {
+        margin-top: 0.5rem;
+        font-size: 0.9375rem;
+        line-height: 1.65;
+        color: #374151;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    html.dark .nat-desc-box {
+        background: rgba(99, 102, 241, 0.1) !important;
+        border-color: var(--fm-border) !important;
+    }
+    html.dark .nat-desc-text { color: var(--fm-text-secondary) !important; }
+    html.dark .text-violet-700 { color: #c4b5fd !important; }
     .nat-row-card {
         background: #ffffff;
         border: 1px solid #e5e7eb;
@@ -491,6 +511,18 @@
                     </div>
                     Información Técnica
                 </h2>
+
+                {% if nat.descripcion and nat.descripcion.strip() %}
+                <div class="nat-desc-box mb-6">
+                    <label class="block text-sm font-semibold text-violet-700 flex items-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Descripción / Notas de campo
+                    </label>
+                    <p class="nat-desc-text">{{ nat.descripcion.strip() }}</p>
+                </div>
+                {% endif %}
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-4">
