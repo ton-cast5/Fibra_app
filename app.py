@@ -620,13 +620,7 @@ def generar_mapa_mejorado():
             if not es_empalme and nat.puertos_total
             else ''
         )
-        nav_payload = json.dumps({
-            'type': 'fibra-nap-nav',
-            'id': nat.id,
-            'nombre': nat.nombre,
-            'lat': nat.latitud,
-            'lng': nat.longitud,
-        })
+        nombre_js = json.dumps(nat.nombre)
         popup_html = f'''
         <div style="min-width: 240px; font-family: system-ui, sans-serif;">
             <div style="background: {color_bg}; color: white; padding: 12px; border-radius: 8px 8px 0 0;">
@@ -637,10 +631,10 @@ def generar_mapa_mejorado():
                 {puertos_info}
                 <p style="margin: 8px 0 0;"><strong>Modelo:</strong> {nat.modelo.nombre if nat.modelo else "—"}</p>
                 <button type="button"
-                   onclick='window.parent.postMessage({nav_payload}, "*")'
+                   onclick="window.parent.abrirMapsCaja({nat.latitud}, {nat.longitud}, {nombre_js})"
                    style="display: block; width: 100%; margin-top: 10px; background: #0ea5e9; color: white; padding: 8px;
                    border: none; cursor: pointer; text-align: center; border-radius: 6px; font-size: 13px; font-weight: 600;">
-                   🧭 Cómo llegar
+                   🗺️ Abrir en Maps
                 </button>
                 <a href="{url_for('ver_nat', nat_id=nat.id)}" target="_blank"
                    style="display: block; margin-top: 8px; background: #4f46e5; color: white; padding: 8px;

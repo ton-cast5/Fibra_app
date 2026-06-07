@@ -95,56 +95,6 @@
     input:checked + .toggle-slider:before { transform: translateX(22px); }
     .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
     .marker-caja[style*="display: none"] { pointer-events: none !important; }
-    .map-area { position: relative; }
-    .nav-panel {
-        position: absolute;
-        left: 0.75rem;
-        right: 0.75rem;
-        bottom: 0.75rem;
-        z-index: 500;
-        background: rgba(255, 255, 255, 0.97);
-        border: 1px solid #e5e7eb;
-        border-radius: 1rem;
-        box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
-        padding: 1rem 1.125rem;
-        backdrop-filter: blur(8px);
-        animation: navPanelIn 0.25s ease-out;
-    }
-    @keyframes navPanelIn {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .nav-panel.hidden { display: none; }
-    .nav-panel-title { font-size: 0.9375rem; font-weight: 700; color: #0f172a; }
-    .nav-panel-sub { font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem; }
-    .nav-panel-stats {
-        display: flex; gap: 1rem; margin-top: 0.625rem;
-        font-size: 0.8125rem; font-weight: 600; color: #334155;
-    }
-    .nav-panel-actions { display: flex; gap: 0.5rem; margin-top: 0.875rem; flex-wrap: wrap; }
-    .nav-btn {
-        flex: 1; min-width: 7rem;
-        padding: 0.625rem 0.875rem;
-        border-radius: 0.75rem;
-        font-size: 0.875rem; font-weight: 600;
-        border: none; cursor: pointer;
-        transition: transform 0.15s, opacity 0.15s;
-    }
-    .nav-btn:active { transform: scale(0.98); }
-    .nav-btn-start { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; }
-    .nav-btn-stop { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
-    .nav-btn-maps { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
-    .nav-status { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
-    .nav-status.error { color: #dc2626; }
-    .nav-status.active { color: #0284c7; }
-    html.dark .nav-panel {
-        background: rgba(21, 29, 46, 0.96);
-        border-color: #2a3548;
-    }
-    html.dark .nav-panel-title { color: #f1f5f9; }
-    html.dark .nav-panel-sub, html.dark .nav-status { color: #94a3b8; }
-    html.dark .nav-panel-stats { color: #cbd5e1; }
-    html.dark .nav-btn-stop { background: #1c2740; color: #cbd5e1; border-color: #2a3548; }
 </style>
 {% endblock %}
 
@@ -235,22 +185,8 @@
         </div>
     </aside>
 
-    <div class="lg:col-span-9 fade-in map-area">
+    <div class="lg:col-span-9 fade-in">
         <div class="map-wrap" id="map-container">{{ mapa_html | safe }}</div>
-        <div id="nav-panel" class="nav-panel hidden" role="region" aria-label="Navegación a caja">
-            <div class="nav-panel-title" id="nav-dest-name">Destino</div>
-            <div class="nav-panel-sub" id="nav-dest-hint">Toca una caja en el mapa y elige «Cómo llegar»</div>
-            <div class="nav-panel-stats hidden" id="nav-stats">
-                <span id="nav-distance">—</span>
-                <span id="nav-duration">—</span>
-            </div>
-            <div class="nav-panel-actions">
-                <button type="button" id="nav-btn-start" class="nav-btn nav-btn-start">▶ Iniciar recorrido</button>
-                <button type="button" id="nav-btn-stop" class="nav-btn nav-btn-stop hidden">Detener</button>
-                <button type="button" id="nav-btn-ext" class="nav-btn nav-btn-maps hidden">Abrir en Maps</button>
-            </div>
-            <p class="nav-status" id="nav-status"></p>
-        </div>
     </div>
 </div>
 
@@ -333,211 +269,31 @@
     });
     window.addEventListener('resize', function () { ajustarTamanoMapa(); });
     setTimeout(function () { ajustarTamanoMapa(); aplicarFiltros(); }, 1200);
-
-    /* —— Navegación «Cómo llegar» —— */
-    const navPanel = document.getElementById('nav-panel');
-    const navDestName = document.getElementById('nav-dest-name');
-    const navDestHint = document.getElementById('nav-dest-hint');
-    const navStats = document.getElementById('nav-stats');
-    const navDistance = document.getElementById('nav-distance');
-    const navDuration = document.getElementById('nav-duration');
-    const navStatus = document.getElementById('nav-status');
-    const navBtnStart = document.getElementById('nav-btn-start');
-    const navBtnStop = document.getElementById('nav-btn-stop');
-    const navBtnExt = document.getElementById('nav-btn-ext');
-
-    let navDestino = null;
-    let navActivo = false;
-    let geoWatchId = null;
-    let navLayers = { user: null, route: null, dest: null };
-
-    function getLeafletContext() {
-        const iframe = document.querySelector('#map-container iframe');
-        if (!iframe || !iframe.contentWindow) return null;
-        const win = iframe.contentWindow;
-        const L = win.L;
-        if (!L || !L.Map || !L.Map._instances) return null;
-        const ids = Object.keys(L.Map._instances);
-        if (!ids.length) return null;
-        return { win: win, L: L, map: L.Map._instances[ids[0]] };
-    }
-
-    function limpiarCapasNav() {
-        const ctx = getLeafletContext();
-        if (!ctx) return;
-        ['user', 'route', 'dest'].forEach(function (k) {
-            if (navLayers[k]) {
-                ctx.map.removeLayer(navLayers[k]);
-                navLayers[k] = null;
-            }
-        });
-    }
-
-    function detenerRecorrido() {
-        if (geoWatchId != null) {
-            navigator.geolocation.clearWatch(geoWatchId);
-            geoWatchId = null;
-        }
-        navActivo = false;
-        limpiarCapasNav();
-        navBtnStart.classList.remove('hidden');
-        navBtnStop.classList.add('hidden');
-        navStats.classList.add('hidden');
-        navStatus.textContent = '';
-        navStatus.className = 'nav-status';
-        if (navDestino) {
-            navDestHint.textContent = 'Pulsa «Iniciar recorrido» para usar tu ubicación en tiempo real.';
-        }
-    }
-
-    function formatoDistancia(m) {
-        if (m >= 1000) return (m / 1000).toFixed(1) + ' km';
-        return Math.round(m) + ' m';
-    }
-
-    function formatoDuracion(s) {
-        const min = Math.round(s / 60);
-        if (min < 60) return min + ' min';
-        return Math.floor(min / 60) + ' h ' + (min % 60) + ' min';
-    }
-
-    async function trazarRuta(userLat, userLng) {
-        const ctx = getLeafletContext();
-        if (!ctx || !navDestino) return;
-        const url = 'https://router.project-osrm.org/route/v1/driving/'
-            + userLng + ',' + userLat + ';' + navDestino.lng + ',' + navDestino.lat
-            + '?overview=full&geometries=geojson';
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.code !== 'Ok' || !data.routes.length) throw new Error('No se pudo calcular la ruta');
-        const route = data.routes[0];
-        const coords = route.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
-        if (navLayers.route) ctx.map.removeLayer(navLayers.route);
-        navLayers.route = ctx.L.polyline(coords, {
-            color: '#0ea5e9', weight: 5, opacity: 0.85, lineJoin: 'round'
-        }).addTo(ctx.map);
-        navDistance.textContent = '📏 ' + formatoDistancia(route.distance);
-        navDuration.textContent = '⏱ ' + formatoDuracion(route.duration);
-        navStats.classList.remove('hidden');
-        ctx.map.fitBounds(navLayers.route.getBounds(), { padding: [48, 48] });
-    }
-
-    function actualizarUbicacionUsuario(pos) {
-        const ctx = getLeafletContext();
-        if (!ctx || !navDestino) return;
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const icon = ctx.L.divIcon({
-            className: '',
-            html: '<div style="width:18px;height:18px;background:#2563eb;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 6px rgba(37,99,235,0.35);"></div>',
-            iconSize: [18, 18], iconAnchor: [9, 9]
-        });
-        if (navLayers.user) {
-            navLayers.user.setLatLng([lat, lng]);
-        } else {
-            navLayers.user = ctx.L.marker([lat, lng], { icon: icon, zIndexOffset: 1000 }).addTo(ctx.map);
-        }
-    }
-
-    function marcarDestino() {
-        const ctx = getLeafletContext();
-        if (!ctx || !navDestino) return;
-        if (navLayers.dest) ctx.map.removeLayer(navLayers.dest);
-        const icon = ctx.L.divIcon({
-            className: '',
-            html: '<div style="width:22px;height:22px;background:#f59e0b;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
-            iconSize: [22, 22], iconAnchor: [11, 11]
-        });
-        navLayers.dest = ctx.L.marker([navDestino.lat, navDestino.lng], { icon: icon, zIndexOffset: 900 })
-            .addTo(ctx.map)
-            .bindPopup('<strong>' + navDestino.nombre + '</strong><br>Destino');
-    }
-
-    function abrirMapsExterno() {
-        if (!navDestino) return;
-        const dest = navDestino.lat + ',' + navDestino.lng;
-        const ua = navigator.userAgent || '';
-        if (/iPhone|iPad|iPod/i.test(ua)) {
-            window.open('maps://?daddr=' + dest + '&dirflg=d', '_blank');
-        } else if (/Android/i.test(ua)) {
-            window.open('google.navigation:q=' + dest, '_blank');
-        } else {
-            window.open('https://www.google.com/maps/dir/?api=1&destination=' + dest + '&travelmode=driving', '_blank');
-        }
-    }
-
-    function seleccionarDestino(data) {
-        detenerRecorrido();
-        navDestino = { id: data.id, nombre: data.nombre, lat: data.lat, lng: data.lng };
-        navPanel.classList.remove('hidden');
-        navDestName.textContent = '📍 ' + data.nombre;
-        navDestHint.textContent = 'Pulsa «Iniciar recorrido» para usar tu ubicación en tiempo real.';
-        navBtnStart.classList.remove('hidden');
-        navBtnStop.classList.add('hidden');
-        navBtnExt.classList.remove('hidden');
-        navStats.classList.add('hidden');
-        const ctx = getLeafletContext();
-        if (ctx) {
-            marcarDestino();
-            ctx.map.setView([data.lat, data.lng], Math.max(ctx.map.getZoom(), 15));
-        }
-    }
-
-    navBtnStart.addEventListener('click', function () {
-        if (!navDestino) return;
-        if (!navigator.geolocation) {
-            navStatus.textContent = 'Tu navegador no soporta geolocalización.';
-            navStatus.className = 'nav-status error';
-            return;
-        }
-        navStatus.textContent = 'Obteniendo tu ubicación…';
-        navStatus.className = 'nav-status active';
-        navBtnStart.classList.add('hidden');
-        navBtnStop.classList.remove('hidden');
-
-        navigator.geolocation.getCurrentPosition(
-            function (pos) {
-                navActivo = true;
-                actualizarUbicacionUsuario(pos);
-                marcarDestino();
-                trazarRuta(pos.coords.latitude, pos.coords.longitude).then(function () {
-                    navStatus.textContent = 'Recorrido activo — tu posición se actualiza en tiempo real.';
-                    navStatus.className = 'nav-status active';
-                }).catch(function () {
-                    navStatus.textContent = 'No se pudo trazar la ruta. Usa «Abrir en Maps» como alternativa.';
-                    navStatus.className = 'nav-status error';
-                });
-                geoWatchId = navigator.geolocation.watchPosition(
-                    function (p) {
-                        if (!navActivo) return;
-                        actualizarUbicacionUsuario(p);
-                    },
-                    function () { /* ignorar errores puntuales en seguimiento */ },
-                    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-                );
-            },
-            function (err) {
-                navBtnStart.classList.remove('hidden');
-                navBtnStop.classList.add('hidden');
-                const msgs = {
-                    1: 'Permiso de ubicación denegado. Actívalo en tu celular para iniciar el recorrido.',
-                    2: 'Ubicación no disponible.',
-                    3: 'Tiempo de espera agotado al obtener ubicación.'
-                };
-                navStatus.textContent = msgs[err.code] || 'Error al obtener ubicación.';
-                navStatus.className = 'nav-status error';
-            },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-        );
-    });
-
-    navBtnStop.addEventListener('click', detenerRecorrido);
-    navBtnExt.addEventListener('click', abrirMapsExterno);
-
-    window.addEventListener('message', function (ev) {
-        if (!ev.data || ev.data.type !== 'fibra-nap-nav') return;
-        seleccionarDestino(ev.data);
-    });
 })();
+
+/** Abrir navegación externa (Google Maps / Apple Maps) según dispositivo */
+window.abrirMapsCaja = function (lat, lng, nombre) {
+    lat = parseFloat(lat);
+    lng = parseFloat(lng);
+    nombre = (nombre || 'Caja NAP').trim();
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    var coords = lat + ',' + lng;
+    var nombreEnc = encodeURIComponent(nombre);
+    var ua = navigator.userAgent || '';
+    var url;
+
+    if (/iPhone|iPad|iPod/i.test(ua)) {
+        url = 'https://maps.apple.com/?ll=' + coords + '&q=' + nombreEnc + '&dirflg=d';
+    } else if (/Android/i.test(ua)) {
+        url = 'https://www.google.com/maps/dir/?api=1&destination=' + coords
+            + '&destination_place_name=' + nombreEnc + '&travelmode=driving';
+    } else {
+        url = 'https://www.google.com/maps/dir/?api=1&destination=' + coords
+            + '&destination_place_name=' + nombreEnc + '&travelmode=driving';
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+};
 </script>
 {% endblock %}
