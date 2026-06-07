@@ -1,145 +1,106 @@
 # Fibra Manager
 
-**Fibra Manager** es una aplicación web para operar y documentar una red de fibra óptica: cajas NAP, empalmes, clientes, mediciones de potencia, inventarios, asistencia de personal y un repositorio de archivos. Está pensada para uso en **escritorio y celular**, con interfaz adaptable y tema claro/oscuro.
-
-**Producción:** [fibra-app-ashen.vercel.app](https://fibra-app-ashen.vercel.app)  
-**Repositorio:** [github.com/ton-cast5/Fibra_app](https://github.com/ton-cast5/Fibra_app)
+Aplicación web para gestionar una red de fibra óptica desde el celular o la computadora. Centraliza cajas, clientes, mediciones, inventarios y documentación en un solo lugar.
 
 ---
 
-## ¿Qué hace la app?
+## Dashboard
 
-Centraliza en un solo lugar la información que antes suele estar repartida entre hojas de cálculo, mapas y carpetas locales.
-
-| Módulo | Descripción |
-|--------|-------------|
-| **Dashboard** | Resumen de la red: cajas, clientes, alertas de saturación y accesos rápidos. |
-| **Mapa geográfico** | Visualización interactiva de cajas de **distribución** y **empalmes** con filtros por tipo y estado. |
-| **Cajas NAP / Empalmes** | Alta, edición y detalle de cada caja: ubicación GPS, modelo, hilo, puertos, descripción y clientes asociados. |
-| **Clientes** | Registro por caja, puerto asignado, estado activo/inactivo y vínculo con la NAP correspondiente. |
-| **Potencias** | Mediciones de potencia en NAP y modem, cálculo de pérdida, estado de señal y propagación a clientes de la misma caja. |
-| **Modelos de cajas** | Catálogo de modelos (distribución o empalme) con imagen de referencia. |
-| **Inventarios** | Exportación de inventario completo, clientes, NAP y asistencias en **PDF** y **Excel** corporativo. |
-| **Asistencias laborales** | Control de entradas/salidas del personal por día. |
-| **Repositorio** | Archivos en la nube (Supabase Storage): subida, búsqueda, etiquetas y descarga. |
+Vista general de la red con indicadores clave: cantidad de cajas, clientes, niveles de ocupación y accesos rápidos a las secciones más usadas.
 
 ---
 
-## Stack tecnológico
+## Mapa geográfico
 
-- **Backend:** Python 3 + [Flask](https://flask.palletsprojects.com/)
-- **Base de datos:** [Supabase](https://supabase.com/) (PostgreSQL)
-- **Archivos:** Supabase Storage
-- **Frontend:** HTML + [Tailwind CSS](https://tailwindcss.com/) (CDN)
-- **Mapas:** [Folium](https://python-visualization.github.io/folium/) / Leaflet
-- **Reportes:** pandas + openpyxl (Excel), jsPDF (PDF en navegador)
-- **Despliegue:** [Vercel](https://vercel.com/) (serverless Python)
+Mapa interactivo con todas las cajas registradas. Permite filtrar por:
 
----
+- **Tipo:** distribución o empalme
+- **Estado:** normal, crítica o saturada (en cajas de distribución)
 
-## Estructura del proyecto
-
-```
-fibra_app/
-├── app.py                 # Rutas, modelos SQLAlchemy y lógica principal
-├── report_exports.py      # Plantillas Excel corporativas
-├── supabase_schema.sql    # Esquema de tablas para Supabase
-├── requirements.txt       # Dependencias Python
-├── vercel.json            # Configuración de despliegue
-├── .vercelignore          # Archivos excluidos del deploy
-├── templates/             # Vistas HTML (Jinja2)
-└── static/                # CSS, iconos PWA, imágenes
-```
+Cada marcador muestra información básica y enlace al detalle de la caja.
 
 ---
 
-## Desarrollo local
+## Cajas NAP y empalmes
 
-### Requisitos
+Registro y consulta de cada punto de la red:
 
-- Python 3.11+
-- Proyecto en Supabase con PostgreSQL y Storage configurados
+- Nombre, tipo (distribución / empalme), modelo y capacidad de puertos
+- Ubicación GPS
+- Color del hilo de conexión
+- Descripción o notas de campo
+- Clientes asignados y nivel de ocupación
 
-### Pasos
-
-```powershell
-python -m venv venv
-venv\Scripts\pip install -r requirements.txt
-copy .env.example .env
-# Edita .env con tus credenciales de Supabase
-venv\Scripts\python.exe app.py
-```
-
-Abre **http://127.0.0.1:5000**
-
-### Base de datos
-
-Si es la primera vez, ejecuta `supabase_schema.sql` en el **SQL Editor** de Supabase para crear tablas e índices.
-
-### Variables de entorno (`.env`)
-
-| Variable | Descripción |
-|----------|-------------|
-| `SUPABASE_URL` | URL del proyecto Supabase |
-| `SUPABASE_ANON_KEY` | Clave pública / anon |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role (subidas al repositorio) |
-| `SUPABASE_STORAGE_BUCKET` | Nombre del bucket (ej. `documentos`) |
-| `DB_PASSWORD` | Contraseña de PostgreSQL |
-| `DB_USE_POOLER` | `true` (recomendado) |
-| `DB_POOLER_HOST` | Host del pooler Supabase |
-| `DB_POOLER_PORT` | `6543` |
-| `SECRET_KEY` | Clave secreta Flask (aleatoria y larga) |
-
-También puedes usar `DATABASE_URL` con la URI completa del pooler en lugar de `DB_PASSWORD`.
+Desde el detalle de una caja se puede editar, ver en el mapa, agregar clientes o eliminarla.
 
 ---
 
-## Despliegue en Vercel
+## Clientes
 
-El proyecto está preparado para desplegarse con `vercel.json` y `app.py` usando el runtime `@vercel/python`.
+Listado y gestión de abonados vinculados a una caja:
 
-### 1. Conectar el repositorio
-
-1. Entra en [vercel.com](https://vercel.com) → **Add New Project**
-2. Importa **ton-cast5/Fibra_app**
-3. Framework: **Other**
-4. Root Directory: `.` (raíz del repo)
-
-### 2. Variables de entorno
-
-En **Settings → Environment Variables** (entorno Production), configura las mismas variables del `.env.example`.  
-Vercel inyecta `VERCEL=1` automáticamente vía `vercel.json`.
-
-### 3. Deploy
-
-Cada push a la rama `main` genera un nuevo despliegue automático.
-
-### Notas de producción
-
-- Usa el **pooler** de Supabase (puerto **6543**), no la conexión directa IPv6.
-- El endpoint `/health` sirve para comprobar que la app arrancó correctamente.
-- Si el build supera el límite de tamaño por dependencias pesadas (folium, pandas), alternativas: [Render](https://render.com) o Railway.
+- Asignación de puerto en la NAP
+- Estado activo / inactivo
+- Datos de contacto y ubicación
+- Alta, edición y baja de clientes
 
 ---
 
-## Rutas principales
+## Potencias
 
-| Ruta | Uso |
-|------|-----|
-| `/dashboard` | Panel principal |
-| `/mapa_nats` | Mapa de cajas |
-| `/` o `/cajas` | Listado de NAP / empalmes |
-| `/ver_nat/<id>` | Detalle de una caja |
-| `/clientes` | Listado de clientes |
-| `/potencias` | Mediciones de potencia |
-| `/inventarios` | Exportaciones PDF / Excel |
-| `/gestion/asistencias` | Control de asistencia |
-| `/repositorio` | Gestor de archivos |
-| `/nap_models` | Catálogo de modelos |
+Registro de mediciones ópticas por cliente:
+
+- Potencia en la NAP y en el modem del cliente
+- Cálculo automático de pérdida y estado de la señal
+- Sincronización de la potencia de NAP entre todos los clientes de la misma caja
+- Historial consultable y edición de mediciones
 
 ---
 
-## Licencia y autor
+## Modelos de cajas
 
-Proyecto privado de gestión de infraestructura de fibra óptica.  
-Desarrollado por **ton-cast5**.
+Catálogo de modelos físicos (distribución o empalme) con imagen de referencia y capacidad máxima de puertos. Sirve de base al registrar nuevas cajas en la red.
+
+---
+
+## Inventarios y reportes
+
+Generación de reportes para documentación y entregas:
+
+- Inventario completo de la red
+- Listado de clientes
+- Listado de cajas NAP
+- Asistencia laboral
+
+Disponible en **PDF** y **Excel** con formato corporativo.
+
+---
+
+## Asistencias laborales
+
+Control diario del personal de campo:
+
+- Registro de entrada y salida por trabajador
+- Vista del día con quién está dentro o fuera de jornada
+- Consulta por fecha
+- Exportación a PDF y Excel
+
+---
+
+## Repositorio de archivos
+
+Almacén de documentos de la operación (manuales, evidencias, planos, etc.):
+
+- Subida y descarga de archivos
+- Categorías y etiquetas
+- Búsqueda por nombre, categoría o descripción
+- Vista en cuadrícula o lista
+
+---
+
+## Experiencia de uso
+
+- Interfaz adaptable a **móvil y escritorio**
+- Menú móvil organizado por secciones
+- **Tema claro y oscuro**
+- Alertas visuales cuando una caja está crítica o saturada
