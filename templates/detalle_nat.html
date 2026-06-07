@@ -530,6 +530,11 @@
                             <label class="block text-sm font-semibold text-indigo-700">Tipo de caja</label>
                             <p class="mt-1 text-lg font-bold text-indigo-600">{% if nat.tipo_caja == 'empalme' %}Empalme{% else %}Distribución (NAP){% endif %}</p>
                         </div>
+
+                        <div class="nat-info-box nat-info-pink">
+                            <label class="block text-sm font-semibold text-pink-700">Región</label>
+                            <p class="mt-1 text-lg font-bold text-gray-900">{{ nat.region or 'No especificada' }}</p>
+                        </div>
                         
                         <div class="nat-info-box nat-info-blue">
                             <label class="block text-sm font-semibold text-blue-700">Modelo de NAP</label>

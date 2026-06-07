@@ -221,6 +221,7 @@ class Nat(db.Model):
     latitud = db.Column(db.Float, nullable=True)
     longitud = db.Column(db.Float, nullable=True)
     descripcion = db.Column(db.Text, nullable=True)
+    region = db.Column(db.String(100), nullable=True, index=True)
     puertos_total = db.Column(db.Integer, nullable=False, default=8)
     hilo_conexion = db.Column(db.String(50), nullable=True)
     nap_model_id = db.Column(db.Integer, 
@@ -1164,6 +1165,7 @@ def descargar_excel_todo():
     df_naps = pd.DataFrame([{
         'ID': n.id,
         'Nombre': n.nombre,
+        'Región': n.region or '',
         'Puertos Totales': n.puertos_total,
         'Hilo Conexión': n.hilo_conexion,
         'Modelo': n.modelo.nombre if n.modelo else '',
@@ -1217,7 +1219,14 @@ def home():
 @app.route('/cajas')
 def index():
     nats = Nat.query.order_by(Nat.nombre).all()
-    return render_template('index.html', nats=nats)
+    regiones = [
+        r[0] for r in db.session.query(Nat.region)
+        .filter(Nat.region.isnot(None), Nat.region != '')
+        .distinct()
+        .order_by(Nat.region)
+        .all()
+    ]
+    return render_template('index.html', nats=nats, regiones=regiones)
 
 @app.route('/dashboard')
 def dashboard():
@@ -1353,6 +1362,7 @@ def agregar_nat():
         hilo_conexion = request.form.get('hilo_conexion')
         nap_model_id = request.form.get('nap_model_id')
         descripcion = request.form.get('descripcion')
+        region = (request.form.get('region') or '').strip() or None
 
         try:
             lat = float(latitud) if latitud else None
@@ -1381,6 +1391,7 @@ def agregar_nat():
                 latitud=lat,
                 longitud=lon,
                 descripcion=descripcion,
+                region=region,
                 puertos_total=puertos_total,
                 hilo_conexion=hilo_conexion,
                 nap_model_id=nap_model_id,
@@ -1407,6 +1418,7 @@ def editar_nat(nat_id):
         hilo_conexion = request.form.get('hilo_conexion')
         nap_model_id = request.form.get('nap_model_id')
         descripcion = request.form.get('descripcion')
+        region = (request.form.get('region') or '').strip() or None
 
         try:
             lat = float(latitud) if latitud else None
@@ -1435,6 +1447,7 @@ def editar_nat(nat_id):
             nat.latitud = lat
             nat.longitud = lon
             nat.descripcion = descripcion
+            nat.region = region
             nat.puertos_total = nueva_capacidad
             nat.hilo_conexion = hilo_conexion
             nat.nap_model_id = nap_model_id
@@ -2710,6 +2723,7 @@ def descargar_excel_naps():
         data.append({
             'ID': nap.id,
             'Nombre': nap.nombre,
+            'Región': nap.region or '',
             'Tipo': modelo_tipo,
             'Puertos Totales': nap.puertos_total,
             'Puertos Usados': clientes_count,

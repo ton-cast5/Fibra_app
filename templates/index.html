@@ -110,7 +110,7 @@
                     </div>
                     <input type="text" id="buscador" 
                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 search-glow transition-all duration-300" 
-                           placeholder="🔍 Buscar por nombre o ubicación...">
+                           placeholder="🔍 Buscar por nombre, ubicación, descripción o región...">
                 </div>
             </div>
 
@@ -128,6 +128,13 @@
                     <option value="critico">🔴 Crítico (>80%)</option>
                     <option value="medio">🟡 Medio (50-80%)</option>
                     <option value="normal">🟢 Normal (<50%)</option>
+                </select>
+
+                <select id="filtro_region" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
+                    <option value="todos">🗺️ Todas las regiones</option>
+                    {% for region in regiones %}
+                    <option value="{{ region|lower }}">{{ region }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>
@@ -182,6 +189,7 @@
                             </div>
                         </th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Ubicación</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Región</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Tipo</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Capacidad</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">Saturación</th>
@@ -194,6 +202,8 @@
                         data-tipo="{{ nat.tipo_caja }}"
                         data-nombre="{{ nat.nombre.lower() }}"
                         data-ubicacion="{{ (nat.ubicacion or '')|lower }}"
+                        data-descripcion="{{ (nat.descripcion or '')|lower }}"
+                        data-region="{{ (nat.region or '')|lower }}"
                         data-estado="{% set porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}{% if porcentaje >= 80 %}critico{% elif porcentaje >= 50 %}medio{% else %}normal{% endif %}">
                         
                         <!-- Nombre -->
@@ -214,6 +224,17 @@
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
                                 📍 {{ nat.ubicacion }}
                             </span>
+                        </td>
+
+                        <!-- Región -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if nat.region %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                🗺️ {{ nat.region }}
+                            </span>
+                            {% else %}
+                            <span class="text-xs text-gray-400">—</span>
+                            {% endif %}
                         </td>
                         
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -294,7 +315,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center">
+                        <td colspan="7" class="px-6 py-12 text-center">
                             <div class="text-gray-400">
                                 <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8-4v10m0 0l-8-4m8 4l8-4m-8 4v10l-8 4"></path>
@@ -365,6 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const buscador = document.getElementById('buscador');
     const filtroTipo = document.getElementById('filtro_tipo');
     const filtroEstado = document.getElementById('filtro_estado');
+    const filtroRegion = document.getElementById('filtro_region');
     const tablaBody = document.getElementById('tabla-body');
     const contadorFiltrado = document.getElementById('contador-filtrado');
     
@@ -374,26 +396,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const searchTerm = buscador.value.toLowerCase();
         const tipoFiltro = filtroTipo.value;
         const estadoFiltro = filtroEstado.value;
+        const regionFiltro = filtroRegion.value;
         
         let visibles = 0;
         
         allRows.forEach(row => {
             const tipo = row.getAttribute('data-tipo');
-            const nombre = row.getAttribute('data-nombre');
-            const ubicacion = row.getAttribute('data-ubicacion');
+            const nombre = row.getAttribute('data-nombre') || '';
+            const ubicacion = row.getAttribute('data-ubicacion') || '';
+            const descripcion = row.getAttribute('data-descripcion') || '';
+            const region = row.getAttribute('data-region') || '';
             const estado = row.getAttribute('data-estado');
             
             let mostrar = true;
             
-            // Filtro de búsqueda
-            if (searchTerm && !nombre.includes(searchTerm) && !ubicacion.includes(searchTerm)) {
-                mostrar = false;
+            if (searchTerm) {
+                const coincide = nombre.includes(searchTerm)
+                    || ubicacion.includes(searchTerm)
+                    || descripcion.includes(searchTerm)
+                    || region.includes(searchTerm);
+                if (!coincide) mostrar = false;
             }
             
             if (tipoFiltro !== 'todos' && tipo !== tipoFiltro) mostrar = false;
             
-            // Filtro por estado
             if (estadoFiltro !== 'todos' && estado !== estadoFiltro) {
+                mostrar = false;
+            }
+
+            if (regionFiltro !== 'todos' && region !== regionFiltro) {
                 mostrar = false;
             }
             
@@ -408,6 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
     buscador.addEventListener('input', filtrarTabla);
     filtroTipo.addEventListener('change', filtrarTabla);
     filtroEstado.addEventListener('change', filtrarTabla);
+    filtroRegion.addEventListener('change', filtrarTabla);
     
     // Efectos visuales
     const cards = document.querySelectorAll('.hover-lift');

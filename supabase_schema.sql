@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS nat (
     latitud DOUBLE PRECISION,
     longitud DOUBLE PRECISION,
     descripcion TEXT,
+    region VARCHAR(100),
     puertos_total INTEGER NOT NULL DEFAULT 8,
     hilo_conexion VARCHAR(50),
     nap_model_id INTEGER REFERENCES nap_model(id) ON DELETE SET NULL
@@ -30,6 +31,11 @@ CREATE TABLE IF NOT EXISTS nat (
 
 CREATE INDEX IF NOT EXISTS idx_nat_nombre ON nat(nombre);
 CREATE INDEX IF NOT EXISTS idx_nat_model ON nat(nap_model_id);
+CREATE INDEX IF NOT EXISTS idx_nat_region ON nat(region);
+
+-- Si ya tenías la tabla creada, ejecuta también:
+-- ALTER TABLE nat ADD COLUMN IF NOT EXISTS region VARCHAR(100);
+-- CREATE INDEX IF NOT EXISTS idx_nat_region ON nat(region);
 
 -- Clientes conectados a cajas de distribución
 CREATE TABLE IF NOT EXISTS cliente (
