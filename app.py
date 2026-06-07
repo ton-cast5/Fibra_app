@@ -17,6 +17,7 @@ from io import BytesIO
 from sqlalchemy import Text, cast, text
 from sqlalchemy.pool import NullPool
 import json
+import html as html_stdlib
 import mimetypes
 import requests
 from urllib.parse import quote, unquote
@@ -559,6 +560,18 @@ def generar_filename(original_filename):
     ext = original_filename.rsplit('.', 1)[1].lower()
     return f"{uuid.uuid4().hex}.{ext}"
 
+def _url_google_maps_direcciones(lat, lng, nombre):
+    """URL de Google Maps para ruta hacia una caja (funciona en web, Android y iOS)."""
+    coords = f'{lat},{lng}'
+    nombre_enc = quote(nombre or 'Caja NAP')
+    return (
+        f'https://www.google.com/maps/dir/?api=1'
+        f'&destination={coords}'
+        f'&destination_place_name={nombre_enc}'
+        f'&travelmode=driving'
+    )
+
+
 def generar_mapa_mejorado():
     """Mapa limpio: solo cajas NAP (distribución) y empalmes."""
     nats = Nat.query.filter(Nat.latitud.isnot(None), Nat.longitud.isnot(None)).all()
@@ -620,7 +633,8 @@ def generar_mapa_mejorado():
             if not es_empalme and nat.puertos_total
             else ''
         )
-        nombre_js = json.dumps(nat.nombre)
+        maps_url = _url_google_maps_direcciones(nat.latitud, nat.longitud, nat.nombre)
+        nombre_attr = html_stdlib.escape(nat.nombre, quote=True)
         popup_html = f'''
         <div style="min-width: 240px; font-family: system-ui, sans-serif;">
             <div style="background: {color_bg}; color: white; padding: 12px; border-radius: 8px 8px 0 0;">
@@ -630,12 +644,13 @@ def generar_mapa_mejorado():
             <div style="padding: 12px;">
                 {puertos_info}
                 <p style="margin: 8px 0 0;"><strong>Modelo:</strong> {nat.modelo.nombre if nat.modelo else "—"}</p>
-                <button type="button"
-                   onclick="window.parent.abrirMapsCaja({nat.latitud}, {nat.longitud}, {nombre_js})"
+                <a href="{maps_url}" target="_top" rel="noopener noreferrer" class="fibra-maps-link"
+                   data-lat="{nat.latitud}" data-lng="{nat.longitud}" data-nombre="{nombre_attr}"
                    style="display: block; width: 100%; margin-top: 10px; background: #0ea5e9; color: white; padding: 8px;
-                   border: none; cursor: pointer; text-align: center; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                   text-align: center; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600;
+                   box-sizing: border-box;">
                    🗺️ Abrir en Maps
-                </button>
+                </a>
                 <a href="{url_for('ver_nat', nat_id=nat.id)}" target="_blank"
                    style="display: block; margin-top: 8px; background: #4f46e5; color: white; padding: 8px;
                    text-align: center; text-decoration: none; border-radius: 6px; font-size: 13px;">
@@ -667,9 +682,35 @@ def generar_mapa_mejorado():
     folium.LayerControl(collapsed=True, position='topright').add_to(mapa)
     mapa.get_root().width = '100%'
     mapa.get_root().height = '100%'
-    mapa.get_root().html.add_child(folium.Element(
-        '<script>setTimeout(function(){ window.dispatchEvent(new Event("mapaListo")); }, 600);</script>'
-    ))
+    mapa.get_root().html.add_child(folium.Element('''
+<script>
+(function () {
+    function abrirMapsDesdePopup(ev) {
+        var el = ev.target.closest(".fibra-maps-link");
+        if (!el) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        var url = el.getAttribute("href");
+        var lat = el.getAttribute("data-lat");
+        var lng = el.getAttribute("data-lng");
+        var nombre = el.getAttribute("data-nombre") || "Caja NAP";
+        try {
+            if (window.top && typeof window.top.abrirMapsCaja === "function") {
+                window.top.abrirMapsCaja(lat, lng, nombre);
+                return;
+            }
+        } catch (e) { /* ignorar */ }
+        try {
+            window.top.location.href = url;
+        } catch (e2) {
+            window.open(url, "_blank", "noopener,noreferrer");
+        }
+    }
+    document.addEventListener("click", abrirMapsDesdePopup, true);
+    setTimeout(function () { window.dispatchEvent(new Event("mapaListo")); }, 600);
+})();
+</script>
+    '''))
     return mapa._repr_html_()
 
 # ============================================
