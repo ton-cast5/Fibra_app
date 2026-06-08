@@ -246,15 +246,10 @@ class Nat(db.Model):
 
     @property
     def porcentaje_uso(self):
-            if self.puertos_total == 0:
-                return 0
-
-            usados = Cliente.query.filter_by(
-                activo=True,
-                nat_id=self.id
-            ).count()
-
-            return round((usados / self.puertos_total) * 100)
+        if not self.puertos_total:
+            return 0
+        usados = Cliente.query.filter_by(activo=True, nat_id=self.id).count()
+        return round((usados / self.puertos_total) * 100)
 
     def __repr__(self):
         return f'<NAT {self.nombre}>'
@@ -561,6 +556,61 @@ def generar_filename(original_filename):
     ext = original_filename.rsplit('.', 1)[1].lower()
     return f"{uuid.uuid4().hex}.{ext}"
 
+_MAPA_COLORES_ESTADO = {
+    'normal': 'linear-gradient(135deg, #10b981, #059669)',
+    'critico': 'linear-gradient(135deg, #f59e0b, #d97706)',
+    'saturado': 'linear-gradient(135deg, #ef4444, #dc2626)',
+    'empalme': 'linear-gradient(135deg, #6366f1, #4f46e5)',
+}
+
+_MAPA_TEXTO_ESTADO = {
+    'normal': 'Normal',
+    'critico': 'Crítica',
+    'saturado': 'Saturada',
+    'empalme': 'Empalme',
+}
+
+
+def _nat_uso_y_estado(nat):
+    """Calcula ocupación y estado visual de una caja para mapa/listados."""
+    tipo = nat.tipo_caja
+    if tipo == 'empalme':
+        return 0, 'empalme', 0, nat.puertos_total or 0
+
+    total = nat.puertos_total or 0
+    usados = Cliente.query.filter_by(nat_id=nat.id, activo=True).count()
+    if total <= 0:
+        return 0, 'normal', usados, 0
+
+    uso = round((usados / total) * 100)
+    if usados >= total or uso >= 100:
+        estado = 'saturado'
+    elif uso >= 80:
+        estado = 'critico'
+    else:
+        estado = 'normal'
+    return uso, estado, usados, total
+
+
+def _nats_datos_mapa():
+    """Metadatos de cajas con coordenadas para sincronizar colores/filtros en el mapa."""
+    nats = Nat.query.filter(Nat.latitud.isnot(None), Nat.longitud.isnot(None)).all()
+    datos = []
+    for nat in nats:
+        uso, estado, usados, total = _nat_uso_y_estado(nat)
+        datos.append({
+            'nombre': nat.nombre,
+            'tipo': nat.tipo_caja,
+            'estado': estado,
+            'uso': uso,
+            'usados': usados,
+            'total': total,
+            'color': _MAPA_COLORES_ESTADO[estado],
+            'estado_texto': _MAPA_TEXTO_ESTADO[estado],
+        })
+    return datos
+
+
 def _url_google_maps_direcciones(lat, lng, nombre):
     """URL de Google Maps para ruta hacia una caja (funciona en web, Android y iOS)."""
     coords = f'{lat},{lng}'
@@ -605,33 +655,15 @@ def generar_mapa_mejorado():
     for nat in nats:
         tipo = nat.tipo_caja
         es_empalme = tipo == 'empalme'
-        uso = nat.porcentaje_uso if not es_empalme and nat.puertos_total else 0
-
-        if es_empalme:
-            estado = 'empalme'
-            estado_texto = 'Empalme'
-            color_bg = 'linear-gradient(135deg, #6366f1, #4f46e5)'
-            emoji = '🔗'
-        elif uso >= 100:
-            estado = 'saturado'
-            estado_texto = 'Saturada'
-            color_bg = 'linear-gradient(135deg, #ef4444, #dc2626)'
-            emoji = '📡'
-        elif uso >= 80:
-            estado = 'critico'
-            estado_texto = 'Crítica'
-            color_bg = 'linear-gradient(135deg, #f59e0b, #d97706)'
-            emoji = '📡'
-        else:
-            estado = 'normal'
-            estado_texto = 'Normal'
-            color_bg = 'linear-gradient(135deg, #10b981, #059669)'
-            emoji = '📡'
+        uso, estado, usados, total = _nat_uso_y_estado(nat)
+        color_bg = _MAPA_COLORES_ESTADO[estado]
+        estado_texto = _MAPA_TEXTO_ESTADO[estado]
+        emoji = '🔗' if es_empalme else '📡'
 
         tipo_label = 'Empalme' if es_empalme else 'Distribución'
         puertos_info = (
-            f'<p><strong>Puertos:</strong> {nat.puertos_usados}/{nat.puertos_total} ({uso:.0f}%)</p>'
-            if not es_empalme and nat.puertos_total
+            f'<p><strong>Puertos:</strong> {usados}/{total} ({uso:.0f}%)</p>'
+            if not es_empalme and total
             else ''
         )
         maps_url = _url_google_maps_direcciones(nat.latitud, nat.longitud, nat.nombre)
@@ -684,6 +716,13 @@ def generar_mapa_mejorado():
     mapa.get_root().width = '100%'
     mapa.get_root().height = '100%'
     mapa.get_root().html.add_child(folium.Element('''
+<style>
+    .marker-caja[style*="display: none"] { pointer-events: none !important; }
+    .leaflet-marker-icon.marker-oculto {
+        display: none !important;
+        pointer-events: none !important;
+    }
+</style>
 <script>
 (function () {
     function abrirMapsDesdePopup(ev) {
@@ -708,7 +747,10 @@ def generar_mapa_mejorado():
         }
     }
     document.addEventListener("click", abrirMapsDesdePopup, true);
-    setTimeout(function () { window.dispatchEvent(new Event("mapaListo")); }, 600);
+    setTimeout(function () {
+        try { if (window.parent) window.parent.dispatchEvent(new Event("mapaListo")); } catch (e) {}
+        window.dispatchEvent(new Event("mapaListo"));
+    }, 600);
 })();
 </script>
     '''))
@@ -1328,8 +1370,12 @@ def mapa_nats():
     capacidad_usada = db.session.query(func.count(Cliente.id)).filter_by(activo=True).scalar() or 0
     capacidad_ocupada = round((capacidad_usada / capacidad_total) * 100) if capacidad_total > 0 else 0
 
-    nats_criticas = [n for n in Nat.query.all() if n.puertos_total and n.porcentaje_uso >= 80]
+    nats_criticas = [
+        n for n in Nat.query.all()
+        if n.puertos_total and _nat_uso_y_estado(n)[1] in ('critico', 'saturado')
+    ]
     mapa_html = generar_mapa_mejorado()
+    nats_mapa = _nats_datos_mapa()
 
     return render_template('mapa_nats.html',
                          total_nats=total_nats,
@@ -1337,6 +1383,7 @@ def mapa_nats():
                          total_distribucion=total_distribucion,
                          capacidad_ocupada=capacidad_ocupada,
                          nats_criticas_count=len(nats_criticas),
+                         nats_mapa=nats_mapa,
                          mapa_html=mapa_html)
 
 # ----------------------------------------------------------------------

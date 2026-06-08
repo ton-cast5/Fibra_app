@@ -95,6 +95,10 @@
     input:checked + .toggle-slider:before { transform: translateX(22px); }
     .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
     .marker-caja[style*="display: none"] { pointer-events: none !important; }
+    .leaflet-marker-icon.marker-oculto {
+        display: none !important;
+        pointer-events: none !important;
+    }
 </style>
 {% endblock %}
 
@@ -192,8 +196,10 @@
 
 <script>
 (function() {
+    const NATS_MAPA = {{ nats_mapa|tojson }};
     const tiposActivos = new Set(['distribucion', 'empalme']);
     const estadosActivos = new Set(['normal', 'critico', 'saturado', 'empalme']);
+    const natsPorNombre = Object.fromEntries(NATS_MAPA.map(function (n) { return [n.nombre, n]; }));
 
     function getMapRoot() {
         const iframe = document.querySelector('#map-container iframe');
@@ -228,14 +234,38 @@
         });
     }
 
+    function sincronizarEstadosMapa() {
+        const root = getMapRoot();
+        root.querySelectorAll('.marker-caja').forEach(function (el) {
+            const nombre = el.getAttribute('data-nombre');
+            const info = natsPorNombre[nombre];
+            if (!info) return;
+
+            el.setAttribute('data-tipo-caja', info.tipo);
+            el.setAttribute('data-estado', info.estado);
+            el.className = 'marker-caja marker-tipo-' + info.tipo + ' marker-estado-' + info.estado;
+
+            const circulo = el.querySelector('div');
+            if (circulo) {
+                circulo.style.background = info.color;
+            }
+        });
+    }
+
     function aplicarFiltros() {
         const root = getMapRoot();
-        root.querySelectorAll('.marker-caja').forEach(function(el) {
+        root.querySelectorAll('.marker-caja').forEach(function (el) {
             const tipo = el.getAttribute('data-tipo-caja');
             const estado = el.getAttribute('data-estado');
             const verTipo = tiposActivos.has(tipo);
             const verEstado = tipo === 'empalme' ? tiposActivos.has('empalme') : estadosActivos.has(estado);
             const visible = verTipo && verEstado;
+
+            const wrapper = el.closest('.leaflet-marker-icon');
+            if (wrapper) {
+                wrapper.classList.toggle('marker-oculto', !visible);
+                wrapper.style.opacity = visible ? '1' : '0';
+            }
             el.style.display = visible ? '' : 'none';
             el.style.opacity = visible ? '1' : '0';
         });
@@ -264,11 +294,19 @@
     });
 
     window.addEventListener('mapaListo', function () {
-        setTimeout(function () { ajustarTamanoMapa(); aplicarFiltros(); }, 200);
+        setTimeout(function () {
+            ajustarTamanoMapa();
+            sincronizarEstadosMapa();
+            aplicarFiltros();
+        }, 200);
         setTimeout(ajustarTamanoMapa, 800);
     });
     window.addEventListener('resize', function () { ajustarTamanoMapa(); });
-    setTimeout(function () { ajustarTamanoMapa(); aplicarFiltros(); }, 1200);
+    setTimeout(function () {
+        ajustarTamanoMapa();
+        sincronizarEstadosMapa();
+        aplicarFiltros();
+    }, 1200);
 })();
 
 /** Abrir navegación externa (Google Maps / Apple Maps) — ventana principal */
