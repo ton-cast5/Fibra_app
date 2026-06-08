@@ -125,9 +125,9 @@
                 <!-- Filtro por Estado -->
                 <select id="filtro_estado" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
                     <option value="todos">🎯 Todos los Estados</option>
-                    <option value="critico">🔴 Crítico (>80%)</option>
-                    <option value="medio">🟡 Medio (50-80%)</option>
-                    <option value="normal">🟢 Normal (<50%)</option>
+                    <option value="normal">🟢 Normal (&lt;80%)</option>
+                    <option value="critico">🟡 Crítica (≥80%)</option>
+                    <option value="saturado">🔴 Saturada (llena)</option>
                 </select>
 
                 <select id="filtro_region" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
@@ -159,16 +159,10 @@
             </div>
             <div class="text-center">
                 <div class="text-2xl font-bold text-gray-900">
-                    {% set criticas = 0 %}
-                    {% for nat in nats %}
-                        {% set porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}
-                        {% if porcentaje >= 80 %}
-                            {% set criticas = criticas + 1 %}
-                        {% endif %}
-                    {% endfor %}
-                    {{ criticas }}
+                    {{ (nats|selectattr('estado_ocupacion', 'equalto', 'critico')|list|length)
+                       + (nats|selectattr('estado_ocupacion', 'equalto', 'saturado')|list|length) }}
                 </div>
-                <div class="text-sm text-gray-600">🔴 NATs Críticas</div>
+                <div class="text-sm text-gray-600">⚠️ Críticas / Saturadas</div>
             </div>
             <div class="text-center">
                 <div id="contador-filtrado" class="text-2xl font-bold text-blue-600">{{ nats|length }}</div>
@@ -203,7 +197,7 @@
                         data-ubicacion="{{ (nat.ubicacion or '')|lower }}"
                         data-descripcion="{{ (nat.descripcion or '')|lower }}"
                         data-region="{{ (nat.region or '')|lower }}"
-                        data-estado="{% set porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}{% if porcentaje >= 80 %}critico{% elif porcentaje >= 50 %}medio{% else %}normal{% endif %}">
+                        data-estado="{{ nat.estado_ocupacion }}">
                         
                         <!-- Nombre -->
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -246,40 +240,45 @@
                         </td>
                         
                         <!-- Saturación -->
-                        <td class="px-6 py-4 whitespace-nowrap w-48">
-                            {% set porcentaje = (nat.puertos_usados / nat.puertos_total * 100) if nat.puertos_total > 0 else 0 %}
+                        <td class="px-6 py-4 whitespace-nowrap w-52">
+                            {% if nat.tipo_caja == 'empalme' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                    🔗 Empalme
+                                </span>
+                            {% else %}
+                            {% set porcentaje = nat.porcentaje_uso %}
                             {% set width_style = "width: %0.0f%%"|format(porcentaje) %}
-                            
-                            {% if porcentaje >= 80 %}
+                            {% if nat.estado_ocupacion == 'saturado' %}
                                 <div class="flex items-center space-x-2">
                                     <div class="flex-1 bg-gray-200 rounded-full h-3">
-                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-red-500 to-red-600" 
+                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-red-500 to-red-600"
                                              style="{{ width_style }}"></div>
                                     </div>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 badge-pulse min-w-12 justify-center">
-                                        🔴 {{ "%0.0f"|format(porcentaje) }}%
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 badge-pulse min-w-[4.5rem] justify-center">
+                                        🔴 Saturada
                                     </span>
                                 </div>
-                            {% elif porcentaje >= 50 %}
+                            {% elif nat.estado_ocupacion == 'critico' %}
                                 <div class="flex items-center space-x-2">
                                     <div class="flex-1 bg-gray-200 rounded-full h-3">
-                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-yellow-400 to-yellow-500" 
+                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-amber-400 to-amber-500"
                                              style="{{ width_style }}"></div>
                                     </div>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 min-w-12 justify-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 min-w-[4.5rem] justify-center">
                                         🟡 {{ "%0.0f"|format(porcentaje) }}%
                                     </span>
                                 </div>
                             {% else %}
                                 <div class="flex items-center space-x-2">
                                     <div class="flex-1 bg-gray-200 rounded-full h-3">
-                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-green-500 to-green-600" 
+                                        <div class="h-3 rounded-full progress-bar bg-gradient-to-r from-green-500 to-green-600"
                                              style="{{ width_style }}"></div>
                                     </div>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 min-w-12 justify-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 min-w-[4.5rem] justify-center">
                                         🟢 {{ "%0.0f"|format(porcentaje) }}%
                                     </span>
                                 </div>
+                            {% endif %}
                             {% endif %}
                         </td>
                         
@@ -339,24 +338,24 @@
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">🟢 <50%</span>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">🟢 &lt;80%</span>
                 <div>
                     <div class="font-medium text-gray-700">Normal</div>
                     <div class="text-gray-500">Capacidad óptima</div>
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">🟡 50-80%</span>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">🟡 ≥80%</span>
                 <div>
-                    <div class="font-medium text-gray-700">Medio</div>
-                    <div class="text-gray-500">Monitorear</div>
+                    <div class="font-medium text-gray-700">Crítica</div>
+                    <div class="text-gray-500">Monitorear de cerca</div>
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 badge-pulse">🔴 80%+</span>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 badge-pulse">🔴 Llena</span>
                 <div>
-                    <div class="font-medium text-gray-700">Crítico</div>
-                    <div class="text-gray-500">Requiere atención</div>
+                    <div class="font-medium text-gray-700">Saturada</div>
+                    <div class="text-gray-500">Puertos llenos o 100%</div>
                 </div>
             </div>
             <div class="flex items-center space-x-2">

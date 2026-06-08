@@ -246,10 +246,30 @@ class Nat(db.Model):
 
     @property
     def porcentaje_uso(self):
-        if not self.puertos_total:
-            return 0
-        usados = Cliente.query.filter_by(activo=True, nat_id=self.id).count()
-        return round((usados / self.puertos_total) * 100)
+        return self.ocupacion_info()[0]
+
+    def ocupacion_info(self):
+        """Retorna (uso%, estado, usados, total) — misma lógica que el mapa."""
+        if self.tipo_caja == 'empalme':
+            return 0, 'empalme', 0, self.puertos_total or 0
+
+        total = self.puertos_total or 0
+        usados = self.puertos_usados
+        if total <= 0:
+            return 0, 'normal', usados, 0
+
+        uso = round((usados / total) * 100)
+        if usados >= total or uso >= 100:
+            estado = 'saturado'
+        elif uso >= 80:
+            estado = 'critico'
+        else:
+            estado = 'normal'
+        return uso, estado, usados, total
+
+    @property
+    def estado_ocupacion(self):
+        return self.ocupacion_info()[1]
 
     def __repr__(self):
         return f'<NAT {self.nombre}>'
@@ -573,23 +593,7 @@ _MAPA_TEXTO_ESTADO = {
 
 def _nat_uso_y_estado(nat):
     """Calcula ocupación y estado visual de una caja para mapa/listados."""
-    tipo = nat.tipo_caja
-    if tipo == 'empalme':
-        return 0, 'empalme', 0, nat.puertos_total or 0
-
-    total = nat.puertos_total or 0
-    usados = Cliente.query.filter_by(nat_id=nat.id, activo=True).count()
-    if total <= 0:
-        return 0, 'normal', usados, 0
-
-    uso = round((usados / total) * 100)
-    if usados >= total or uso >= 100:
-        estado = 'saturado'
-    elif uso >= 80:
-        estado = 'critico'
-    else:
-        estado = 'normal'
-    return uso, estado, usados, total
+    return nat.ocupacion_info()
 
 
 def _nats_datos_mapa():
