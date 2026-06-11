@@ -4,16 +4,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import os
 import sys
-import folium
-from werkzeug.utils import secure_filename 
-from sqlalchemy import func 
+from collections import defaultdict
+from werkzeug.utils import secure_filename
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
 from time_utils import ahora_mexico, inicio_del_dia_mexico, fin_del_dia_mexico, parsear_fecha_mexico
 import uuid
 import math
-from folium.plugins import Fullscreen
-from flask import jsonify
-import pandas as pd
 from io import BytesIO
 from sqlalchemy import Text, cast, text
 from sqlalchemy.pool import NullPool
@@ -163,18 +161,19 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB límite
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-print("=" * 60)
-print("FIBRA MANAGER - Supabase PostgreSQL")
-print(f"Proyecto: {SUPABASE_URL_STORAGE}")
-if SUPABASE_STORAGE_KEY:
-    _storage_key_label = "service_role (OK para subir)"
-elif SUPABASE_ANON_KEY:
-    _storage_key_label = "solo anon/public (RLS puede bloquear subidas)"
-else:
-    _storage_key_label = "sin clave"
-print("Repositorio Storage:", _storage_key_label)
-print(f"Bucket Storage: {STORAGE_BUCKET}")
-print("=" * 60)
+if os.getenv('VERCEL') != '1':
+    print("=" * 60)
+    print("FIBRA MANAGER - Supabase PostgreSQL")
+    print(f"Proyecto: {SUPABASE_URL_STORAGE}")
+    if SUPABASE_STORAGE_KEY:
+        _storage_key_label = "service_role (OK para subir)"
+    elif SUPABASE_ANON_KEY:
+        _storage_key_label = "solo anon/public (RLS puede bloquear subidas)"
+    else:
+        _storage_key_label = "sin clave"
+    print("Repositorio Storage:", _storage_key_label)
+    print(f"Bucket Storage: {STORAGE_BUCKET}")
+    print("=" * 60)
 
 # ----------------------------------------------------------------------
 # MODELOS DE BASE DE DATOS - OPTIMIZADOS PARA POSTGRESQL
@@ -243,6 +242,9 @@ class Nat(db.Model):
 
     @property
     def puertos_usados(self):
+        cached = getattr(self, '_clientes_activos_cache', None)
+        if cached is not None:
+            return cached
         return self.clientes.filter_by(activo=True).count()
 
     @property
@@ -251,22 +253,7 @@ class Nat(db.Model):
 
     def ocupacion_info(self):
         """Retorna (uso%, estado, usados, total) — misma lógica que el mapa."""
-        if self.tipo_caja == 'empalme':
-            return 0, 'empalme', 0, self.puertos_total or 0
-
-        total = self.puertos_total or 0
-        usados = self.puertos_usados
-        if total <= 0:
-            return 0, 'normal', usados, 0
-
-        uso = round((usados / total) * 100)
-        if usados >= total or uso >= 100:
-            estado = 'saturado'
-        elif uso >= 80:
-            estado = 'critico'
-        else:
-            estado = 'normal'
-        return uso, estado, usados, total
+        return _calcular_ocupacion_nat(self)
 
     @property
     def estado_ocupacion(self):
@@ -592,14 +579,60 @@ _MAPA_TEXTO_ESTADO = {
 }
 
 
+def _contar_clientes_activos_por_nat(nat_ids=None):
+    """Una sola consulta GROUP BY en lugar de COUNT por cada NAP."""
+    q = db.session.query(
+        Cliente.nat_id,
+        func.count(Cliente.id),
+    ).filter(Cliente.activo.is_(True))
+    if nat_ids:
+        q = q.filter(Cliente.nat_id.in_(nat_ids))
+    return dict(q.group_by(Cliente.nat_id).all())
+
+
+def preparar_ocupacion_nats(nats):
+    """Precarga conteos de clientes activos en memoria para evitar N+1."""
+    if not nats:
+        return {}
+    counts = _contar_clientes_activos_por_nat([n.id for n in nats])
+    for nat in nats:
+        nat._clientes_activos_cache = counts.get(nat.id, 0)
+    return counts
+
+
+def _calcular_ocupacion_nat(nat, usados=None):
+    """Retorna (uso%, estado, usados, total) sin consultas extra si hay caché."""
+    if usados is None:
+        usados = nat.puertos_usados
+    if nat.tipo_caja == 'empalme':
+        return 0, 'empalme', 0, nat.puertos_total or 0
+
+    total = nat.puertos_total or 0
+    if total <= 0:
+        return 0, 'normal', usados, 0
+
+    uso = round((usados / total) * 100)
+    if usados >= total or uso >= 100:
+        estado = 'saturado'
+    elif uso >= 80:
+        estado = 'critico'
+    else:
+        estado = 'normal'
+    return uso, estado, usados, total
+
+
 def _nat_uso_y_estado(nat):
     """Calcula ocupación y estado visual de una caja para mapa/listados."""
-    return nat.ocupacion_info()
+    return _calcular_ocupacion_nat(nat)
 
 
-def _nats_datos_mapa():
+def _nats_datos_mapa(nats=None):
     """Metadatos de cajas con coordenadas para sincronizar colores/filtros en el mapa."""
-    nats = Nat.query.filter(Nat.latitud.isnot(None), Nat.longitud.isnot(None)).all()
+    if nats is None:
+        nats = Nat.query.options(joinedload(Nat.modelo)).filter(
+            Nat.latitud.isnot(None), Nat.longitud.isnot(None)
+        ).all()
+        preparar_ocupacion_nats(nats)
     datos = []
     for nat in nats:
         uso, estado, usados, total = _nat_uso_y_estado(nat)
@@ -628,9 +661,16 @@ def _url_google_maps_direcciones(lat, lng, nombre):
     )
 
 
-def generar_mapa_mejorado():
+def generar_mapa_mejorado(nats=None):
     """Mapa limpio: solo cajas NAP (distribución) y empalmes."""
-    nats = Nat.query.filter(Nat.latitud.isnot(None), Nat.longitud.isnot(None)).all()
+    import folium
+    from folium.plugins import Fullscreen
+
+    if nats is None:
+        nats = Nat.query.options(joinedload(Nat.modelo)).filter(
+            Nat.latitud.isnot(None), Nat.longitud.isnot(None)
+        ).all()
+        preparar_ocupacion_nats(nats)
 
     lat_center, lon_center = 19.4326, -99.1332
     zoom_start = 6
@@ -1095,16 +1135,15 @@ def api_clientes():
 def api_naps():
     """API para obtener todas las cajas NAP con datos completos"""
     try:
-        naps = Nat.query.all()
+        naps = Nat.query.options(joinedload(Nat.modelo)).all()
+        preparar_ocupacion_nats(naps)
         result = []
         for nap in naps:
-            # Contar clientes activos en este NAP
-            clientes_count = Cliente.query.filter_by(nat_id=nap.id, activo=True).count()
-            # Calcular porcentaje de uso
+            clientes_count = nap.puertos_usados
             porcentaje_uso = 0
             if nap.puertos_total > 0:
                 porcentaje_uso = round((clientes_count / nap.puertos_total) * 100, 1)
-            
+
             result.append({
                 'id': nap.id,
                 'nombre': nap.nombre,
@@ -1146,6 +1185,8 @@ def _excel_subtitulo_inventario():
 
 def _dataframes_asistencias_export(dias=30):
     """DataFrames corporativos para exportación de asistencia laboral."""
+    import pandas as pd
+
     dias = max(1, min(int(dias), 365))
     seed_trabajadores()
     ref_inicio = _inicio_del_dia(ahora_mexico() - timedelta(days=dias))
@@ -1163,9 +1204,8 @@ def _dataframes_asistencias_export(dias=30):
     hoy_inicio = _inicio_del_dia()
     hoy_fin = _fin_del_dia(hoy_inicio)
     registros_hoy = [r for r in registros if hoy_inicio <= r.fecha_hora <= hoy_fin]
-    dentro_hoy = sum(
-        1 for t in trabajadores if estado_trabajador_hoy(t.id, hoy_inicio)['en_jornada']
-    )
+    estados_hoy = estados_trabajadores_hoy([t.id for t in trabajadores], hoy_inicio)
+    dentro_hoy = sum(1 for est in estados_hoy.values() if est['en_jornada'])
 
     periodo_txt = (
         f'{ref_inicio.strftime("%d/%m/%Y")} — {ahora_mexico().strftime("%d/%m/%Y")} '
@@ -1207,8 +1247,10 @@ def _dataframes_asistencias_export(dias=30):
 # Ruta para descargar todo en Excel
 @app.route('/descargar-excel-todo')
 def descargar_excel_todo():
+    import pandas as pd
+
     subtitulo = _excel_subtitulo_inventario()
-    naps = Nat.query.join(NapModel).all()
+    naps = Nat.query.options(joinedload(Nat.modelo)).all()
     df_naps = pd.DataFrame([{
         'ID': n.id,
         'Nombre': n.nombre,
@@ -1265,7 +1307,8 @@ def home():
 
 @app.route('/cajas')
 def index():
-    nats = Nat.query.order_by(Nat.nombre).all()
+    nats = Nat.query.options(joinedload(Nat.modelo)).order_by(Nat.nombre).all()
+    preparar_ocupacion_nats(nats)
     regiones = [
         r[0] for r in db.session.query(Nat.region)
         .filter(Nat.region.isnot(None), Nat.region != '')
@@ -1291,12 +1334,15 @@ def dashboard():
         total_empalmes = Nat.query.join(NapModel).filter(NapModel.tipo_caja == 'empalme').count()
         total_distribucion = Nat.query.join(NapModel).filter(NapModel.tipo_caja == 'distribucion').count()
 
+        todas_nats = Nat.query.options(joinedload(Nat.modelo)).all()
+        preparar_ocupacion_nats(todas_nats)
+
         reporte_tipos = []
         for tipo_key, tipo_label, color in [
             ('distribucion', 'Distribución (NAP)', '#10b981'),
             ('empalme', 'Empalmes', '#6366f1'),
         ]:
-            nats_tipo = Nat.query.join(NapModel).filter(NapModel.tipo_caja == tipo_key).all()
+            nats_tipo = [n for n in todas_nats if n.tipo_caja == tipo_key]
             puertos_usados = sum(n.puertos_usados for n in nats_tipo if n.puertos_total)
             total_puertos = sum(n.puertos_total for n in nats_tipo)
             porcentaje = round((puertos_usados / total_puertos) * 100) if total_puertos else 0
@@ -1309,25 +1355,15 @@ def dashboard():
                 'color': color,
             })
 
-        # NATs saturadas y críticas
-        nats_saturadas = [] 
+        nats_saturadas = []
         nats_criticas = []
-        
-        todas_nats = Nat.query.all()
         for nat in todas_nats:
             if not nat.puertos_total or nat.puertos_total <= 0:
                 continue
-
-            clientes_en_nat = db.session.query(func.count(Cliente.id)).filter(
-                Cliente.nat_id == nat.id,
-                Cliente.activo == True
-            ).scalar() or 0
-
-            uso_porcentaje = round((clientes_en_nat / nat.puertos_total) * 100)
-
-            if uso_porcentaje >= 100:
+            _, estado, _, _ = _calcular_ocupacion_nat(nat)
+            if estado == 'saturado':
                 nats_saturadas.append(nat)
-            elif uso_porcentaje >= 80:
+            elif estado == 'critico':
                 nats_criticas.append(nat)
 
         return render_template('dashboard.html', 
@@ -1375,19 +1411,23 @@ def mapa_nats():
     capacidad_usada = db.session.query(func.count(Cliente.id)).filter_by(activo=True).scalar() or 0
     capacidad_ocupada = round((capacidad_usada / capacidad_total) * 100) if capacidad_total > 0 else 0
 
-    nats_criticas = [
-        n for n in Nat.query.all()
+    nats_con_coords = Nat.query.options(joinedload(Nat.modelo)).filter(
+        Nat.latitud.isnot(None), Nat.longitud.isnot(None)
+    ).all()
+    preparar_ocupacion_nats(nats_con_coords)
+    nats_criticas_count = sum(
+        1 for n in nats_con_coords
         if n.puertos_total and _nat_uso_y_estado(n)[1] in ('critico', 'saturado')
-    ]
-    mapa_html = generar_mapa_mejorado()
-    nats_mapa = _nats_datos_mapa()
+    )
+    nats_mapa = _nats_datos_mapa(nats_con_coords)
+    mapa_html = generar_mapa_mejorado(nats_con_coords)
 
     return render_template('mapa_nats.html',
                          total_nats=total_nats,
                          total_empalmes=total_empalmes,
                          total_distribucion=total_distribucion,
                          capacidad_ocupada=capacidad_ocupada,
-                         nats_criticas_count=len(nats_criticas),
+                         nats_criticas_count=nats_criticas_count,
                          nats_mapa=nats_mapa,
                          mapa_html=mapa_html)
 
@@ -1874,49 +1914,41 @@ def eliminar_cliente(cliente_id):
 @app.route('/reportes')
 def reportes_avanzados():
     """Panel de reportes avanzados con métricas y gráficos"""
-    
-    # Métricas principales
+
     clientes_activos = Cliente.query.filter_by(activo=True).count()
-    total_nats = Nat.query.count()
-    nats_activas = sum(1 for nat in Nat.query.all() if nat.puertos_usados > 0)
-    
-    # Calcular ocupación promedio
-    nats_con_capacidad = Nat.query.filter(Nat.puertos_total > 0).all()
+    todas_nats = Nat.query.options(joinedload(Nat.modelo)).all()
+    preparar_ocupacion_nats(todas_nats)
+    total_nats = len(todas_nats)
+    nats_activas = sum(1 for nat in todas_nats if nat.puertos_usados > 0)
+
+    nats_con_capacidad = [n for n in todas_nats if n.puertos_total and n.puertos_total > 0]
     ocupacion_promedio = 0
     if nats_con_capacidad:
         ocupaciones = [nat.porcentaje_uso for nat in nats_con_capacidad]
         ocupacion_promedio = sum(ocupaciones) / len(ocupaciones)
-    
-    # NATs críticas
-    nats_criticas = []
-    for nat in Nat.query.all():
-        if nat.porcentaje_uso >= 80:
-            nats_criticas.append(nat)
-    
-    # Datos para gráficos por tipo de caja
+
+    nats_criticas = [nat for nat in todas_nats if nat.porcentaje_uso >= 80]
+
     troncales_labels = ['Distribución', 'Empalmes']
     troncales_ocupacion = []
     troncales_colors = ['#10b981', '#6366f1']
     for tipo in ['distribucion', 'empalme']:
-        nats_tipo = Nat.query.join(NapModel).filter(NapModel.tipo_caja == tipo).all()
+        nats_tipo = [n for n in todas_nats if n.tipo_caja == tipo]
         con_cap = [n for n in nats_tipo if n.puertos_total > 0]
         if con_cap:
             troncales_ocupacion.append(round(sum(n.porcentaje_uso for n in con_cap) / len(con_cap)))
         else:
             troncales_ocupacion.append(len(nats_tipo))
-    
-    # Distribución de planes (simulada)
+
     planes_labels = ['100 Mbps', '200 Mbps', '500 Mbps', '1 Gbps', 'Empresarial']
     planes_data = [45, 30, 15, 8, 2]
-    
-    # Datos de crecimiento mensual (simulados)
+
     meses_labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun']
     meses_clientes = [85, 92, 88, 95, 102, clientes_activos]
-    
-    # Estado de NATs
-    estado_nats_normal = len([nat for nat in Nat.query.all() if nat.porcentaje_uso < 80])
-    estado_nats_critico = len([nat for nat in Nat.query.all() if 80 <= nat.porcentaje_uso < 100])
-    estado_nats_saturado = len([nat for nat in Nat.query.all() if nat.porcentaje_uso >= 100])
+
+    estado_nats_normal = sum(1 for nat in todas_nats if nat.porcentaje_uso < 80)
+    estado_nats_critico = sum(1 for nat in todas_nats if 80 <= nat.porcentaje_uso < 100)
+    estado_nats_saturado = sum(1 for nat in todas_nats if nat.porcentaje_uso >= 100)
     
     # Tipos de cajas
     modelos_distribucion = NapModel.query.filter_by(tipo_caja='distribucion').count()
@@ -1950,11 +1982,10 @@ def reportes_avanzados():
 @app.route('/api/notifications/critical-nats')
 def api_critical_nats():
     """API para notificaciones de NATs críticas"""
-    critical_count = 0
-    for nat in Nat.query.all():
-        if nat.porcentaje_uso >= 80:
-            critical_count += 1
-    
+    nats = Nat.query.all()
+    preparar_ocupacion_nats(nats)
+    critical_count = sum(1 for nat in nats if nat.porcentaje_uso >= 80)
+
     return jsonify({
         'critical_nats': critical_count,
         'timestamp': ahora_mexico().isoformat()
@@ -2471,10 +2502,9 @@ def inventarios():
     ).all()
     entradas_hoy = sum(1 for r in registros_hoy if r.tipo == 'entrada')
     salidas_hoy = sum(1 for r in registros_hoy if r.tipo == 'salida')
-    dentro_hoy = sum(
-        1 for t in Trabajador.query.filter_by(activo=True).all()
-        if estado_trabajador_hoy(t.id, hoy_inicio)['en_jornada']
-    )
+    trabajadores_activos = Trabajador.query.filter_by(activo=True).all()
+    estados_hoy_inv = estados_trabajadores_hoy([t.id for t in trabajadores_activos], hoy_inicio)
+    dentro_hoy = sum(1 for est in estados_hoy_inv.values() if est['en_jornada'])
     mes_inicio = _inicio_del_dia(ahora_mexico() - timedelta(days=30))
     registros_mes = RegistroAsistencia.query.filter(
         RegistroAsistencia.fecha_hora >= mes_inicio,
@@ -2526,18 +2556,7 @@ def seed_trabajadores():
     db.session.commit()
 
 
-def estado_trabajador_hoy(trabajador_id, dia_inicio=None):
-    inicio = dia_inicio or _inicio_del_dia()
-    fin = _fin_del_dia(inicio)
-    registros = (
-        RegistroAsistencia.query.filter(
-            RegistroAsistencia.trabajador_id == trabajador_id,
-            RegistroAsistencia.fecha_hora >= inicio,
-            RegistroAsistencia.fecha_hora <= fin,
-        )
-        .order_by(RegistroAsistencia.fecha_hora.asc())
-        .all()
-    )
+def _estado_desde_registros(registros):
     ultimo = registros[-1] if registros else None
     return {
         'registros': registros,
@@ -2546,6 +2565,37 @@ def estado_trabajador_hoy(trabajador_id, dia_inicio=None):
         'puede_salida': ultimo is not None and ultimo.tipo == 'entrada',
         'en_jornada': ultimo is not None and ultimo.tipo == 'entrada',
     }
+
+
+def estados_trabajadores_hoy(trabajador_ids, dia_inicio=None):
+    """Estado de asistencia de varios trabajadores con una sola consulta."""
+    if not trabajador_ids:
+        return {}
+    inicio = dia_inicio or _inicio_del_dia()
+    fin = _fin_del_dia(inicio)
+    registros = (
+        RegistroAsistencia.query.filter(
+            RegistroAsistencia.trabajador_id.in_(trabajador_ids),
+            RegistroAsistencia.fecha_hora >= inicio,
+            RegistroAsistencia.fecha_hora <= fin,
+        )
+        .order_by(RegistroAsistencia.fecha_hora.asc())
+        .all()
+    )
+    por_trabajador = defaultdict(list)
+    for registro in registros:
+        por_trabajador[registro.trabajador_id].append(registro)
+    return {
+        tid: _estado_desde_registros(por_trabajador.get(tid, []))
+        for tid in trabajador_ids
+    }
+
+
+def estado_trabajador_hoy(trabajador_id, dia_inicio=None):
+    return estados_trabajadores_hoy([trabajador_id], dia_inicio).get(
+        trabajador_id,
+        _estado_desde_registros([]),
+    )
 
 
 @app.route('/gestion/asistencias')
@@ -2565,9 +2615,10 @@ def gestion_asistencias():
     es_hoy = fecha_str == ahora_mexico().strftime('%Y-%m-%d')
 
     trabajadores = Trabajador.query.filter_by(activo=True).order_by(Trabajador.nombre_completo).all()
+    estados = estados_trabajadores_hoy([t.id for t in trabajadores], dia_inicio)
     tarjetas = []
     for t in trabajadores:
-        est = estado_trabajador_hoy(t.id, dia_inicio)
+        est = estados.get(t.id, _estado_desde_registros([]))
         tarjetas.append({
             'trabajador': t,
             'registros': est['registros'],
@@ -2695,7 +2746,9 @@ def api_asistencias_export():
             'entradas_periodo': sum(1 for r in registros if r.tipo == 'entrada'),
             'salidas_periodo': sum(1 for r in registros if r.tipo == 'salida'),
             'dentro_hoy': sum(
-                1 for t in trabajadores if estado_trabajador_hoy(t.id, hoy_inicio)['en_jornada']
+                1 for est in estados_trabajadores_hoy(
+                    [t.id for t in trabajadores], hoy_inicio
+                ).values() if est['en_jornada']
             ),
             'entradas_hoy': sum(1 for r in registros_hoy if r.tipo == 'entrada'),
             'salidas_hoy': sum(1 for r in registros_hoy if r.tipo == 'salida'),
@@ -2734,7 +2787,9 @@ def descargar_excel_asistencias():
 
 @app.route('/descargar-excel-clientes')
 def descargar_excel_clientes():
-    clientes = Cliente.query.all()
+    import pandas as pd
+
+    clientes = Cliente.query.options(joinedload(Cliente.nat)).all()
     data = []
     for cliente in clientes:
         nat_nombre = cliente.nat.nombre if cliente.nat else 'No asignado'
@@ -2770,10 +2825,13 @@ def descargar_excel_clientes():
 
 @app.route('/descargar-excel-naps')
 def descargar_excel_naps():
-    naps = Nat.query.all()
+    import pandas as pd
+
+    naps = Nat.query.options(joinedload(Nat.modelo)).all()
+    preparar_ocupacion_nats(naps)
     data = []
     for nap in naps:
-        clientes_count = Cliente.query.filter_by(nat_id=nap.id, activo=True).count()
+        clientes_count = nap.puertos_usados
         porcentaje_uso = round((clientes_count / nap.puertos_total) * 100, 1) if nap.puertos_total > 0 else 0
         modelo_nombre = nap.modelo.nombre if nap.modelo else 'No especificado'
         modelo_tipo = (

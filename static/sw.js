@@ -1,29 +1,17 @@
-const CACHE_NAME = 'fibra-manager-v1.0.0';
+const CACHE_NAME = 'fibra-manager-v2';
 const urlsToCache = [
-  '/',
-  '/static/css/main.css',
-  '/static/js/app.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/static/js/fibra-tiempo.js',
 ];
 
-self.addEventListener('install', function(event) {
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) {
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
 });
 
-self.addEventListener('fetch', function(event) {
+self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
+    caches.match(event.request).then((response) => response || fetch(event.request))
   );
 });
