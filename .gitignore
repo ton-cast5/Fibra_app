@@ -19,6 +19,9 @@ dist/
 *.spec
 *.exe
 
+# Node (solo build local de Tailwind)
+node_modules/
+
 # IDE y herramientas
 .idea/
 .vscode/

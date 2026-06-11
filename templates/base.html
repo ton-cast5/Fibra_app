@@ -12,35 +12,12 @@
     </script>
     <title>{% block title %}Fibra Manager{% endblock %}</title>
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
     <script src="{{ url_for('static', filename='js/fibra-tiempo.js') }}"></script>
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#4f46e5',
-                        'success': '#10b981',
-                    }
-                }
-            }
-        }
-    </script>
     
     {% block head %}{% endblock %}
     
     <style>
-        /* ESTILOS FORZADOS EN BLANCO */
-        .nav-link-white {
-            @apply px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-gray-700 hover:text-white flex items-center;
-        }
-        
-        .mobile-menu-white {
-            @apply text-white hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium;
-        }
-
         /* Menú móvil mejorado */
         .mobile-nav-panel {
             background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
@@ -176,10 +153,6 @@
         html.dark .mobile-nav-primary,
         html.dark .mobile-nav-section {
             border-color: var(--fm-border);
-        }
-        
-        .dropdown-item-base {
-            @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center;
         }
         
         /* Estilos mejorados para los dropdowns */

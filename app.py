@@ -2338,63 +2338,134 @@ def api_potencia_nap_por_caja(nap_id):
 # ----------------------------------------------------------------------
 # API ENDPOINTS PARA POTENCIAS (VERSIÓN CORREGIDA)
 # ----------------------------------------------------------------------
+def _filtros_potencias_desde_request():
+    return {
+        'cliente_id': request.args.get('cliente_id', type=int),
+        'estado': (request.args.get('estado') or '').strip(),
+        'desde': (request.args.get('desde') or '').strip(),
+        'hasta': (request.args.get('hasta') or '').strip(),
+        'q': (request.args.get('q') or '').strip(),
+    }
+
+
+def _sql_potencias_base(filtros):
+    joins = """
+        FROM public.potencias p
+        LEFT JOIN public.cliente c ON p.cliente_id = c.id
+        LEFT JOIN public.nat n ON p.nap_id = n.id
+    """
+    clauses = []
+    params = {}
+
+    if filtros.get('cliente_id'):
+        clauses.append('p.cliente_id = :cliente_id')
+        params['cliente_id'] = filtros['cliente_id']
+    if filtros.get('estado'):
+        clauses.append('p.estado = :estado')
+        params['estado'] = filtros['estado']
+    if filtros.get('desde'):
+        clauses.append('p.fecha >= :desde')
+        params['desde'] = datetime.strptime(filtros['desde'], '%Y-%m-%d')
+    if filtros.get('hasta'):
+        clauses.append('p.fecha < :hasta_fin')
+        params['hasta_fin'] = datetime.strptime(filtros['hasta'], '%Y-%m-%d') + timedelta(days=1)
+    if filtros.get('q'):
+        clauses.append(
+            '(LOWER(c.nombre) LIKE :q OR LOWER(n.nombre) LIKE :q '
+            'OR LOWER(COALESCE(p.observaciones, \'\')) LIKE :q '
+            'OR LOWER(COALESCE(p.tecnico, \'\')) LIKE :q)'
+        )
+        params['q'] = f'%{filtros["q"].lower()}%'
+
+    where = (' WHERE ' + ' AND '.join(clauses)) if clauses else ''
+    return joins, where, params
+
+
+def _resumen_estados_potencias(filtros):
+    joins, where, params = _sql_potencias_base(filtros)
+    rows = db.session.execute(
+        text(f'SELECT p.estado, COUNT(*) AS total {joins}{where} GROUP BY p.estado'),
+        params,
+    ).fetchall()
+    resumen = {'excelente': 0, 'normal': 0, 'bajo': 0, 'critico': 0}
+    for row in rows:
+        if row.estado in resumen:
+            resumen[row.estado] = int(row.total)
+    return resumen
+
+
+def _mapear_fila_potencia(r):
+    return {
+        'id': r.id,
+        'fecha_medicion': r.fecha.isoformat() if r.fecha else None,
+        'potencia_entrada': float(r.potencia_entrada or 0),
+        'potencia_salida': float(r.potencia_salida or 0),
+        'perdida': float(r.perdida or 0),
+        'estado': r.estado or 'normal',
+        'observaciones': r.observaciones or '',
+        'cliente_id': r.cliente_id,
+        'cliente_nombre': r.cliente_nombre or 'Cliente Desconocido',
+        'nap_id': r.nap_id,
+        'nap_nombre': r.nap_nombre or 'Sin NAP',
+        'tecnico': r.tecnico or 'Técnico Desconocido',
+    }
+
+
+@app.route('/api/clientes/opciones')
+def api_clientes_opciones():
+    """Lista liviana id+nombre para selects (potencias, formularios)."""
+    rows = Cliente.query.with_entities(Cliente.id, Cliente.nombre).order_by(Cliente.nombre).all()
+    return jsonify([{'id': r.id, 'nombre': r.nombre} for r in rows])
+
+
 @app.route('/api/potencias', methods=['GET'])
 def api_get_potencias():
     try:
-        page, per_page = paginacion_desde_request(API_DEFAULT_PER_PAGE, max_per=200)
+        filtros = _filtros_potencias_desde_request()
+        joins, where, params = _sql_potencias_base(filtros)
         usar_todo = api_devolver_todo()
-        limit_sql = '' if usar_todo else ' LIMIT :limit OFFSET :offset'
-        params = {}
+        per_page_req = request.args.get('per_page', type=int)
+        page, per_page = paginacion_desde_request(per_page_req or 10, max_per=100)
+
+        count_row = db.session.execute(
+            text(f'SELECT COUNT(*) {joins}{where}'),
+            params,
+        ).scalar() or 0
+
+        query_params = dict(params)
+        limit_sql = ''
         if not usar_todo:
-            params['limit'] = per_page
-            params['offset'] = (page - 1) * per_page
+            limit_sql = ' LIMIT :limit OFFSET :offset'
+            query_params['limit'] = per_page
+            query_params['offset'] = (page - 1) * per_page
 
-        count_row = db.session.execute(text('SELECT COUNT(*) FROM public.potencias')).scalar() or 0
+        result = db.session.execute(
+            text(f"""
+                SELECT
+                    p.id, p.fecha, p.potencia_entrada, p.potencia_salida,
+                    p.perdida, p.estado, p.observaciones, p.cliente_id,
+                    c.nombre AS cliente_nombre, p.nap_id, n.nombre AS nap_nombre, p.tecnico
+                {joins}{where}
+                ORDER BY p.fecha DESC
+                {limit_sql}
+            """),
+            query_params,
+        )
 
-        query = text(f"""
-            SELECT 
-                p.id,
-                p.fecha,
-                p.potencia_entrada,
-                p.potencia_salida,
-                p.perdida,
-                p.estado,
-                p.observaciones,
-                p.cliente_id,
-                c.nombre AS cliente_nombre,
-                p.nap_id,
-                n.nombre AS nap_nombre,
-                p.tecnico
-            FROM public.potencias p
-            LEFT JOIN public.cliente c ON p.cliente_id = c.id
-            LEFT JOIN public.nat n ON p.nap_id = n.id
-            ORDER BY p.fecha DESC
-            {limit_sql}
-        """)
+        potencias = [_mapear_fila_potencia(r) for r in result]
+        meta = meta_paginacion(
+            count_row,
+            1 if usar_todo else page,
+            count_row if usar_todo else per_page,
+        )
+        resumen = _resumen_estados_potencias(filtros)
 
-        result = db.session.execute(query, params)
-
-        potencias = [{
-            'id': r.id,
-            'fecha_medicion': r.fecha.isoformat() if r.fecha else None,
-            'potencia_entrada': float(r.potencia_entrada or 0),
-            'potencia_salida': float(r.potencia_salida or 0),
-            'perdida': float(r.perdida or 0),
-            'estado': r.estado or 'normal',
-            'observaciones': r.observaciones or '',
-            'cliente_id': r.cliente_id,
-            'cliente_nombre': r.cliente_nombre or 'Cliente Desconocido',
-            'nap_id': r.nap_id,
-            'nap_nombre': r.nap_nombre or 'Sin NAP',
-            'tecnico': r.tecnico or 'Técnico Desconocido'
-        } for r in result]
-
-        meta = meta_paginacion(count_row, 1 if usar_todo else page, count_row if usar_todo else per_page)
         return jsonify(
             success=True,
             potencias=potencias,
             total=count_row,
             pagination=meta,
+            resumen=resumen,
         )
 
     except Exception as e:

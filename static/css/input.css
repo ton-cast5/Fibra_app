@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .nav-link-white {
+    @apply px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-gray-700 hover:text-white flex items-center;
+  }
+
+  .mobile-menu-white {
+    @apply text-white hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium;
+  }
+
+  .dropdown-item-base {
+    @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center;
+  }
+}

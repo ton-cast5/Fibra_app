@@ -347,77 +347,89 @@
 
 <!-- JavaScript para la página de listado (MANTENIENDO TODO TU CÓDIGO ORIGINAL) -->
 <script>
-// Variables globales
-let todasPotencias = [];
-let potenciasFiltradas = [];
+// Variables globales — paginación y filtros en servidor
+let potenciasPagina = [];
 let paginaActual = 1;
+let metaPaginacion = { total: 0, pages: 1, per_page: 10 };
+let resumenEstados = { excelente: 0, normal: 0, bajo: 0, critico: 0 };
 const itemsPorPagina = 10;
 let chartEstados = null;
+let debounceBusqueda = null;
 
-// Inicializar cuando se carga la página
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("📊 Página de listado de potencias cargada");
-    cargarDatosIniciales();
+    cargarClientesParaFiltro();
     inicializarEventos();
     inicializarGrafico();
     agregarEfectosVisuales();
+    cargarPotencias(1);
 });
 
-// Cargar datos iniciales desde la base de datos
-async function cargarDatosIniciales() {
+function obtenerFiltrosPotencias() {
+    return {
+        cliente_id: document.getElementById('filtro-cliente').value,
+        estado: document.getElementById('filtro-estado').value,
+        desde: document.getElementById('filtro-desde').value,
+        hasta: document.getElementById('filtro-hasta').value,
+        q: document.getElementById('buscar-potencias').value.trim(),
+    };
+}
+
+function construirUrlPotencias(page, all) {
+    const f = obtenerFiltrosPotencias();
+    const params = new URLSearchParams();
+    if (all) params.set('all', '1');
+    else {
+        params.set('page', String(page));
+        params.set('per_page', String(itemsPorPagina));
+    }
+    if (f.cliente_id) params.set('cliente_id', f.cliente_id);
+    if (f.estado) params.set('estado', f.estado);
+    if (f.desde) params.set('desde', f.desde);
+    if (f.hasta) params.set('hasta', f.hasta);
+    if (f.q) params.set('q', f.q);
+    return '/api/potencias?' + params.toString();
+}
+
+function mapearPotencia(p) {
+    return {
+        id: p.id,
+        fecha: p.fecha_medicion,
+        cliente_id: p.cliente_id,
+        cliente_nombre: p.cliente_nombre || 'Cliente Desconocido',
+        nap_nombre: p.nap_nombre || 'Sin NAP',
+        potencia_entrada: parseFloat(p.potencia_entrada) || 0,
+        potencia_salida: parseFloat(p.potencia_salida) || 0,
+        perdida: parseFloat(p.perdida) || 0,
+        estado: p.estado || 'normal',
+        tecnico: p.tecnico || 'Técnico Desconocido',
+        observaciones: p.observaciones || '',
+    };
+}
+
+async function cargarPotencias(page) {
     try {
-        console.log("Cargando datos desde la base de datos...");
-        
-        // Mostrar indicador de carga
         mostrarCargando();
-        
-        // Hacer la petición al backend Flask
-        const response = await fetch('/api/potencias?all=1');
-        
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
+        paginaActual = page || 1;
+        const response = await fetch(construirUrlPotencias(paginaActual, false));
+        if (!response.ok) throw new Error('Error HTTP: ' + response.status);
+
         const data = await response.json();
-        
-        if (data.success) {
-            // Transformar los datos de la base de datos al formato esperado
-            todasPotencias = data.potencias.map(potencia => ({
-                id: potencia.id,
-                fecha: potencia.fecha_medicion,
-                cliente_id: potencia.cliente_id,
-                cliente_nombre: potencia.cliente_nombre || "Cliente Desconocido",
-                nap_nombre: potencia.nap_nombre || "Sin NAP",
-                potencia_entrada: parseFloat(potencia.potencia_entrada) || 0,
-                potencia_salida: parseFloat(potencia.potencia_salida) || 0,
-                perdida: parseFloat(potencia.perdida) || 0,
-                estado: potencia.estado || "normal",
-                tecnico: potencia.tecnico || "Técnico Desconocido",
-                observaciones: potencia.observaciones || ""
-            }));
-            
-            console.log(`✅ ${todasPotencias.length} mediciones cargadas de la base de datos`);
-            
-            // Cargar clientes para filtro
-            await cargarClientesParaFiltro();
-            
-            // Mostrar datos
-            filtrarPotencias();
-            actualizarEstadisticas();
-        } else {
-            console.error("❌ Error en la respuesta del servidor:", data.message);
-            mostrarError("Error al cargar los datos: " + (data.message || "Error desconocido"));
-            todasPotencias = [];
-            filtrarPotencias();
+        if (!data.success) {
+            throw new Error(data.message || 'Error desconocido');
         }
-        
+
+        potenciasPagina = (data.potencias || []).map(mapearPotencia);
+        metaPaginacion = data.pagination || metaPaginacion;
+        resumenEstados = data.resumen || resumenEstados;
+        paginaActual = metaPaginacion.page || paginaActual;
+
+        actualizarTabla();
+        actualizarEstadisticas();
+        actualizarGrafico();
     } catch (error) {
-        console.error("❌ Error al cargar datos desde la base de datos:", error);
-        mostrarError("Error interno al procesar los datos. Revisa la consola.");
-        todasPotencias = [];
-        filtrarPotencias();
-    } finally {
-        ocultarCargando();
+        console.error('Error cargando potencias:', error);
+        potenciasPagina = [];
+        mostrarError('Error al cargar mediciones. ' + error.message);
     }
 }
 
@@ -444,7 +456,7 @@ function mostrarError(mensaje) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <p>${mensaje}</p>
-                <button onclick="cargarDatosIniciales()" class="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300">
+                <button onclick="cargarPotencias(1)" class="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300">
                     Reintentar
                 </button>
             </td>
@@ -460,45 +472,21 @@ function ocultarCargando() {
 // Cargar clientes para el filtro desde la base de datos
 async function cargarClientesParaFiltro() {
     try {
-        const response = await fetch('/api/clientes?all=1');
-        
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const response = await fetch('/api/clientes/opciones');
+        if (!response.ok) throw new Error('Error HTTP: ' + response.status);
+
+        const clientes = await response.json();
         const filtro = document.getElementById('filtro-cliente');
-        
-        // Limpiar opciones existentes (excepto la primera)
-        while (filtro.options.length > 1) {
-            filtro.remove(1);
-        }
-        
-        const clientes = Array.isArray(data)
-        ? data
-        : data.clientes;
+        while (filtro.options.length > 1) filtro.remove(1);
 
-    if (clientes && clientes.length > 0) {
-        // Ordenar clientes alfabéticamente
-        const clientesOrdenados = clientes.sort((a, b) =>
-            a.nombre.localeCompare(b.nombre)
-        );
-
-        clientesOrdenados.forEach(cliente => {
+        (clientes || []).forEach(function (cliente) {
             const option = document.createElement('option');
             option.value = cliente.id;
             option.textContent = cliente.nombre;
-            option.className = 'text-gray-700';
             filtro.appendChild(option);
         });
-
-        console.log(`✅ ${clientesOrdenados.length} clientes cargados para filtro`);
-    } else {
-        console.warn("⚠️ No se pudieron cargar los clientes para el filtro");
-    }
-
     } catch (error) {
-        console.warn("⚠️ Error al cargar los clientes para el filtro:", error);
+        console.warn('Error al cargar clientes para filtro:', error);
     }
 }
 
@@ -509,14 +497,17 @@ function inicializarEventos() {
     filtros.forEach(id => {
         const elemento = document.getElementById(id);
         if (elemento) {
-            elemento.addEventListener('change', filtrarPotencias);
+            elemento.addEventListener('change', function () { cargarPotencias(1); });
         }
     });
     
     // Evento de búsqueda
     const buscarInput = document.getElementById('buscar-potencias');
     if (buscarInput) {
-        buscarInput.addEventListener('keyup', filtrarPotencias);
+        buscarInput.addEventListener('keyup', function () {
+            clearTimeout(debounceBusqueda);
+            debounceBusqueda = setTimeout(function () { cargarPotencias(1); }, 400);
+        });
     }
     
     // Eventos de paginación
@@ -529,69 +520,10 @@ function inicializarEventos() {
     });
 }
 
-// Filtrar potencias
-function filtrarPotencias() {
-    const filtroCliente = document.getElementById('filtro-cliente').value;
-    const filtroEstado = document.getElementById('filtro-estado').value;
-    const filtroDesde = document.getElementById('filtro-desde').value;
-    const filtroHasta = document.getElementById('filtro-hasta').value;
-    const busqueda = document.getElementById('buscar-potencias').value.toLowerCase();
-    
-    potenciasFiltradas = todasPotencias.filter(potencia => {
-        // Filtro por cliente
-        if (filtroCliente && parseInt(potencia.cliente_id) !== parseInt(filtroCliente)) {
-            return false;
-        }
-        
-        // Filtro por estado
-        if (filtroEstado && potencia.estado !== filtroEstado) {
-            return false;
-        }
-        
-        // Filtro por fecha
-        if (filtroDesde) {
-            const fechaPotencia = new Date(potencia.fecha).toISOString().split('T')[0];
-            if (fechaPotencia < filtroDesde) return false;
-        }
-        
-        if (filtroHasta) {
-            const fechaPotencia = new Date(potencia.fecha).toISOString().split('T')[0];
-            if (fechaPotencia > filtroHasta) return false;
-        }
-        
-        // Búsqueda por texto
-        if (busqueda) {
-            const textoBusqueda = busqueda.toLowerCase();
-            const clienteNombre = (potencia.cliente_nombre || '').toLowerCase();
-            const napNombre = (potencia.nap_nombre || '').toLowerCase();
-            const observaciones = (potencia.observaciones || '').toLowerCase();
-            const tecnico = (potencia.tecnico || '').toLowerCase();
-            
-            if (!clienteNombre.includes(textoBusqueda) &&
-                !napNombre.includes(textoBusqueda) &&
-                !observaciones.includes(textoBusqueda) &&
-                !tecnico.includes(textoBusqueda)) {
-                return false;
-            }
-        }
-        
-        return true;
-    });
-    
-    paginaActual = 1;
-    actualizarTabla();
-    actualizarEstadisticas();
-    actualizarGrafico();
-}
-
-// Actualizar tabla
+// Actualizar tabla (datos ya vienen paginados del servidor)
 function actualizarTabla() {
     const cuerpo = document.getElementById('tabla-potencias-body');
-    
-    const inicio = (paginaActual - 1) * itemsPorPagina;
-    const fin = inicio + itemsPorPagina;
-    const potenciasPagina = potenciasFiltradas.slice(inicio, fin);
-    
+
     if (potenciasPagina.length === 0) {
         cuerpo.innerHTML = `
             <tr>
@@ -684,10 +616,7 @@ async function eliminarPotencia(id) {
         const data = await response.json();
 
         if (data.success) {
-            // Eliminar del array local (🔥 FIX de tipos)
-            todasPotencias = todasPotencias.filter(p => Number(p.id) !== idNum);
-            filtrarPotencias();
-
+            await cargarPotencias(paginaActual);
             mostrarNotificacion('✅ Medición eliminada correctamente', 'success');
         } else {
             throw new Error(data.message || 'Error al eliminar');
@@ -699,20 +628,11 @@ async function eliminarPotencia(id) {
     }
 }
 
-// Actualizar estadísticas
 function actualizarEstadisticas() {
-    const conteos = { excelente: 0, normal: 0, bajo: 0, critico: 0 };
-    
-    potenciasFiltradas.forEach(potencia => {
-        if (potencia.estado && conteos.hasOwnProperty(potencia.estado)) {
-            conteos[potencia.estado]++;
-        }
-    });
-    
-    document.getElementById('count-excelente').textContent = conteos.excelente;
-    document.getElementById('count-normal').textContent = conteos.normal;
-    document.getElementById('count-bajo').textContent = conteos.bajo;
-    document.getElementById('count-critico').textContent = conteos.critico;
+    document.getElementById('count-excelente').textContent = resumenEstados.excelente || 0;
+    document.getElementById('count-normal').textContent = resumenEstados.normal || 0;
+    document.getElementById('count-bajo').textContent = resumenEstados.bajo || 0;
+    document.getElementById('count-critico').textContent = resumenEstados.critico || 0;
 }
 
 // Inicializar gráfico
@@ -760,38 +680,28 @@ function inicializarGrafico() {
     });
 }
 
-// Actualizar gráfico
 function actualizarGrafico() {
-    const conteos = { excelente: 0, normal: 0, bajo: 0, critico: 0 };
-    
-    potenciasFiltradas.forEach(potencia => {
-        if (potencia.estado && conteos.hasOwnProperty(potencia.estado)) {
-            conteos[potencia.estado]++;
-        }
-    });
-    
+    if (!chartEstados) return;
     chartEstados.data.datasets[0].data = [
-        conteos.excelente,
-        conteos.normal,
-        conteos.bajo,
-        conteos.critico
+        resumenEstados.excelente || 0,
+        resumenEstados.normal || 0,
+        resumenEstados.bajo || 0,
+        resumenEstados.critico || 0,
     ];
     chartEstados.update();
 }
 
-// Funciones auxiliares
 function cambiarPagina(pagina) {
-    const totalPaginas = Math.ceil(potenciasFiltradas.length / itemsPorPagina);
-    if (pagina < 1 || pagina > totalPaginas) return;
-    paginaActual = pagina;
-    actualizarTabla();
+    if (pagina < 1 || pagina > metaPaginacion.pages) return;
+    cargarPotencias(pagina);
 }
 
 function actualizarPaginacion() {
-    const total = potenciasFiltradas.length;
-    const inicio = Math.min((paginaActual - 1) * itemsPorPagina + 1, total);
-    const fin = Math.min(paginaActual * itemsPorPagina, total);
-    const totalPaginas = Math.ceil(total / itemsPorPagina);
+    const total = metaPaginacion.total || 0;
+    const perPage = metaPaginacion.per_page || itemsPorPagina;
+    const inicio = total ? Math.min((paginaActual - 1) * perPage + 1, total) : 0;
+    const fin = total ? Math.min(paginaActual * perPage, total) : 0;
+    const totalPaginas = metaPaginacion.pages || 1;
     
     document.getElementById('desde').textContent = inicio;
     document.getElementById('hasta').textContent = fin;
@@ -861,38 +771,37 @@ function formatearFecha(fechaString) {
     }
 }
 
-// Exportar datos a CSV
-function exportarCSV() {
-    if (potenciasFiltradas.length === 0) {
-        mostrarNotificacion('No hay datos para exportar', 'warning');
-        return;
+async function exportarCSV() {
+    try {
+        mostrarNotificacion('Preparando exportación...', 'info');
+        const response = await fetch(construirUrlPotencias(1, true));
+        if (!response.ok) throw new Error('Error HTTP: ' + response.status);
+        const data = await response.json();
+        const filas = (data.potencias || []).map(mapearPotencia);
+
+        if (!filas.length) {
+            mostrarNotificacion('No hay datos para exportar', 'warning');
+            return;
+        }
+
+        let csv = 'Fecha,Cliente,NAP,Potencia Entrada (dBm),Potencia Salida (dBm),Pérdida (dB),Estado,Técnico,Observaciones\n';
+        filas.forEach(function (potencia) {
+            const fecha = formatearFecha(potencia.fecha);
+            const observaciones = (potencia.observaciones || '').replace(/"/g, '""');
+            csv += '"' + fecha + '","' + potencia.cliente_nombre + '","' + potencia.nap_nombre + '",'
+                + potencia.potencia_entrada + ',' + potencia.potencia_salida + ',' + potencia.perdida
+                + ',' + potencia.estado + ',"' + potencia.tecnico + '","' + observaciones + '"\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'potencias_' + new Date().toISOString().split('T')[0] + '.csv';
+        link.click();
+        mostrarNotificacion('✅ CSV exportado correctamente', 'success');
+    } catch (error) {
+        mostrarNotificacion('Error al exportar: ' + error.message, 'error');
     }
-    
-    // Crear encabezados CSV
-    let csv = 'Fecha,Cliente,NAP,Potencia Entrada (dBm),Potencia Salida (dBm),Pérdida (dB),Estado,Técnico,Observaciones\n';
-    
-    // Agregar datos
-    potenciasFiltradas.forEach(potencia => {
-        const fecha = formatearFecha(potencia.fecha);
-        const observaciones = (potencia.observaciones || '').replace(/"/g, '""');
-        
-        csv += `"${fecha}","${potencia.cliente_nombre}","${potencia.nap_nombre}",${potencia.potencia_entrada},${potencia.potencia_salida},${potencia.perdida},${potencia.estado},"${potencia.tecnico}","${observaciones}"\n`;
-    });
-    
-    // Crear y descargar archivo
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `potencias_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    mostrarNotificacion('✅ CSV exportado correctamente', 'success');
 }
 
 // Mostrar notificación premium

@@ -491,7 +491,7 @@ function iniciarRelojMedicion() {
 async function cargarClientes() {
     const input = document.getElementById('cliente_busqueda');
     try {
-        const response = await fetch('/api/clientes?all=1');
+        const response = await fetch('/api/clientes/opciones');
         const data = await response.json();
         clientesLista = Array.isArray(data) ? data : (data.clientes || []);
         if (input) {
