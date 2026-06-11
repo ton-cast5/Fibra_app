@@ -6,10 +6,18 @@ import os
 import sys
 from collections import defaultdict
 from werkzeug.utils import secure_filename
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
 from time_utils import ahora_mexico, inicio_del_dia_mexico, fin_del_dia_mexico, parsear_fecha_mexico
+from pagination_utils import (
+    paginacion_desde_request,
+    paginar_query,
+    api_devolver_todo,
+    meta_paginacion,
+    API_DEFAULT_PER_PAGE,
+    DEFAULT_PER_PAGE,
+)
 import uuid
 import math
 from io import BytesIO
@@ -626,6 +634,127 @@ def _nat_uso_y_estado(nat):
     return _calcular_ocupacion_nat(nat)
 
 
+def _subquery_usados_clientes():
+    return (
+        db.session.query(
+            Cliente.nat_id.label('nat_id'),
+            func.count(Cliente.id).label('usados'),
+        )
+        .filter(Cliente.activo.is_(True))
+        .group_by(Cliente.nat_id)
+        .subquery()
+    )
+
+
+def construir_query_nats(q=None, tipo=None, region=None, estado=None):
+    """Consulta de NAPs con filtros en servidor (evita cargar todo el listado)."""
+    query = Nat.query.options(joinedload(Nat.modelo)).outerjoin(
+        NapModel, Nat.nap_model_id == NapModel.id
+    )
+
+    if q:
+        term = f'%{q.strip().lower()}%'
+        query = query.filter(or_(
+            func.lower(Nat.nombre).like(term),
+            func.lower(func.coalesce(Nat.descripcion, '')).like(term),
+            func.lower(func.coalesce(Nat.region, '')).like(term),
+        ))
+
+    if region and region != 'todos':
+        query = query.filter(func.lower(Nat.region) == region.strip().lower())
+
+    if tipo and tipo != 'todos':
+        query = query.filter(NapModel.tipo_caja == tipo)
+
+    if estado and estado != 'todos':
+        usados_sq = _subquery_usados_clientes()
+        query = query.outerjoin(usados_sq, Nat.id == usados_sq.c.nat_id)
+        usados = func.coalesce(usados_sq.c.usados, 0)
+        total = Nat.puertos_total
+
+        if estado == 'empalme':
+            query = query.filter(NapModel.tipo_caja == 'empalme')
+        elif estado == 'saturado':
+            query = query.filter(
+                NapModel.tipo_caja == 'distribucion',
+                total > 0,
+                usados >= total,
+            )
+        elif estado == 'critico':
+            query = query.filter(
+                NapModel.tipo_caja == 'distribucion',
+                total > 0,
+                usados < total,
+                usados * 100 >= total * 80,
+            )
+        elif estado == 'normal':
+            query = query.filter(
+                NapModel.tipo_caja == 'distribucion',
+                or_(total <= 0, usados * 100 < total * 80),
+            )
+
+    return query.order_by(Nat.nombre)
+
+
+def stats_nats_listado():
+    """Estadísticas globales del listado sin cargar todas las filas."""
+    total_nats = Nat.query.count()
+    total_puertos = db.session.query(func.sum(Nat.puertos_total)).scalar() or 0
+    puertos_usados = Cliente.query.filter_by(activo=True).count()
+    criticas = (
+        construir_query_nats(estado='critico').count()
+        + construir_query_nats(estado='saturado').count()
+    )
+    return {
+        'total_nats': total_nats,
+        'total_puertos': total_puertos,
+        'puertos_usados': puertos_usados,
+        'criticas_saturadas': criticas,
+    }
+
+
+def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
+    """Consulta de clientes con filtros en servidor."""
+    query = Cliente.query.options(joinedload(Cliente.nat))
+
+    if q:
+        term = f'%{q.strip().lower()}%'
+        query = query.outerjoin(Nat, Cliente.nat_id == Nat.id).filter(or_(
+            func.lower(Cliente.nombre).like(term),
+            func.lower(Cliente.direccion).like(term),
+            func.lower(func.coalesce(Cliente.contacto, '')).like(term),
+            func.lower(func.coalesce(Nat.nombre, '')).like(term),
+        ))
+
+    if estado == 'activo':
+        query = query.filter(Cliente.activo.is_(True))
+    elif estado == 'inactivo':
+        query = query.filter(Cliente.activo.is_(False))
+
+    if nat_id and nat_id not in ('todas', '', None):
+        if nat_id == 'sin_nap':
+            query = query.filter(Cliente.nat_id.is_(None))
+        else:
+            nat_pk = str(nat_id).replace('nat_', '')
+            if nat_pk.isdigit():
+                query = query.filter(Cliente.nat_id == int(nat_pk))
+
+    if plan and plan != 'todos':
+        query = query.filter(func.lower(Cliente.plan).like(f'%{plan.strip().lower()}%'))
+
+    return query.order_by(Cliente.nombre)
+
+
+def stats_clientes_listado():
+    total = Cliente.query.count()
+    activos = Cliente.query.filter_by(activo=True).count()
+    return {
+        'total': total,
+        'activos': activos,
+        'inactivos': total - activos,
+    }
+
+
 def _nats_datos_mapa(nats=None):
     """Metadatos de cajas con coordenadas para sincronizar colores/filtros en el mapa."""
     if nats is None:
@@ -1116,7 +1245,14 @@ def exportar_csv():
 # Rutas para las APIs de datos
 @app.route('/api/clientes')
 def api_clientes():
-    clientes = Cliente.query.order_by(Cliente.nombre).all()
+    query = Cliente.query.options(joinedload(Cliente.nat)).order_by(Cliente.nombre)
+    if api_devolver_todo():
+        clientes = query.all()
+        meta = meta_paginacion(len(clientes), 1, len(clientes) or 1)
+    else:
+        page, per_page = paginacion_desde_request(API_DEFAULT_PER_PAGE)
+        clientes, meta = paginar_query(query, page, per_page)
+
     lista = [{
         'id': c.id,
         'nombre': c.nombre,
@@ -1127,15 +1263,25 @@ def api_clientes():
         'nat_id': c.nat_id,
         'nap_nombre': c.nat.nombre if c.nat else None,
     } for c in clientes]
+
     if request.args.get('format') == 'wrapped':
-        return jsonify(success=True, clientes=lista, total=len(lista))
-    return jsonify(lista)
+        return jsonify(success=True, clientes=lista, total=meta['total'], pagination=meta)
+    if api_devolver_todo():
+        return jsonify(lista)
+    return jsonify(data=lista, pagination=meta)
 
 @app.route('/api/naps')
 def api_naps():
-    """API para obtener todas las cajas NAP con datos completos"""
+    """API para obtener cajas NAP con datos completos (paginada o ?all=1)."""
     try:
-        naps = Nat.query.options(joinedload(Nat.modelo)).all()
+        query = Nat.query.options(joinedload(Nat.modelo)).order_by(Nat.nombre)
+        if api_devolver_todo():
+            naps = query.all()
+            meta = meta_paginacion(len(naps), 1, len(naps) or 1)
+        else:
+            page, per_page = paginacion_desde_request(API_DEFAULT_PER_PAGE)
+            naps, meta = paginar_query(query, page, per_page)
+
         preparar_ocupacion_nats(naps)
         result = []
         for nap in naps:
@@ -1159,10 +1305,12 @@ def api_naps():
                 'clientes_count': clientes_count
             })
         
-        return jsonify(result)
+        if api_devolver_todo():
+            return jsonify(result)
+        return jsonify(data=result, pagination=meta)
     except Exception as e:
         print(f"Error en API naps: {e}")
-        return jsonify([])
+        return jsonify([] if api_devolver_todo() else {'data': [], 'pagination': meta_paginacion(0, 1, 1)})
 
 @app.route('/api/modelos-nap')
 def api_modelos_nap():
@@ -1307,8 +1455,16 @@ def home():
 
 @app.route('/cajas')
 def index():
-    nats = Nat.query.options(joinedload(Nat.modelo)).order_by(Nat.nombre).all()
+    q = request.args.get('q', '').strip()
+    tipo = request.args.get('tipo', 'todos')
+    estado = request.args.get('estado', 'todos')
+    region = request.args.get('region', 'todos')
+    page, per_page = paginacion_desde_request(DEFAULT_PER_PAGE)
+
+    query = construir_query_nats(q=q or None, tipo=tipo, region=region, estado=estado)
+    nats, paginacion = paginar_query(query, page, per_page)
     preparar_ocupacion_nats(nats)
+
     regiones = [
         r[0] for r in db.session.query(Nat.region)
         .filter(Nat.region.isnot(None), Nat.region != '')
@@ -1316,7 +1472,17 @@ def index():
         .order_by(Nat.region)
         .all()
     ]
-    return render_template('index.html', nats=nats, regiones=regiones)
+    filtros = {'q': q, 'tipo': tipo, 'estado': estado, 'region': region}
+    query_extra = {k: v for k, v in filtros.items() if v and v != 'todos'}
+    return render_template(
+        'index.html',
+        nats=nats,
+        regiones=regiones,
+        paginacion=paginacion,
+        filtros=filtros,
+        query_extra=query_extra,
+        stats=stats_nats_listado(),
+    )
 
 @app.route('/dashboard')
 def dashboard():
@@ -1767,8 +1933,30 @@ def eliminar_nap_model(model_id):
 
 @app.route('/clientes')
 def listar_clientes():
-    clientes = Cliente.query.order_by(Cliente.nombre).all()
-    return render_template('listar_clientes.html', clientes=clientes)
+    q = request.args.get('q', '').strip()
+    estado = request.args.get('estado', 'todos')
+    nat_id = request.args.get('nap', 'todas')
+    plan = request.args.get('plan', 'todos')
+    page, per_page = paginacion_desde_request(DEFAULT_PER_PAGE)
+
+    query = construir_query_clientes(q=q or None, estado=estado, nat_id=nat_id, plan=plan)
+    clientes, paginacion = paginar_query(query, page, per_page)
+
+    nats_opciones = Nat.query.with_entities(Nat.id, Nat.nombre).order_by(Nat.nombre).all()
+    filtros = {'q': q, 'estado': estado, 'nap': nat_id, 'plan': plan}
+    query_extra = {
+        k: v for k, v in filtros.items()
+        if v and v not in ('todos', 'todas')
+    }
+    return render_template(
+        'listar_clientes.html',
+        clientes=clientes,
+        nats=nats_opciones,
+        paginacion=paginacion,
+        filtros=filtros,
+        query_extra=query_extra,
+        stats=stats_clientes_listado(),
+    )
     
 @app.route('/cliente/<int:cliente_id>')
 def ver_cliente(cliente_id):
@@ -2153,7 +2341,17 @@ def api_potencia_nap_por_caja(nap_id):
 @app.route('/api/potencias', methods=['GET'])
 def api_get_potencias():
     try:
-        query = text("""
+        page, per_page = paginacion_desde_request(API_DEFAULT_PER_PAGE, max_per=200)
+        usar_todo = api_devolver_todo()
+        limit_sql = '' if usar_todo else ' LIMIT :limit OFFSET :offset'
+        params = {}
+        if not usar_todo:
+            params['limit'] = per_page
+            params['offset'] = (page - 1) * per_page
+
+        count_row = db.session.execute(text('SELECT COUNT(*) FROM public.potencias')).scalar() or 0
+
+        query = text(f"""
             SELECT 
                 p.id,
                 p.fecha,
@@ -2171,9 +2369,10 @@ def api_get_potencias():
             LEFT JOIN public.cliente c ON p.cliente_id = c.id
             LEFT JOIN public.nat n ON p.nap_id = n.id
             ORDER BY p.fecha DESC
+            {limit_sql}
         """)
 
-        result = db.session.execute(query)
+        result = db.session.execute(query, params)
 
         potencias = [{
             'id': r.id,
@@ -2190,10 +2389,12 @@ def api_get_potencias():
             'tecnico': r.tecnico or 'Técnico Desconocido'
         } for r in result]
 
+        meta = meta_paginacion(count_row, 1 if usar_todo else page, count_row if usar_todo else per_page)
         return jsonify(
             success=True,
             potencias=potencias,
-            total=len(potencias)
+            total=count_row,
+            pagination=meta,
         )
 
     except Exception as e:

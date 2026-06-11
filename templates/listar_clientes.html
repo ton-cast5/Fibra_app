@@ -102,10 +102,8 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Panel de Control Avanzado -->
-    <div class="glass-effect fm-panel rounded-2xl shadow-xl p-6 mb-6 fade-in">
+    <form method="GET" action="{{ url_for('listar_clientes') }}" id="filtros-clientes" class="glass-effect fm-panel rounded-2xl shadow-xl p-6 mb-6 fade-in">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            <!-- Búsqueda Avanzada -->
             <div class="flex-1 max-w-lg">
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -113,67 +111,59 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </div>
-                    <input type="text" id="buscador" 
-                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 search-glow transition-all duration-300" 
-                           placeholder="🔍 Buscar por nombre, dirección, contacto...">
+                    <input type="text" name="q" id="buscador" value="{{ filtros.q }}"
+                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 search-glow transition-all duration-300"
+                           placeholder="🔍 Buscar por nombre, dirección, contacto o NAP...">
                 </div>
             </div>
 
-            <!-- Filtros Avanzados -->
-            <div class="flex flex-wrap gap-3">
-                <!-- Filtro por Estado -->
-                <select id="filtro_estado" class="fm-select border rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300">
-                    <option value="todos">🎯 Todos los Estados</option>
-                    <option value="activo">🟢 Solo Activos</option>
-                    <option value="inactivo">🔴 Solo Inactivos</option>
+            <div class="flex flex-wrap gap-3 items-center">
+                <select name="estado" class="filtro-servidor fm-select border rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300">
+                    <option value="todos" {% if filtros.estado == 'todos' %}selected{% endif %}>🎯 Todos los Estados</option>
+                    <option value="activo" {% if filtros.estado == 'activo' %}selected{% endif %}>🟢 Solo Activos</option>
+                    <option value="inactivo" {% if filtros.estado == 'inactivo' %}selected{% endif %}>🔴 Solo Inactivos</option>
                 </select>
 
-                <!-- Filtro por NAP -->
-                <select id="filtro_nap" class="fm-select border rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300">
-                    <option value="todas">📡 Todas las NATs</option>
+                <select name="nap" class="filtro-servidor fm-select border rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300">
+                    <option value="todas" {% if filtros.nap == 'todas' %}selected{% endif %}>📡 Todas las NATs</option>
                     {% for nat in nats %}
-                    <option value="nat_{{ nat.id }}">{{ nat.nombre }}</option>
+                    <option value="nat_{{ nat.id }}" {% if filtros.nap == 'nat_' ~ nat.id|string %}selected{% endif %}>{{ nat.nombre }}</option>
                     {% endfor %}
-                    <option value="sin_nap">❌ Sin NAT</option>
                 </select>
 
-                <!-- Filtro por Plan -->
-                <select id="filtro_plan" class="fm-select border rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300">
-                    <option value="todos">📋 Todos los Planes</option>
-                    <option value="Básico">🟦 Básico</option>
-                    <option value="Estándar">🟪 Estándar</option>
-                    <option value="Premium">🟨 Premium</option>
-                    <option value="Empresarial">🏢 Empresarial</option>
+                <select name="plan" class="filtro-servidor fm-select border rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300">
+                    <option value="todos" {% if filtros.plan == 'todos' %}selected{% endif %}>📋 Todos los Planes</option>
+                    <option value="Básico" {% if filtros.plan == 'Básico' %}selected{% endif %}>🟦 Básico</option>
+                    <option value="Estándar" {% if filtros.plan == 'Estándar' %}selected{% endif %}>🟪 Estándar</option>
+                    <option value="Premium" {% if filtros.plan == 'Premium' %}selected{% endif %}>🟨 Premium</option>
+                    <option value="Empresarial" {% if filtros.plan == 'Empresarial' %}selected{% endif %}>🏢 Empresarial</option>
                 </select>
+
+                <button type="submit" class="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                    Buscar
+                </button>
             </div>
         </div>
 
-        <!-- Estadísticas Rápidas -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">{{ clientes|length }}</div>
+                <div class="text-2xl font-bold text-gray-900">{{ stats.total }}</div>
                 <div class="text-sm text-gray-600">Total Clientes</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">
-                    {% set activos = clientes|selectattr('activo')|list|length %}
-                    {{ activos }}
-                </div>
+                <div class="text-2xl font-bold text-gray-900">{{ stats.activos }}</div>
                 <div class="text-sm text-gray-600">🟢 Clientes Activos</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">
-                    {% set inactivos = clientes|rejectattr('activo')|list|length %}
-                    {{ inactivos }}
-                </div>
+                <div class="text-2xl font-bold text-gray-900">{{ stats.inactivos }}</div>
                 <div class="text-sm text-gray-600">🔴 Clientes Inactivos</div>
             </div>
             <div class="text-center">
-                <div id="contador-filtrado" class="text-2xl font-bold text-emerald-600">{{ clientes|length }}</div>
-                <div class="text-sm text-gray-600">Mostrando</div>
+                <div class="text-2xl font-bold text-emerald-600">{{ paginacion.total }}</div>
+                <div class="text-sm text-gray-600">Coinciden con filtros</div>
             </div>
         </div>
-    </div>
+    </form>
 
     <!-- Tabla Premium -->
     <div class="fm-card fm-table-wrap rounded-2xl shadow-xl overflow-hidden fade-in">
@@ -328,6 +318,8 @@
                 </tbody>
             </table>
         </div>
+        {% set base_url = url_for('listar_clientes') %}
+        {% include '_paginacion.html' %}
     </div>
 
     <!-- Leyenda Interactiva -->
@@ -370,75 +362,13 @@
     </div>
 </div>
 
-<!-- JavaScript Avanzado para Filtros y Búsqueda -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const buscador = document.getElementById('buscador');
-    const filtroEstado = document.getElementById('filtro_estado');
-    const filtroNap = document.getElementById('filtro_nap');
-    const filtroPlan = document.getElementById('filtro_plan');
-    const tablaBody = document.getElementById('tabla-body');
-    const contadorFiltrado = document.getElementById('contador-filtrado');
-    
-    let allRows = Array.from(tablaBody.querySelectorAll('tr')).filter(tr => tr.cells.length > 1);
+    const form = document.getElementById('filtros-clientes');
+    document.querySelectorAll('.filtro-servidor').forEach(function (el) {
+        el.addEventListener('change', function () { form.submit(); });
+    });
 
-    function filtrarTabla() {
-        const searchTerm = buscador.value.toLowerCase();
-        const estadoFiltro = filtroEstado.value;
-        const napFiltro = filtroNap.value;
-        const planFiltro = filtroPlan.value;
-        
-        let visibles = 0;
-        
-        allRows.forEach(row => {
-            const nombre = row.getAttribute('data-nombre');
-            const direccion = row.getAttribute('data-direccion');
-            const contacto = row.getAttribute('data-contacto');
-            const plan = row.getAttribute('data-plan');
-            const estado = row.getAttribute('data-estado');
-            const napId = row.getAttribute('data-nap-id');
-            const napNombre = row.getAttribute('data-nap-nombre');
-            
-            let mostrar = true;
-            
-            // Filtro de búsqueda
-            if (searchTerm && !nombre.includes(searchTerm) && !direccion.includes(searchTerm) && !contacto.includes(searchTerm) && !napNombre.includes(searchTerm)) {
-                mostrar = false;
-            }
-            
-            // Filtro por estado
-            if (estadoFiltro !== 'todos' && estado !== estadoFiltro) {
-                mostrar = false;
-            }
-            
-            // Filtro por NAP
-            if (napFiltro !== 'todas') {
-                if (napFiltro === 'sin_nap') {
-                    if (napId !== 'sin_nap') mostrar = false;
-                } else {
-                    const napFiltroId = napFiltro.replace('nat_', '');
-                    if (napId !== napFiltroId) mostrar = false;
-                }
-            }
-            
-            // Filtro por plan
-            if (planFiltro !== 'todos' && plan !== planFiltro.toLowerCase()) {
-                mostrar = false;
-            }
-            
-            row.style.display = mostrar ? '' : 'none';
-            if (mostrar) visibles++;
-        });
-        
-        contadorFiltrado.textContent = visibles;
-    }
-    
-    // Event Listeners
-    buscador.addEventListener('input', filtrarTabla);
-    filtroEstado.addEventListener('change', filtrarTabla);
-    filtroNap.addEventListener('change', filtrarTabla);
-    filtroPlan.addEventListener('change', filtrarTabla);
-    
     // Efectos visuales
     const cards = document.querySelectorAll('.hover-lift');
     cards.forEach(card => {

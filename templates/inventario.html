@@ -819,7 +819,7 @@ async function generarPDFClientes() {
     mostrarNotificacionPremium('Generando reporte de clientes...', 'info');
     
     try {
-        const datos = await obtenerDatosReal('/api/clientes');
+        const datos = await obtenerDatosReal('/api/clientes?all=1');
         const doc = createBasePDF("Reporte de Clientes");
         
         let headers = [["ID", "NOMBRE", "DIRECCION", "PLAN", "ESTADO", "CONTACTO"]];
@@ -889,7 +889,7 @@ async function generarPDFNaps() {
     mostrarNotificacionPremium('Generando reporte de NAPs...', 'info');
     
     try {
-        const datos = await obtenerDatosReal('/api/naps');
+        const datos = await obtenerDatosReal('/api/naps?all=1');
         const doc = createBasePDF("Reporte de Cajas NAP");
 
         let headers = [["ID", "NOMBRE", "PUERTOS TOTAL", "PUERTOS USADOS", "OCUPACION", "HILO CONEXION"]];
@@ -968,8 +968,8 @@ async function generarInventarioCompletoReal() {
     try {
         // 1. Obtener TODOS los datos de todas las APIs
         const [clientesData, napsData] = await Promise.all([
-            obtenerDatosReal('/api/clientes'),
-            obtenerDatosReal('/api/naps')
+            obtenerDatosReal('/api/clientes?all=1'),
+            obtenerDatosReal('/api/naps?all=1')
         ]);
         
         const doc = new jsPDF();
@@ -1174,7 +1174,7 @@ async function generarPDFDistribucionEmpalmes() {
     mostrarNotificacionPremium('Generando reporte de distribucion y empalmes...', 'info');
 
     try {
-        const datos = await obtenerDatosReal('/api/naps');
+        const datos = await obtenerDatosReal('/api/naps?all=1');
         const doc = createBasePDF('Distribucion y Empalmes');
 
         const naps = Array.isArray(datos) ? datos : [];

@@ -98,9 +98,8 @@
     </div>
 
     <!-- Panel de Control Avanzado -->
-    <div class="glass-effect rounded-2xl shadow-xl p-6 mb-6 fade-in">
+    <form method="GET" action="{{ url_for('index') }}" id="filtros-cajas" class="glass-effect rounded-2xl shadow-xl p-6 mb-6 fade-in">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            <!-- Búsqueda Avanzada -->
             <div class="flex-1 max-w-lg">
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -108,68 +107,59 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </div>
-                    <input type="text" id="buscador" 
-                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 search-glow transition-all duration-300" 
-                           placeholder="🔍 Buscar por nombre, ubicación, descripción o región...">
+                    <input type="text" name="q" id="buscador" value="{{ filtros.q }}"
+                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 search-glow transition-all duration-300"
+                           placeholder="🔍 Buscar por nombre, descripción o región...">
                 </div>
             </div>
 
-            <!-- Filtros Avanzados -->
-            <div class="flex flex-wrap gap-3">
-                <select id="filtro_tipo" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
-                    <option value="todos">📦 Todos los tipos</option>
-                    <option value="distribucion">📡 Distribución</option>
-                    <option value="empalme">🔗 Empalme</option>
+            <div class="flex flex-wrap gap-3 items-center">
+                <select name="tipo" class="filtro-servidor border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
+                    <option value="todos" {% if filtros.tipo == 'todos' %}selected{% endif %}>📦 Todos los tipos</option>
+                    <option value="distribucion" {% if filtros.tipo == 'distribucion' %}selected{% endif %}>📡 Distribución</option>
+                    <option value="empalme" {% if filtros.tipo == 'empalme' %}selected{% endif %}>🔗 Empalme</option>
                 </select>
 
-                <!-- Filtro por Estado -->
-                <select id="filtro_estado" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
-                    <option value="todos">🎯 Todos los Estados</option>
-                    <option value="normal">🟢 Normal (&lt;80%)</option>
-                    <option value="critico">🟡 Crítica (≥80%)</option>
-                    <option value="saturado">🔴 Saturada (llena)</option>
+                <select name="estado" class="filtro-servidor border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
+                    <option value="todos" {% if filtros.estado == 'todos' %}selected{% endif %}>🎯 Todos los Estados</option>
+                    <option value="normal" {% if filtros.estado == 'normal' %}selected{% endif %}>🟢 Normal (&lt;80%)</option>
+                    <option value="critico" {% if filtros.estado == 'critico' %}selected{% endif %}>🟡 Crítica (≥80%)</option>
+                    <option value="saturado" {% if filtros.estado == 'saturado' %}selected{% endif %}>🔴 Saturada (llena)</option>
+                    <option value="empalme" {% if filtros.estado == 'empalme' %}selected{% endif %}>🔗 Solo empalmes</option>
                 </select>
 
-                <select id="filtro_region" class="border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
-                    <option value="todos">🗺️ Todas las regiones</option>
+                <select name="region" class="filtro-servidor border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white">
+                    <option value="todos" {% if filtros.region == 'todos' %}selected{% endif %}>🗺️ Todas las regiones</option>
                     {% for region in regiones %}
-                    <option value="{{ region|lower }}">{{ region }}</option>
+                    <option value="{{ region|lower }}" {% if filtros.region == region|lower %}selected{% endif %}>{{ region }}</option>
                     {% endfor %}
                 </select>
+
+                <button type="submit" class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                    Buscar
+                </button>
             </div>
         </div>
 
-        <!-- Estadísticas Rápidas -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">{{ nats|length }}</div>
+                <div class="text-2xl font-bold text-gray-900">{{ stats.total_nats }}</div>
                 <div class="text-sm text-gray-600">Total NATs</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">
-                    {% set total_puertos = 0 %}
-                    {% set puertos_usados = 0 %}
-                    {% for nat in nats %}
-                        {% set total_puertos = total_puertos + nat.puertos_total %}
-                        {% set puertos_usados = puertos_usados + nat.puertos_usados %}
-                    {% endfor %}
-                    {{ puertos_usados }}/{{ total_puertos }}
-                </div>
+                <div class="text-2xl font-bold text-gray-900">{{ stats.puertos_usados }}/{{ stats.total_puertos }}</div>
                 <div class="text-sm text-gray-600">Puertos Usados/Total</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900">
-                    {{ (nats|selectattr('estado_ocupacion', 'equalto', 'critico')|list|length)
-                       + (nats|selectattr('estado_ocupacion', 'equalto', 'saturado')|list|length) }}
-                </div>
+                <div class="text-2xl font-bold text-gray-900">{{ stats.criticas_saturadas }}</div>
                 <div class="text-sm text-gray-600">⚠️ Críticas / Saturadas</div>
             </div>
             <div class="text-center">
-                <div id="contador-filtrado" class="text-2xl font-bold text-blue-600">{{ nats|length }}</div>
-                <div class="text-sm text-gray-600">Mostrando</div>
+                <div class="text-2xl font-bold text-blue-600">{{ paginacion.total }}</div>
+                <div class="text-sm text-gray-600">Coinciden con filtros</div>
             </div>
         </div>
-    </div>
+    </form>
 
     <!-- Tabla Premium -->
     <div class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
@@ -326,6 +316,8 @@
                 </tbody>
             </table>
         </div>
+        {% set base_url = url_for('index') %}
+        {% include '_paginacion.html' %}
     </div>
 
     <!-- Leyenda Interactiva -->
@@ -371,67 +363,13 @@
     </div>
 </div>
 
-<!-- JavaScript Avanzado para Filtros y Búsqueda -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const buscador = document.getElementById('buscador');
-    const filtroTipo = document.getElementById('filtro_tipo');
-    const filtroEstado = document.getElementById('filtro_estado');
-    const filtroRegion = document.getElementById('filtro_region');
-    const tablaBody = document.getElementById('tabla-body');
-    const contadorFiltrado = document.getElementById('contador-filtrado');
-    
-    let allRows = Array.from(tablaBody.querySelectorAll('tr')).filter(tr => tr.cells.length > 1);
+    const form = document.getElementById('filtros-cajas');
+    document.querySelectorAll('.filtro-servidor').forEach(function (el) {
+        el.addEventListener('change', function () { form.submit(); });
+    });
 
-    function filtrarTabla() {
-        const searchTerm = buscador.value.toLowerCase();
-        const tipoFiltro = filtroTipo.value;
-        const estadoFiltro = filtroEstado.value;
-        const regionFiltro = filtroRegion.value;
-        
-        let visibles = 0;
-        
-        allRows.forEach(row => {
-            const tipo = row.getAttribute('data-tipo');
-            const nombre = row.getAttribute('data-nombre') || '';
-            const ubicacion = row.getAttribute('data-ubicacion') || '';
-            const descripcion = row.getAttribute('data-descripcion') || '';
-            const region = row.getAttribute('data-region') || '';
-            const estado = row.getAttribute('data-estado');
-            
-            let mostrar = true;
-            
-            if (searchTerm) {
-                const coincide = nombre.includes(searchTerm)
-                    || ubicacion.includes(searchTerm)
-                    || descripcion.includes(searchTerm)
-                    || region.includes(searchTerm);
-                if (!coincide) mostrar = false;
-            }
-            
-            if (tipoFiltro !== 'todos' && tipo !== tipoFiltro) mostrar = false;
-            
-            if (estadoFiltro !== 'todos' && estado !== estadoFiltro) {
-                mostrar = false;
-            }
-
-            if (regionFiltro !== 'todos' && region !== regionFiltro) {
-                mostrar = false;
-            }
-            
-            row.style.display = mostrar ? '' : 'none';
-            if (mostrar) visibles++;
-        });
-        
-        contadorFiltrado.textContent = visibles;
-    }
-    
-    // Event Listeners
-    buscador.addEventListener('input', filtrarTabla);
-    filtroTipo.addEventListener('change', filtrarTabla);
-    filtroEstado.addEventListener('change', filtrarTabla);
-    filtroRegion.addEventListener('change', filtrarTabla);
-    
     // Efectos visuales
     const cards = document.querySelectorAll('.hover-lift');
     cards.forEach(card => {

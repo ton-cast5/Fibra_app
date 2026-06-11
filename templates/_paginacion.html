@@ -1,0 +1,33 @@
+{# Paginación reutilizable. Requiere: paginacion (dict), base_url (str), query_extra (dict opcional) #}
+{% if paginacion and paginacion.pages > 1 %}
+<nav class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-4 border-t border-gray-200 bg-gray-50/80" aria-label="Paginación">
+    <p class="text-sm text-gray-600">
+        Mostrando
+        <span class="font-semibold text-gray-900">{{ ((paginacion.page - 1) * paginacion.per_page) + 1 }}</span>–<span class="font-semibold text-gray-900">{{ [paginacion.page * paginacion.per_page, paginacion.total]|min }}</span>
+        de <span class="font-semibold text-gray-900">{{ paginacion.total }}</span>
+    </p>
+    <div class="flex items-center gap-1 flex-wrap justify-center">
+        {% if paginacion.has_prev %}
+        <a href="{{ base_url }}?{% for k, v in query_extra.items() %}{% if v %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ paginacion.prev_page }}"
+           class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors">
+            ← Anterior
+        </a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">← Anterior</span>
+        {% endif %}
+
+        <span class="px-3 py-1.5 text-sm font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg">
+            {{ paginacion.page }} / {{ paginacion.pages }}
+        </span>
+
+        {% if paginacion.has_next %}
+        <a href="{{ base_url }}?{% for k, v in query_extra.items() %}{% if v %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ paginacion.next_page }}"
+           class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors">
+            Siguiente →
+        </a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">Siguiente →</span>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}

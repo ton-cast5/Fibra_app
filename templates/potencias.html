@@ -372,7 +372,7 @@ async function cargarDatosIniciales() {
         mostrarCargando();
         
         // Hacer la petición al backend Flask
-        const response = await fetch('/api/potencias');
+        const response = await fetch('/api/potencias?all=1');
         
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
@@ -460,7 +460,7 @@ function ocultarCargando() {
 // Cargar clientes para el filtro desde la base de datos
 async function cargarClientesParaFiltro() {
     try {
-        const response = await fetch('/api/clientes');
+        const response = await fetch('/api/clientes?all=1');
         
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);

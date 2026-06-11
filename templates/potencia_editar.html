@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 async function cargarClientes() {
-    const response = await fetch('/api/clientes');
+    const response = await fetch('/api/clientes?all=1');
     const data = await response.json();
     clientesLista = Array.isArray(data) ? data : (data.clientes || []);
 }
