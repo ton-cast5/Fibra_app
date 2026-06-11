@@ -2839,6 +2839,155 @@ def _estado_desde_registros(registros):
     }
 
 
+def _rango_dia(dia_inicio=None):
+    inicio = dia_inicio or _inicio_del_dia()
+    return inicio, _fin_del_dia(inicio)
+
+
+def ultimo_registro_hoy(trabajador_id, dia_inicio=None):
+    """Último marcaje del día (una fila) para validar entrada/salida rápido."""
+    inicio, fin = _rango_dia(dia_inicio)
+    return (
+        RegistroAsistencia.query.filter(
+            RegistroAsistencia.trabajador_id == trabajador_id,
+            RegistroAsistencia.fecha_hora >= inicio,
+            RegistroAsistencia.fecha_hora <= fin,
+        )
+        .order_by(RegistroAsistencia.fecha_hora.desc())
+        .limit(1)
+        .first()
+    )
+
+
+def registros_trabajador_dia(trabajador_id, dia_inicio=None):
+    inicio, fin = _rango_dia(dia_inicio)
+    return (
+        RegistroAsistencia.query.filter(
+            RegistroAsistencia.trabajador_id == trabajador_id,
+            RegistroAsistencia.fecha_hora >= inicio,
+            RegistroAsistencia.fecha_hora <= fin,
+        )
+        .order_by(RegistroAsistencia.fecha_hora.asc())
+        .all()
+    )
+
+
+def resumen_asistencias_dia(trabajador_ids, dia_inicio=None):
+    """Contadores del día con una sola consulta de marcajes."""
+    inicio, fin = _rango_dia(dia_inicio)
+    registros = (
+        RegistroAsistencia.query.filter(
+            RegistroAsistencia.fecha_hora >= inicio,
+            RegistroAsistencia.fecha_hora <= fin,
+        )
+        .order_by(RegistroAsistencia.fecha_hora.asc())
+        .all()
+    )
+    por_trabajador = defaultdict(list)
+    entradas_hoy = 0
+    for registro in registros:
+        por_trabajador[registro.trabajador_id].append(registro)
+        if registro.tipo == 'entrada':
+            entradas_hoy += 1
+    dentro = sum(
+        1 for tid in trabajador_ids
+        if por_trabajador.get(tid) and por_trabajador[tid][-1].tipo == 'entrada'
+    )
+    return {
+        'dentro': dentro,
+        'entradas_hoy': entradas_hoy,
+        'marcajes_hoy': len(registros),
+    }
+
+
+def _serializar_registro_asistencia(registro, trabajador_nombre=None):
+    nombre = trabajador_nombre
+    if nombre is None and registro.trabajador:
+        nombre = registro.trabajador.nombre_completo
+    return {
+        'id': registro.id,
+        'trabajador_id': registro.trabajador_id,
+        'trabajador_nombre': nombre or '',
+        'tipo': registro.tipo,
+        'tipo_label': registro.tipo_label,
+        'hora': registro.fecha_hora.strftime('%H:%M:%S'),
+        'fecha_hora': registro.fecha_hora.strftime('%d/%m/%Y %H:%M:%S'),
+    }
+
+
+def _serializar_estado_trabajador(trabajador, est, es_hoy=True):
+    return {
+        'id': trabajador.id,
+        'nombre': trabajador.nombre_completo,
+        'puede_entrada': est['puede_entrada'] if es_hoy else False,
+        'puede_salida': est['puede_salida'] if es_hoy else False,
+        'en_jornada': est['en_jornada'],
+        'registros': [
+            {
+                'tipo': r.tipo,
+                'tipo_label': r.tipo_label,
+                'hora': r.fecha_hora.strftime('%H:%M:%S'),
+            }
+            for r in est['registros']
+        ],
+    }
+
+
+def _registrar_asistencia(trabajador_id, tipo):
+    """Registra entrada/salida con consultas mínimas. Retorna dict para JSON o flash."""
+    if not trabajador_id or tipo not in RegistroAsistencia.TIPOS:
+        return {'success': False, 'error': 'Datos de registro no válidos.'}
+
+    trabajador = Trabajador.query.filter_by(id=trabajador_id, activo=True).first()
+    if not trabajador:
+        return {'success': False, 'error': 'Trabajador no encontrado o inactivo.'}
+
+    dia_inicio = _inicio_del_dia()
+    ultimo = ultimo_registro_hoy(trabajador_id, dia_inicio)
+    if tipo == 'entrada' and not (ultimo is None or ultimo.tipo == 'salida'):
+        return {
+            'success': False,
+            'error': f'{trabajador.nombre_completo} ya tiene entrada registrada sin salida.',
+        }
+    if tipo == 'salida' and not (ultimo is not None and ultimo.tipo == 'entrada'):
+        return {
+            'success': False,
+            'error': f'{trabajador.nombre_completo} debe registrar entrada antes de la salida.',
+        }
+
+    ahora = ahora_mexico()
+    registro = RegistroAsistencia(
+        trabajador_id=trabajador_id,
+        tipo=tipo,
+        fecha_hora=ahora,
+    )
+    try:
+        db.session.add(registro)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'error': f'Error al registrar: {e}'}
+
+    registros = registros_trabajador_dia(trabajador_id, dia_inicio)
+    est = _estado_desde_registros(registros)
+    ids_activos = [
+        row[0]
+        for row in db.session.query(Trabajador.id).filter_by(activo=True).all()
+    ]
+    resumen = resumen_asistencias_dia(ids_activos, dia_inicio)
+    mensaje = (
+        f'{trabajador.nombre_completo}: {RegistroAsistencia.TIPOS[tipo]} registrada '
+        f'a las {ahora.strftime("%H:%M:%S")} del {ahora.strftime("%d/%m/%Y")}.'
+    )
+    return {
+        'success': True,
+        'message': mensaje,
+        'registro': _serializar_registro_asistencia(registro, trabajador.nombre_completo),
+        'trabajador': _serializar_estado_trabajador(trabajador, est, es_hoy=True),
+        'resumen': resumen,
+    }
+
+
 def estados_trabajadores_hoy(trabajador_ids, dia_inicio=None):
     """Estado de asistencia de varios trabajadores con una sola consulta."""
     if not trabajador_ids:
@@ -2872,7 +3021,6 @@ def estado_trabajador_hoy(trabajador_id, dia_inicio=None):
 
 @app.route('/gestion/asistencias')
 def gestion_asistencias():
-    db.create_all()
     seed_trabajadores()
 
     fecha_str = request.args.get('fecha') or ahora_mexico().strftime('%Y-%m-%d')
@@ -2900,7 +3048,8 @@ def gestion_asistencias():
         })
 
     registros_dia = (
-        RegistroAsistencia.query.filter(
+        RegistroAsistencia.query.options(joinedload(RegistroAsistencia.trabajador))
+        .filter(
             RegistroAsistencia.fecha_hora >= dia_inicio,
             RegistroAsistencia.fecha_hora <= dia_fin,
         )
@@ -2924,49 +3073,31 @@ def gestion_asistencias():
     )
 
 
+@app.route('/api/asistencias/registrar', methods=['POST'])
+def api_registrar_asistencia():
+    """Registro rápido sin recargar la página (entrada/salida)."""
+    payload = request.get_json(silent=True) or {}
+    trabajador_id = payload.get('trabajador_id') or request.form.get('trabajador_id', type=int)
+    tipo = payload.get('tipo') or request.form.get('tipo')
+    if isinstance(trabajador_id, str) and trabajador_id.isdigit():
+        trabajador_id = int(trabajador_id)
+
+    resultado = _registrar_asistencia(trabajador_id, tipo)
+    if not resultado.get('success'):
+        return jsonify(resultado), 400
+    return jsonify(resultado)
+
+
 @app.route('/gestion/asistencias/registrar', methods=['POST'])
 def registrar_asistencia_laboral():
-    db.create_all()
-    seed_trabajadores()
-
+    """Fallback sin JavaScript: formulario clásico con redirect."""
     trabajador_id = request.form.get('trabajador_id', type=int)
     tipo = request.form.get('tipo')
-
-    if not trabajador_id or tipo not in RegistroAsistencia.TIPOS:
-        flash('Datos de registro no válidos.', 'danger')
-        return redirect(url_for('gestion_asistencias'))
-
-    trabajador = Trabajador.query.filter_by(id=trabajador_id, activo=True).first()
-    if not trabajador:
-        flash('Trabajador no encontrado o inactivo.', 'danger')
-        return redirect(url_for('gestion_asistencias'))
-
-    est = estado_trabajador_hoy(trabajador_id)
-    if tipo == 'entrada' and not est['puede_entrada']:
-        flash(f'{trabajador.nombre_completo} ya tiene entrada registrada sin salida.', 'danger')
-        return redirect(url_for('gestion_asistencias'))
-    if tipo == 'salida' and not est['puede_salida']:
-        flash(f'{trabajador.nombre_completo} debe registrar entrada antes de la salida.', 'danger')
-        return redirect(url_for('gestion_asistencias'))
-
-    ahora = ahora_mexico()
-    registro = RegistroAsistencia(
-        trabajador_id=trabajador_id,
-        tipo=tipo,
-        fecha_hora=ahora,
-    )
-    try:
-        db.session.add(registro)
-        db.session.commit()
-        flash(
-            f'{trabajador.nombre_completo}: {RegistroAsistencia.TIPOS[tipo]} registrada '
-            f'a las {ahora.strftime("%H:%M:%S")} del {ahora.strftime("%d/%m/%Y")}.',
-            'success',
-        )
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al registrar: {e}', 'danger')
-
+    resultado = _registrar_asistencia(trabajador_id, tipo)
+    if resultado.get('success'):
+        flash(resultado['message'], 'success')
+    else:
+        flash(resultado.get('error', 'No se pudo registrar.'), 'danger')
     return redirect(url_for('gestion_asistencias'))
 
 

@@ -87,15 +87,15 @@
             <p class="text-sm text-gray-600">Trabajadores activos</p>
         </div>
         <div class="fm-panel glass-effect rounded-xl p-4 text-center">
-            <p class="text-2xl font-bold text-emerald-600">{{ dentro }}</p>
+            <p id="stat-dentro" class="text-2xl font-bold text-emerald-600">{{ dentro }}</p>
             <p class="text-sm text-gray-600">Dentro ahora</p>
         </div>
         <div class="fm-panel glass-effect rounded-xl p-4 text-center">
-            <p class="text-2xl font-bold text-blue-600">{{ entradas_hoy }}</p>
+            <p id="stat-entradas" class="text-2xl font-bold text-blue-600">{{ entradas_hoy }}</p>
             <p class="text-sm text-gray-600">Entradas hoy</p>
         </div>
         <div class="fm-panel glass-effect rounded-xl p-4 text-center">
-            <p class="text-2xl font-bold text-indigo-600">{{ registros_dia|length }}</p>
+            <p id="stat-marcajes" class="text-2xl font-bold text-indigo-600">{{ registros_dia|length }}</p>
             <p class="text-sm text-gray-600">Marcajes del día</p>
         </div>
     </div>
@@ -115,46 +115,44 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
         {% for item in tarjetas %}
         {% set t = item.trabajador %}
-        <div class="fm-card worker-card rounded-2xl p-5 shadow-lg">
+        <div class="fm-card worker-card rounded-2xl p-5 shadow-lg" id="worker-card-{{ t.id }}" data-trabajador-id="{{ t.id }}">
             <div class="flex items-start justify-between mb-3">
                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center font-bold text-sm">
                     {{ t.nombre_completo[0]|upper }}
                 </div>
-                {% if item.en_jornada %}
-                <span class="text-xs font-semibold px-2 py-1 rounded-full badge-dentro">Dentro</span>
-                {% else %}
-                <span class="text-xs font-semibold px-2 py-1 rounded-full badge-fuera">Fuera</span>
-                {% endif %}
+                <span id="worker-badge-{{ t.id }}" class="text-xs font-semibold px-2 py-1 rounded-full {% if item.en_jornada %}badge-dentro{% else %}badge-fuera{% endif %}">
+                    {% if item.en_jornada %}Dentro{% else %}Fuera{% endif %}
+                </span>
             </div>
             <h3 class="font-bold text-gray-900 text-sm leading-tight mb-3 min-h-[2.5rem]">{{ t.nombre_completo }}</h3>
 
-            {% if item.registros %}
-            <div class="text-xs text-gray-500 mb-3 space-y-1 border-t border-gray-200 pt-2">
+            <div id="worker-registros-{{ t.id }}" class="text-xs text-gray-500 mb-3 border-t border-gray-200 pt-2 {% if item.registros %}space-y-1{% endif %}">
+                {% if item.registros %}
                 {% for r in item.registros %}
                 <div class="flex justify-between">
                     <span class="{% if r.tipo == 'entrada' %}tipo-entrada{% else %}tipo-salida{% endif %}">{{ r.tipo_label }}</span>
                     <span>{{ r.fecha_hora.strftime('%H:%M:%S') }}</span>
                 </div>
                 {% endfor %}
+                {% else %}
+                <p class="worker-sin-marcajes">Sin marcajes este día</p>
+                {% endif %}
             </div>
-            {% else %}
-            <p class="text-xs text-gray-500 mb-3 border-t border-gray-200 pt-2">Sin marcajes este día</p>
-            {% endif %}
 
             <div class="grid grid-cols-2 gap-2">
-                <form method="POST" action="{{ url_for('registrar_asistencia_laboral') }}">
+                <form method="POST" action="{{ url_for('registrar_asistencia_laboral') }}" class="form-asistencia" data-tipo="entrada">
                     <input type="hidden" name="trabajador_id" value="{{ t.id }}">
                     <input type="hidden" name="tipo" value="entrada">
-                    <button type="submit" class="btn-entrada w-full py-2.5 rounded-xl text-sm font-bold shadow-md"
-                            {% if not item.puede_entrada %}disabled{% endif %}>
+                    <button type="submit" class="btn-entrada w-full py-2.5 rounded-xl text-sm font-bold shadow-md btn-marcaje"
+                            data-tipo="entrada" {% if not item.puede_entrada %}disabled{% endif %}>
                         Entrada
                     </button>
                 </form>
-                <form method="POST" action="{{ url_for('registrar_asistencia_laboral') }}">
+                <form method="POST" action="{{ url_for('registrar_asistencia_laboral') }}" class="form-asistencia" data-tipo="salida">
                     <input type="hidden" name="trabajador_id" value="{{ t.id }}">
                     <input type="hidden" name="tipo" value="salida">
-                    <button type="submit" class="btn-salida w-full py-2.5 rounded-xl text-sm font-bold shadow-md"
-                            {% if not item.puede_salida %}disabled{% endif %}>
+                    <button type="submit" class="btn-salida w-full py-2.5 rounded-xl text-sm font-bold shadow-md btn-marcaje"
+                            data-tipo="salida" {% if not item.puede_salida %}disabled{% endif %}>
                         Salida
                     </button>
                 </form>
@@ -188,9 +186,9 @@
                         <th class="px-4 py-3 text-right text-xs font-semibold text-white uppercase">Acción</th>
                     </tr>
                 </thead>
-                <tbody class="fm-table-body divide-y divide-gray-200">
+                <tbody id="historial-tbody" class="fm-table-body divide-y divide-gray-200">
                     {% for r in registros_dia %}
-                    <tr class="table-row-hover">
+                    <tr class="table-row-hover" data-registro-id="{{ r.id }}">
                         <td class="px-4 py-3 text-sm font-mono text-gray-700">
                             {{ r.fecha_hora.strftime('%d/%m/%Y %H:%M:%S') }}
                         </td>
@@ -211,7 +209,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr>
+                    <tr id="historial-vacio">
                         <td colspan="4" class="px-6 py-10 text-center text-gray-500">
                             No hay registros para esta fecha.
                         </td>
@@ -231,6 +229,140 @@
             document.getElementById('reloj-sistema-hora')
         );
     }
+
+    var esHoy = {{ 'true' if es_hoy else 'false' }};
+    if (!esHoy) return;
+
+    function mostrarToast(mensaje, tipo) {
+        document.querySelectorAll('.toast-asistencia').forEach(function (n) { n.remove(); });
+        var toast = document.createElement('div');
+        var colores = {
+            success: 'bg-emerald-600',
+            error: 'bg-red-600',
+            info: 'bg-indigo-600'
+        };
+        toast.className = 'toast-asistencia fixed top-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl text-white text-sm font-semibold transform transition-all duration-300 -translate-y-4 opacity-0 ' + (colores[tipo] || colores.info);
+        toast.textContent = mensaje;
+        document.body.appendChild(toast);
+        requestAnimationFrame(function () {
+            toast.classList.remove('-translate-y-4', 'opacity-0');
+        });
+        setTimeout(function () {
+            toast.classList.add('opacity-0', 'translate-y-4');
+            setTimeout(function () { toast.remove(); }, 300);
+        }, 3200);
+    }
+
+    function actualizarResumen(resumen) {
+        if (!resumen) return;
+        var el;
+        el = document.getElementById('stat-dentro');
+        if (el) el.textContent = resumen.dentro;
+        el = document.getElementById('stat-entradas');
+        if (el) el.textContent = resumen.entradas_hoy;
+        el = document.getElementById('stat-marcajes');
+        if (el) el.textContent = resumen.marcajes_hoy;
+    }
+
+    function actualizarTarjeta(trabajador) {
+        var badge = document.getElementById('worker-badge-' + trabajador.id);
+        if (badge) {
+            badge.textContent = trabajador.en_jornada ? 'Dentro' : 'Fuera';
+            badge.className = 'text-xs font-semibold px-2 py-1 rounded-full ' + (trabajador.en_jornada ? 'badge-dentro' : 'badge-fuera');
+        }
+        var registrosEl = document.getElementById('worker-registros-' + trabajador.id);
+        if (registrosEl) {
+            if (!trabajador.registros || !trabajador.registros.length) {
+                registrosEl.innerHTML = '<p class="worker-sin-marcajes">Sin marcajes este día</p>';
+                registrosEl.classList.remove('space-y-1');
+            } else {
+                registrosEl.classList.add('space-y-1');
+                registrosEl.innerHTML = trabajador.registros.map(function (r) {
+                    var cls = r.tipo === 'entrada' ? 'tipo-entrada' : 'tipo-salida';
+                    return '<div class="flex justify-between"><span class="' + cls + '">' + r.tipo_label + '</span><span>' + r.hora + '</span></div>';
+                }).join('');
+            }
+        }
+        var card = document.getElementById('worker-card-' + trabajador.id);
+        if (card) {
+            card.querySelectorAll('.btn-marcaje').forEach(function (btn) {
+                var tipo = btn.getAttribute('data-tipo');
+                if (tipo === 'entrada') btn.disabled = !trabajador.puede_entrada;
+                if (tipo === 'salida') btn.disabled = !trabajador.puede_salida;
+                btn.textContent = tipo === 'entrada' ? 'Entrada' : 'Salida';
+            });
+        }
+    }
+
+    function agregarHistorial(registro) {
+        var tbody = document.getElementById('historial-tbody');
+        if (!tbody) return;
+        var vacio = document.getElementById('historial-vacio');
+        if (vacio) vacio.remove();
+        var tr = document.createElement('tr');
+        tr.className = 'table-row-hover';
+        tr.setAttribute('data-registro-id', registro.id);
+        var tagCls = registro.tipo === 'entrada' ? 'fm-tag-green' : 'fm-tag-red';
+        tr.innerHTML =
+            '<td class="px-4 py-3 text-sm font-mono text-gray-700">' + registro.fecha_hora + '</td>' +
+            '<td class="px-4 py-3 font-medium text-gray-900">' + registro.trabajador_nombre + '</td>' +
+            '<td class="px-4 py-3 text-center"><span class="text-sm font-semibold px-3 py-1 rounded-full ' + tagCls + '">' + registro.tipo_label + '</span></td>' +
+            '<td class="px-4 py-3 text-right text-xs text-gray-400">—</td>';
+        tbody.insertBefore(tr, tbody.firstChild);
+    }
+
+    function setCardLoading(card, activo, tipoClic) {
+        card.querySelectorAll('.btn-marcaje').forEach(function (btn) {
+            btn.dataset.wasDisabled = btn.disabled ? '1' : '0';
+            btn.disabled = true;
+            if (activo && btn.getAttribute('data-tipo') === tipoClic) {
+                btn.textContent = '...';
+            }
+        });
+    }
+
+    function restaurarBotones(card) {
+        card.querySelectorAll('.btn-marcaje').forEach(function (btn) {
+            var tipo = btn.getAttribute('data-tipo');
+            btn.textContent = tipo === 'entrada' ? 'Entrada' : 'Salida';
+            btn.disabled = btn.dataset.wasDisabled === '1';
+        });
+    }
+
+    document.querySelectorAll('.form-asistencia').forEach(function (form) {
+        form.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            var card = form.closest('[data-trabajador-id]');
+            if (!card) return;
+            var trabajadorId = parseInt(card.getAttribute('data-trabajador-id'), 10);
+            var tipo = form.getAttribute('data-tipo');
+            var btn = form.querySelector('.btn-marcaje');
+            if (!btn || btn.disabled) return;
+
+            setCardLoading(card, true, tipo);
+            fetch('/api/asistencias/registrar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trabajador_id: trabajadorId, tipo: tipo })
+            })
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    if (!res.ok) throw new Error(data.error || 'No se pudo registrar');
+                    return data;
+                });
+            })
+            .then(function (data) {
+                actualizarTarjeta(data.trabajador);
+                actualizarResumen(data.resumen);
+                agregarHistorial(data.registro);
+                mostrarToast(data.message, 'success');
+            })
+            .catch(function (err) {
+                mostrarToast(err.message || 'Error al registrar', 'error');
+                restaurarBotones(card);
+            });
+        });
+    });
 })();
 </script>
 {% endblock %}
