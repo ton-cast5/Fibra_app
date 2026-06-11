@@ -225,22 +225,12 @@
 
 <script>
 (function () {
-    var fechaEl = document.getElementById('reloj-sistema-fecha');
-    var horaEl = document.getElementById('reloj-sistema-hora');
-    if (!fechaEl || !horaEl) return;
-
-    function pad(n) {
-        return String(n).padStart(2, '0');
+    if (window.FibraTiempo) {
+        FibraTiempo.iniciarReloj(
+            document.getElementById('reloj-sistema-fecha'),
+            document.getElementById('reloj-sistema-hora')
+        );
     }
-
-    function actualizarReloj() {
-        var now = new Date();
-        fechaEl.textContent = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear();
-        horaEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-    }
-
-    actualizarReloj();
-    setInterval(actualizarReloj, 1000);
 })();
 </script>
 {% endblock %}

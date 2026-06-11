@@ -483,17 +483,9 @@ function iniciarRelojMedicion() {
     const fechaEl = document.getElementById('fecha-medicion-fecha');
     const horaEl = document.getElementById('fecha-medicion-hora');
     const hiddenEl = document.getElementById('fecha_medicion');
-    if (!fechaEl || !horaEl || !hiddenEl) return;
-
-    function actualizar() {
-        const now = new Date();
-        fechaEl.textContent = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear();
-        horaEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-        hiddenEl.value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+    if (window.FibraTiempo) {
+        FibraTiempo.iniciarReloj(fechaEl, horaEl, hiddenEl);
     }
-
-    actualizar();
-    setInterval(actualizar, 1000);
 }
 
 async function cargarClientes() {

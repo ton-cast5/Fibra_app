@@ -1,5 +1,5 @@
 """Estilos corporativos compartidos para exportaciones Excel (openpyxl)."""
-from datetime import datetime
+from time_utils import ahora_mexico
 
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
@@ -39,7 +39,7 @@ def exportar_dataframe_corporativo(writer, df, sheet_name, titulo_reporte, subti
     """Escribe un DataFrame con cabecera corporativa en la hoja indicada."""
     fila_encabezado = 6
     fila_inicio_datos = fila_encabezado + 1
-    subtitulo = subtitulo or f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    subtitulo = subtitulo or f"Generado el {ahora_mexico().strftime('%d/%m/%Y %H:%M')}"
 
     df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=fila_encabezado - 1)
 

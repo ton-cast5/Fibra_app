@@ -8,6 +8,7 @@ import folium
 from werkzeug.utils import secure_filename 
 from sqlalchemy import func 
 from datetime import datetime, timedelta
+from time_utils import ahora_mexico, inicio_del_dia_mexico, fin_del_dia_mexico, parsear_fecha_mexico
 import uuid
 import math
 from folium.plugins import Fullscreen
@@ -188,13 +189,13 @@ class Archivo(db.Model):
     nombre_original = db.Column(db.String(255), nullable=False)
     extension = db.Column(db.String(50), nullable=False, index=True)
     tamano = db.Column(db.Integer, nullable=False)  # Tamaño en bytes
-    fecha_subida = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fecha_subida = db.Column(db.DateTime, default=ahora_mexico, nullable=False)
     categoria = db.Column(db.String(100), default='otros', index=True)
     etiquetas = db.Column(db.Text)  # Almacenar como JSON string
     descripcion = db.Column(db.Text)
     contenido = db.Column(db.Text, nullable=True)  # Para archivos de texto
     url_storage = db.Column(db.String(500))  # URL de Supabase Storage
-    fecha_actualizacion = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    fecha_actualizacion = db.Column(db.DateTime, onupdate=ahora_mexico)
 
 # Modelo 1: Catálogo de Modelos de NAPs (ACTUALIZADO PARA SOPORTAR DISTRIBUCIÓN Y EMPALME)
 class NapModel(db.Model):
@@ -298,7 +299,7 @@ class Potencia(db.Model):
     __tablename__ = 'potencias'
     
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    fecha = db.Column(db.DateTime, default=ahora_mexico)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)  # CORREGIDO
     nap_id = db.Column(db.Integer, db.ForeignKey('nat.id'))  # CORREGIDO
     
@@ -405,7 +406,7 @@ class RegistroAsistencia(db.Model):
         index=True,
     )
     tipo = db.Column(db.String(10), nullable=False, index=True)
-    fecha_hora = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
+    fecha_hora = db.Column(db.DateTime, nullable=False, default=ahora_mexico, index=True)
 
     @property
     def tipo_label(self):
@@ -928,7 +929,7 @@ def subir_archivo():
             nombre_original=nombre_original,
             extension=extension,
             tamano=tamano,
-            fecha_subida=datetime.now(),
+            fecha_subida=ahora_mexico(),
             categoria=categoria,
             etiquetas=json.dumps(etiquetas),
             descripcion=descripcion,
@@ -975,7 +976,7 @@ def actualizar_archivo(archivo_id):
         if 'etiquetas' in data:
             archivo.etiquetas = json.dumps(data['etiquetas'])
         
-        archivo.fecha_actualizacion = datetime.now()
+        archivo.fecha_actualizacion = ahora_mexico()
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Archivo actualizado'})
@@ -1138,7 +1139,7 @@ def api_modelos_nap():
 
 def _excel_subtitulo_inventario():
     return (
-        f'Inventario consolidado | {datetime.now().strftime("%d/%m/%Y %H:%M")} | '
+        f'Inventario consolidado | {ahora_mexico().strftime("%d/%m/%Y %H:%M")} | '
         'Uso interno y confidencial'
     )
 
@@ -1147,7 +1148,7 @@ def _dataframes_asistencias_export(dias=30):
     """DataFrames corporativos para exportación de asistencia laboral."""
     dias = max(1, min(int(dias), 365))
     seed_trabajadores()
-    ref_inicio = _inicio_del_dia(datetime.now() - timedelta(days=dias))
+    ref_inicio = _inicio_del_dia(ahora_mexico() - timedelta(days=dias))
     ref_fin = _fin_del_dia(_inicio_del_dia())
 
     registros = (
@@ -1167,10 +1168,10 @@ def _dataframes_asistencias_export(dias=30):
     )
 
     periodo_txt = (
-        f'{ref_inicio.strftime("%d/%m/%Y")} — {datetime.now().strftime("%d/%m/%Y")} '
+        f'{ref_inicio.strftime("%d/%m/%Y")} — {ahora_mexico().strftime("%d/%m/%Y")} '
         f'({dias} dias)'
     )
-    subtitulo = f'Periodo: {periodo_txt} | Generado {datetime.now().strftime("%d/%m/%Y %H:%M")}'
+    subtitulo = f'Periodo: {periodo_txt} | Generado {ahora_mexico().strftime("%d/%m/%Y %H:%M")}'
 
     df_resumen = pd.DataFrame([
         {'Indicador': 'Trabajadores activos', 'Valor': len(trabajadores)},
@@ -1248,7 +1249,7 @@ def descargar_excel_todo():
     hojas.extend(_dataframes_asistencias_export(30))
 
     output = crear_workbook_corporativo_multihoja(hojas, subtitulo)
-    fecha = datetime.now().strftime('%Y-%m-%d')
+    fecha = ahora_mexico().strftime('%Y-%m-%d')
 
     return send_file(
         output,
@@ -1956,7 +1957,7 @@ def api_critical_nats():
     
     return jsonify({
         'critical_nats': critical_count,
-        'timestamp': datetime.now().isoformat()
+        'timestamp': ahora_mexico().isoformat()
     })
 
 @app.route('/api/notifications/system-capacity')
@@ -1973,7 +1974,7 @@ def api_system_capacity():
         'capacity_alert': alert,
         'usage_percentage': usage_percentage,
         'message': message,
-        'timestamp': datetime.now().isoformat()
+        'timestamp': ahora_mexico().isoformat()
     })
 
 # Filtro personalizado para formato de moneda
@@ -2011,7 +2012,7 @@ def api_save_theme():
         'accent': data.get('accent', '#10B981'),
         'border_radius': data.get('border_radius', 12),
         'mode': data.get('mode', 'light'),
-        'updated_at': datetime.now().isoformat()
+        'updated_at': ahora_mexico().isoformat()
     }
     
     return jsonify({
@@ -2022,10 +2023,21 @@ def api_save_theme():
 
 @app.template_filter('datetime_format')
 def datetime_format(value, format='%d/%m/%Y %H:%M'):
-    """Filtro para formatear fechas"""
+    """Filtro para formatear fechas en hora de México."""
     if value == 'now':
-        return datetime.now().strftime(format)
+        return ahora_mexico().strftime(format)
+    if isinstance(value, datetime):
+        return value.strftime(format)
     return value
+
+
+@app.context_processor
+def inject_hora_mexico():
+    now = ahora_mexico()
+    return {
+        'fecha_mexico_actual': now.strftime('%d/%m/%Y %H:%M:%S'),
+        'TZ_MEXICO': 'America/Mexico_City',
+    }
 
 # Service Worker para PWA
 @app.route('/sw.js')
@@ -2239,7 +2251,7 @@ def api_create_potencia():
         """)
 
         result = db.session.execute(query, {
-            'fecha': data.get('fecha_medicion') or datetime.utcnow(),
+            'fecha': parsear_fecha_mexico(data.get('fecha_medicion')),
             'cliente_id': data['cliente_id'],
             'nap_id': nap_id,
             'p_in': p_in,
@@ -2299,7 +2311,7 @@ def api_update_potencia(id):
                 estado = COALESCE(:estado, estado),
                 observaciones = :obs,
                 tecnico = :tecnico,
-                fecha = :fecha
+                fecha = COALESCE(:fecha, fecha)
             WHERE id = :id
         """)
 
@@ -2312,7 +2324,7 @@ def api_update_potencia(id):
             'estado': estado,
             'obs': data.get('observaciones', ''),
             'tecnico': data.get('tecnico'),
-            'fecha': data.get('fecha_medicion'),
+            'fecha': parsear_fecha_mexico(data.get('fecha_medicion')) if data.get('fecha_medicion') else None,
             'id': id
         })
 
@@ -2423,8 +2435,6 @@ def eliminar_potencia(id):
 # ----------------------------------------------------------------------
 @app.route('/inventarios')
 def inventarios():
-    from datetime import datetime
-    
     # Obtener datos reales de la base de datos
     total_clientes = Cliente.query.count()
     clientes_activos = Cliente.query.filter_by(activo=True).count()
@@ -2465,7 +2475,7 @@ def inventarios():
         1 for t in Trabajador.query.filter_by(activo=True).all()
         if estado_trabajador_hoy(t.id, hoy_inicio)['en_jornada']
     )
-    mes_inicio = _inicio_del_dia(datetime.now() - timedelta(days=30))
+    mes_inicio = _inicio_del_dia(ahora_mexico() - timedelta(days=30))
     registros_mes = RegistroAsistencia.query.filter(
         RegistroAsistencia.fecha_hora >= mes_inicio,
         RegistroAsistencia.fecha_hora <= hoy_fin,
@@ -2489,19 +2499,18 @@ def inventarios():
                          entradas_hoy=entradas_hoy,
                          salidas_hoy=salidas_hoy,
                          registros_mes=registros_mes,
-                         fecha_actual=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+                         fecha_actual=ahora_mexico().strftime('%d/%m/%Y %H:%M:%S'))
 
 
 # ----------------------------------------------------------------------
 # GESTIÓN DE ASISTENCIA LABORAL (ENTRADA / SALIDA)
 # ----------------------------------------------------------------------
 def _inicio_del_dia(fecha=None):
-    ref = fecha or datetime.now()
-    return ref.replace(hour=0, minute=0, second=0, microsecond=0)
+    return inicio_del_dia_mexico(fecha)
 
 
 def _fin_del_dia(inicio):
-    return inicio.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return fin_del_dia_mexico(inicio)
 
 
 def seed_trabajadores():
@@ -2544,16 +2553,16 @@ def gestion_asistencias():
     db.create_all()
     seed_trabajadores()
 
-    fecha_str = request.args.get('fecha') or datetime.now().strftime('%Y-%m-%d')
+    fecha_str = request.args.get('fecha') or ahora_mexico().strftime('%Y-%m-%d')
     try:
         dia = datetime.strptime(fecha_str, '%Y-%m-%d')
     except ValueError:
-        dia = datetime.now()
+        dia = ahora_mexico()
         fecha_str = dia.strftime('%Y-%m-%d')
 
     dia_inicio = _inicio_del_dia(dia)
     dia_fin = _fin_del_dia(dia_inicio)
-    es_hoy = fecha_str == datetime.now().strftime('%Y-%m-%d')
+    es_hoy = fecha_str == ahora_mexico().strftime('%Y-%m-%d')
 
     trabajadores = Trabajador.query.filter_by(activo=True).order_by(Trabajador.nombre_completo).all()
     tarjetas = []
@@ -2585,7 +2594,7 @@ def gestion_asistencias():
         registros_dia=registros_dia,
         fecha_consulta=fecha_str,
         es_hoy=es_hoy,
-        fecha_actual=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+        fecha_actual=ahora_mexico().strftime('%d/%m/%Y %H:%M:%S'),
         dentro=dentro,
         total_trabajadores=len(trabajadores),
         entradas_hoy=entradas_hoy,
@@ -2617,7 +2626,7 @@ def registrar_asistencia_laboral():
         flash(f'{trabajador.nombre_completo} debe registrar entrada antes de la salida.', 'danger')
         return redirect(url_for('gestion_asistencias'))
 
-    ahora = datetime.now()
+    ahora = ahora_mexico()
     registro = RegistroAsistencia(
         trabajador_id=trabajador_id,
         tipo=tipo,
@@ -2649,7 +2658,7 @@ def eliminar_registro_asistencia(registro_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error al eliminar: {e}', 'danger')
-    fecha = request.form.get('fecha') or datetime.now().strftime('%Y-%m-%d')
+    fecha = request.form.get('fecha') or ahora_mexico().strftime('%Y-%m-%d')
     return redirect(url_for('gestion_asistencias', fecha=fecha))
 
 
@@ -2658,7 +2667,7 @@ def api_asistencias_export():
     dias = request.args.get('dias', default=30, type=int)
     dias = max(1, min(dias or 30, 365))
     seed_trabajadores()
-    ref_inicio = _inicio_del_dia(datetime.now() - timedelta(days=dias))
+    ref_inicio = _inicio_del_dia(ahora_mexico() - timedelta(days=dias))
     ref_fin = _fin_del_dia(_inicio_del_dia())
 
     registros = (
@@ -2678,7 +2687,7 @@ def api_asistencias_export():
         'periodo': {
             'dias': dias,
             'desde': ref_inicio.strftime('%d/%m/%Y'),
-            'hasta': datetime.now().strftime('%d/%m/%Y'),
+            'hasta': ahora_mexico().strftime('%d/%m/%Y'),
         },
         'resumen': {
             'total_trabajadores': len(trabajadores),
@@ -2714,7 +2723,7 @@ def descargar_excel_asistencias():
     dias = request.args.get('dias', default=30, type=int)
     hojas = _dataframes_asistencias_export(dias or 30)
     output = crear_workbook_corporativo_multihoja(hojas, hojas[0]['subtitulo'])
-    fecha = datetime.now().strftime('%Y-%m-%d')
+    fecha = ahora_mexico().strftime('%Y-%m-%d')
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -2749,7 +2758,7 @@ def descargar_excel_clientes():
             'subtitulo': subtitulo,
         },
     ], subtitulo)
-    fecha = datetime.now().strftime('%Y-%m-%d')
+    fecha = ahora_mexico().strftime('%Y-%m-%d')
 
     return send_file(
         output,
@@ -2795,7 +2804,7 @@ def descargar_excel_naps():
             'subtitulo': subtitulo,
         },
     ], subtitulo)
-    fecha = datetime.now().strftime('%Y-%m-%d')
+    fecha = ahora_mexico().strftime('%Y-%m-%d')
 
     return send_file(
         output,

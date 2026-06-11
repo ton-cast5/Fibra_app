@@ -629,14 +629,15 @@ function textoPDF(texto) {
 // Función para fecha en español
 function fechaEspanol() {
     const fecha = new Date();
-    const opciones = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const opciones = {
+        timeZone: 'America/Mexico_City',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     };
-    
-    return fecha.toLocaleDateString('es-ES', opciones);
+
+    return fecha.toLocaleDateString('es-MX', opciones);
 }
 
 function getCorporateTableStyles(overrides = {}) {
@@ -1363,22 +1364,12 @@ function mostrarModalAsistenciaCompleto() {
 }
 
 (function () {
-    var fechaEl = document.getElementById('reloj-inventario-fecha');
-    var horaEl = document.getElementById('reloj-inventario-hora');
-    if (!fechaEl || !horaEl) return;
-
-    function pad(n) {
-        return String(n).padStart(2, '0');
+    if (window.FibraTiempo) {
+        FibraTiempo.iniciarReloj(
+            document.getElementById('reloj-inventario-fecha'),
+            document.getElementById('reloj-inventario-hora')
+        );
     }
-
-    function actualizarReloj() {
-        var now = new Date();
-        fechaEl.textContent = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear();
-        horaEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-    }
-
-    actualizarReloj();
-    setInterval(actualizarReloj, 1000);
 })();
 
 // Inicialización cuando el DOM está listo

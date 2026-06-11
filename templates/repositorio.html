@@ -1933,10 +1933,11 @@ function formatearTamano(bytes) {
 function formatearFecha(fechaStr) {
     try {
         const fecha = new Date(fechaStr);
-        return fecha.toLocaleDateString('es-ES', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric' 
+        return fecha.toLocaleDateString('es-MX', {
+            timeZone: 'America/Mexico_City',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
         });
     } catch (e) {
         return fechaStr;
