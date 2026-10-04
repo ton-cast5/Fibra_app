@@ -3,107 +3,138 @@
 {% block title %}Mapa de Cajas - Fibra Manager{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
     .map-wrap {
         position: relative;
         width: 100%;
-        height: calc(100vh - 220px);
+        height: calc(100vh - 260px);
         min-height: 480px;
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         border: 1px solid #e5e7eb;
-        display: flex;
-        flex-direction: column;
+        background: #e5e3df;
     }
-    /* Folium anida divs/iframe; forzar que llenen el contenedor sin huecos */
-    .map-wrap > div,
-    .map-wrap > div > div,
-    .map-wrap iframe,
-    .map-wrap .folium-map,
-    .map-wrap .leaflet-container {
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 0 !important;
-        flex: 1 1 auto;
+    .map-wrap:fullscreen { border-radius: 0; border: none; height: 100%; }
+    #mapa { position: absolute; inset: 0; font-family: Roboto, Arial, system-ui, sans-serif; }
+    @media (max-width: 1023px) { .map-wrap { height: 70vh; min-height: 380px; } }
+
+    /* Controles estilo Google Maps */
+    .gm-ctrl {
+        position: absolute; z-index: 500; background: #fff; border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3); border: none;
     }
-    .map-wrap > div {
-        position: relative !important;
-        padding-bottom: 0 !important;
-        height: 100% !important;
+    .gm-search { top: 12px; left: 12px; width: min(360px, calc(100% - 80px)); border-radius: 24px; }
+    .gm-search input {
+        width: 100%; border: none; outline: none; background: transparent;
+        padding: 12px 16px 12px 44px; font-size: 15px; color: #202124; border-radius: 24px;
     }
-    .map-wrap > div > div {
-        position: absolute !important;
-        inset: 0 !important;
-        padding-bottom: 0 !important;
+    .gm-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #5f6368; }
+    .gm-results { border-top: 1px solid #e8eaed; max-height: 280px; overflow-y: auto; display: none; padding: 4px 0 8px; }
+    .gm-search.open { border-radius: 16px; }
+    .gm-search.open .gm-results { display: block; }
+    .gm-result {
+        display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+        padding: 8px 16px; font-size: 14px; color: #202124; background: none; border: none; cursor: pointer;
     }
-    /* Móvil: altura según ancho de pantalla — cuadro proporcional, mapa a tamaño completo */
-    @media (max-width: 1023px) {
-        .map-wrap {
-            height: clamp(320px, 85vw, 460px);
-            min-height: unset;
-        }
+    .gm-result:hover, .gm-result.activo { background: #f1f3f4; }
+    .gm-result small { display: block; color: #70757a; font-size: 12px; }
+    .gm-result-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .gm-empty { padding: 10px 16px; font-size: 13px; color: #70757a; }
+
+    .gm-btn {
+        width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+        color: #666; background: #fff; border: none; cursor: pointer;
     }
-    @media (max-width: 639px) {
-        .map-wrap {
-            height: clamp(300px, 95vw, 420px);
-        }
+    .gm-btn:hover { color: #333; background: #f8f9fa; }
+    .gm-zoom { right: 12px; bottom: 28px; overflow: hidden; }
+    .gm-zoom .gm-btn + .gm-btn { border-top: 1px solid #e6e6e6; }
+    .gm-locate { right: 12px; bottom: 118px; }
+    .gm-locate.buscando svg { animation: gm-spin 1s linear infinite; color: #1a73e8; }
+    .gm-locate.ok { color: #1a73e8; }
+    @keyframes gm-spin { to { transform: rotate(360deg); } }
+    .gm-fullscreen { top: 12px; right: 12px; }
+
+    .gm-layer {
+        left: 12px; bottom: 28px; width: 76px; height: 76px; padding: 0; overflow: hidden;
+        cursor: pointer; border: 2px solid #fff; background-size: cover; background-position: center;
     }
+    .gm-layer span {
+        position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 0 5px; font-size: 12px; font-weight: 500;
+        text-align: center; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,0.65));
+    }
+    .gm-layer.modo-satelite span { color: #202124; background: linear-gradient(transparent, rgba(255,255,255,0.9)); }
+
+    .leaflet-control-attribution { font-size: 10px; background: rgba(255,255,255,0.7) !important; }
+    .leaflet-control-scale { margin-bottom: 4px !important; margin-right: 64px !important; }
+    .leaflet-control-scale-line { border-color: #5f6368; color: #5f6368; background: rgba(255,255,255,0.7); }
+
+    /* Pines tipo Google */
+    .gpin-wrap { background: none; border: none; }
+    .gpin { position: relative; width: 30px; height: 42px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35)); transition: transform .15s; }
+    .gpin:hover { transform: scale(1.12) translateY(-2px); }
+    .gpin svg { position: absolute; inset: 0; }
+    .gpin-emoji { position: absolute; top: 5px; left: 0; width: 30px; text-align: center; font-size: 13px; line-height: 20px; }
+
+    .gm-yo {
+        width: 18px; height: 18px; border-radius: 50%; background: #1a73e8; border: 3px solid #fff;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    /* Tarjeta del popup */
+    .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
+    .leaflet-popup-content { margin: 0; width: 270px !important; font-family: Roboto, Arial, system-ui, sans-serif; }
+    .leaflet-container a.leaflet-popup-close-button { color: #fff; top: 6px; right: 6px; font-size: 20px; }
+    .gm-card-head { padding: 14px 40px 12px 16px; color: #fff; }
+    .gm-card-head h4 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.3; }
+    .gm-card-head p { margin: 4px 0 0 !important; font-size: 12px; opacity: .92; }
+    .gm-card-body { padding: 12px 16px 14px; font-size: 13px; color: #3c4043; }
+    .gm-card-body p { margin: 0 0 6px !important; }
+    .gm-bar { height: 6px; border-radius: 3px; background: #e8eaed; overflow: hidden; margin: 2px 0 10px; }
+    .gm-bar div { height: 100%; border-radius: 3px; }
+    .gm-acciones { display: flex; gap: 8px; margin-top: 12px; }
+    .gm-acciones a, .gm-acciones button {
+        flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        padding: 8px 10px; border-radius: 18px; font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer;
+    }
+    .gm-ir { background: #1a73e8; color: #fff !important; border: none; }
+    .gm-ir:hover { background: #1765cc; }
+    .gm-detalle { background: #fff; color: #1a73e8 !important; border: 1px solid #dadce0; }
+    .gm-detalle:hover { background: #f1f6fe; }
+
     .filter-panel {
-        background: #fff;
-        border-radius: 14px;
-        border: 1px solid #e5e7eb;
+        background: #fff; border-radius: 14px; border: 1px solid #e5e7eb;
         box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
-    html.dark .map-wrap {
-        border-color: #2a3548;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-    }
-    html.dark .filter-panel {
-        background: #151d2e;
-        border-color: #2a3548;
-        color: #cbd5e1;
-    }
+    html.dark .map-wrap { border-color: #2a3548; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4); }
+    html.dark .filter-panel { background: #151d2e; border-color: #2a3548; color: #cbd5e1; }
     html.dark .filter-panel label { color: #8896ab; }
-    html.dark .filter-panel h2,
-    html.dark .filter-panel h3 { color: #f1f5f9; }
+    html.dark .filter-panel h2, html.dark .filter-panel h3 { color: #f1f5f9; }
     .stat-pill {
-        background: linear-gradient(135deg, #4f46e5, #6366f1);
-        color: white;
-        border-radius: 12px;
-        padding: 14px 18px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border-radius: 12px;
+        padding: 14px 18px; transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .stat-pill:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79,70,229,0.25); }
-    .fade-in { animation: fadeIn 0.5s ease-out forwards; opacity: 0; }
-    .fade-in:nth-child(1) { animation-delay: 0.05s; }
-    .fade-in:nth-child(2) { animation-delay: 0.1s; }
-    .fade-in:nth-child(3) { animation-delay: 0.15s; }
-    .fade-in:nth-child(4) { animation-delay: 0.2s; }
-    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(8px); } }
     .toggle-switch { position: relative; display: inline-block; width: 44px; height: 22px; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-        position: absolute; cursor: pointer; inset: 0;
-        background: #d1d5db; border-radius: 22px; transition: 0.25s;
-    }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #d1d5db; border-radius: 22px; transition: 0.25s; }
     .toggle-slider:before {
-        content: ""; position: absolute; height: 16px; width: 16px;
-        left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.25s;
+        content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px;
+        background: white; border-radius: 50%; transition: 0.25s;
     }
     input:checked + .toggle-slider { background: #4f46e5; }
     input:checked + .toggle-slider:before { transform: translateX(22px); }
     .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-    .marker-caja[style*="display: none"] { pointer-events: none !important; }
-    .leaflet-marker-icon.marker-oculto {
-        display: none !important;
-        pointer-events: none !important;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="mb-6 fade-in">
+<div class="pb-12">
+<div class="mb-6">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
             <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Mapa de infraestructura</h1>
@@ -117,26 +148,59 @@
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="stat-pill fade-in">
+    <div class="stat-pill">
         <div class="text-2xl font-bold">{{ total_nats }}</div>
         <div class="text-sm opacity-90">En mapa</div>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl p-4 fade-in">
+    <div class="bg-white border border-gray-200 rounded-xl p-4">
         <div class="text-2xl font-bold text-emerald-600">{{ total_distribucion }}</div>
         <div class="text-sm text-gray-500">Distribución</div>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl p-4 fade-in">
+    <div class="bg-white border border-gray-200 rounded-xl p-4">
         <div class="text-2xl font-bold text-indigo-600">{{ total_empalmes }}</div>
         <div class="text-sm text-gray-500">Empalmes</div>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl p-4 fade-in">
+    <div class="bg-white border border-gray-200 rounded-xl p-4">
         <div class="text-2xl font-bold text-amber-600">{{ capacidad_ocupada }}%</div>
         <div class="text-sm text-gray-500">Ocupación red</div>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-    <aside class="lg:col-span-3 filter-panel p-5 fade-in">
+    <div class="lg:col-span-9 lg:order-2">
+        <div class="map-wrap" id="map-wrap">
+            <div id="mapa"></div>
+
+            <div class="gm-ctrl gm-search" id="gm-search">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+                <input type="search" id="gm-search-input" placeholder="Buscar caja en el mapa" autocomplete="off" spellcheck="false">
+                <div class="gm-results" id="gm-results"></div>
+            </div>
+
+            <button type="button" class="gm-ctrl gm-btn gm-fullscreen" id="gm-fullscreen" title="Pantalla completa">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+
+            <button type="button" class="gm-ctrl gm-btn gm-locate" id="gm-locate" title="Mostrar mi ubicación">
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round"/></svg>
+            </button>
+
+            <div class="gm-ctrl gm-zoom">
+                <button type="button" class="gm-btn" id="gm-zoom-in" title="Acercar">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+                </button>
+                <button type="button" class="gm-btn" id="gm-zoom-out" title="Alejar">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+
+            <button type="button" class="gm-ctrl gm-layer" id="gm-layer" title="Cambiar vista">
+                <span>Satélite</span>
+            </button>
+        </div>
+    </div>
+
+    <aside class="lg:col-span-3 lg:order-1 filter-panel p-5">
         <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -188,128 +252,280 @@
             <p><strong>🔗</strong> Empalme — punto de unión</p>
         </div>
     </aside>
-
-    <div class="lg:col-span-9 fade-in">
-        <div class="map-wrap" id="map-container">{{ mapa_html | safe }}</div>
-    </div>
+</div>
 </div>
 
 <script>
-(function() {
-    const NATS_MAPA = {{ nats_mapa|tojson }};
-    const tiposActivos = new Set(['distribucion', 'empalme']);
-    const estadosActivos = new Set(['normal', 'critico', 'saturado', 'empalme']);
-    const natsPorNombre = Object.fromEntries(NATS_MAPA.map(function (n) { return [n.nombre, n]; }));
+(function () {
+    const NATS = {{ nats_mapa|tojson }};
+    const COLORES = { normal: '#10b981', critico: '#f59e0b', saturado: '#ef4444', empalme: '#6366f1' };
+    const TODOS_TIPOS = ['distribucion', 'empalme'];
+    const TODOS_ESTADOS = ['normal', 'critico', 'saturado'];
+    const tiposActivos = new Set(TODOS_TIPOS);
+    const estadosActivos = new Set(TODOS_ESTADOS);
 
-    function getMapRoot() {
-        const iframe = document.querySelector('#map-container iframe');
-        if (iframe && iframe.contentDocument) return iframe.contentDocument;
-        return document.querySelector('#map-container') || document;
-    }
-
-    function ajustarTamanoMapa() {
-        const wrap = document.getElementById('map-container');
-        if (!wrap) return;
-        const alto = wrap.clientHeight;
-        wrap.querySelectorAll('iframe').forEach(function (iframe) {
-            iframe.style.width = '100%';
-            iframe.style.height = alto + 'px';
-            iframe.style.minHeight = alto + 'px';
-            try {
-                const win = iframe.contentWindow;
-                const doc = iframe.contentDocument;
-                if (!doc || !win) return;
-                doc.querySelectorAll('.folium-map, .leaflet-container').forEach(function (el) {
-                    el.style.width = '100%';
-                    el.style.height = alto + 'px';
-                });
-                if (win.L && win.L.Map && win.L.Map._instances) {
-                    Object.keys(win.L.Map._instances).forEach(function (id) {
-                        const map = win.L.Map._instances[id];
-                        if (map && map.invalidateSize) map.invalidateSize();
-                    });
-                }
-                win.dispatchEvent(new Event('resize'));
-            } catch (e) { /* iframe aún cargando */ }
+    function esc(valor) {
+        return String(valor == null ? '' : valor).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
         });
     }
+    function normalizar(texto) {
+        return String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
 
-    function sincronizarEstadosMapa() {
-        const root = getMapRoot();
-        root.querySelectorAll('.marker-caja').forEach(function (el) {
-            const nombre = el.getAttribute('data-nombre');
-            const info = natsPorNombre[nombre];
-            if (!info) return;
+    const mapa = L.map('mapa', { zoomControl: false, worldCopyJump: true }).setView([19.4326, -99.1332], 5);
+    mapa.attributionControl.setPrefix(false);
+    L.control.scale({ position: 'bottomright', imperial: false }).addTo(mapa);
 
-            el.setAttribute('data-tipo-caja', info.tipo);
-            el.setAttribute('data-estado', info.estado);
-            el.className = 'marker-caja marker-tipo-' + info.tipo + ' marker-estado-' + info.estado;
+    const URL_GOOGLE = 'https://mt{s}.google.com/vt/lyrs={capa}&hl=es&x={x}&y={y}&z={z}';
+    const URL_ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/{capa}/MapServer/tile/{z}/{y}/{x}';
+    const FUENTES = {
+        google: {
+            mapa: function () { return L.tileLayer(URL_GOOGLE, { capa: 'm', subdomains: '0123', maxZoom: 21, attribution: 'Datos del mapa &copy; Google' }); },
+            satelite: function () { return L.tileLayer(URL_GOOGLE, { capa: 'y', subdomains: '0123', maxZoom: 21, attribution: 'Imágenes &copy; Google' }); },
+            miniatura: function (capa, z, x, y) { return 'https://mt1.google.com/vt/lyrs=' + (capa === 'mapa' ? 'm' : 'y') + '&hl=es&x=' + x + '&y=' + y + '&z=' + z; },
+        },
+        esri: {
+            mapa: function () { return L.tileLayer(URL_ESRI, { capa: 'World_Street_Map', maxNativeZoom: 19, maxZoom: 21, attribution: '&copy; Esri' }); },
+            satelite: function () { return L.tileLayer(URL_ESRI, { capa: 'World_Imagery', maxNativeZoom: 18, maxZoom: 21, attribution: 'Imágenes &copy; Esri, Maxar' }); },
+            miniatura: function (capa, z, x, y) { return 'https://server.arcgisonline.com/ArcGIS/rest/services/' + (capa === 'mapa' ? 'World_Street_Map' : 'World_Imagery') + '/MapServer/tile/' + z + '/' + y + '/' + x; },
+        },
+    };
+    let fuente = 'google';
+    let capaActual = 'mapa';
+    let capaTiles = null;
+    let erroresTiles = 0;
+    let tilesCargados = 0;
 
-            const circulo = el.querySelector('div');
-            if (circulo) {
-                circulo.style.background = info.color;
+    function ponerCapa() {
+        if (capaTiles) mapa.removeLayer(capaTiles);
+        capaTiles = FUENTES[fuente][capaActual]();
+        capaTiles.on('tileload', function () { tilesCargados++; });
+        capaTiles.on('tileerror', function () {
+            erroresTiles++;
+            // Si Google bloquea los mosaicos, usa Esri para que el mapa nunca quede en blanco.
+            if (fuente === 'google' && erroresTiles >= 6 && erroresTiles > tilesCargados) {
+                fuente = 'esri';
+                ponerCapa();
+                actualizarMiniatura();
             }
         });
+        capaTiles.addTo(mapa);
+    }
+    ponerCapa();
+
+    const botonCapa = document.getElementById('gm-layer');
+    function actualizarMiniatura() {
+        const otra = capaActual === 'mapa' ? 'satelite' : 'mapa';
+        const z = Math.min(Math.max(mapa.getZoom() - 3, 3), 17);
+        const centro = mapa.getCenter();
+        const n = Math.pow(2, z);
+        const x = Math.floor((centro.lng + 180) / 360 * n);
+        const rad = centro.lat * Math.PI / 180;
+        const y = Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n);
+        botonCapa.style.backgroundImage = 'url("' + FUENTES[fuente].miniatura(otra, z, x, y) + '")';
+        botonCapa.querySelector('span').textContent = otra === 'satelite' ? 'Satélite' : 'Mapa';
+        botonCapa.classList.toggle('modo-satelite', otra === 'mapa');
+    }
+    botonCapa.addEventListener('click', function () {
+        capaActual = capaActual === 'mapa' ? 'satelite' : 'mapa';
+        ponerCapa();
+        actualizarMiniatura();
+    });
+    mapa.on('moveend', actualizarMiniatura);
+
+    function iconoPin(nat) {
+        const color = COLORES[nat.estado] || COLORES.normal;
+        const emoji = nat.tipo === 'empalme' ? '🔗' : '📡';
+        return L.divIcon({
+            className: 'gpin-wrap',
+            html: '<div class="gpin"><svg viewBox="0 0 30 42" width="30" height="42">'
+                + '<path d="M15 1C7.3 1 1 7.2 1 14.9 1 25.4 15 41 15 41s14-15.6 14-26.1C29 7.2 22.7 1 15 1z" fill="' + color + '" stroke="#fff" stroke-width="1.6"/>'
+                + '<circle cx="15" cy="15" r="9.5" fill="#fff"/></svg>'
+                + '<span class="gpin-emoji">' + emoji + '</span></div>',
+            iconSize: [30, 42], iconAnchor: [15, 41], popupAnchor: [0, -36], tooltipAnchor: [0, -30],
+        });
     }
 
+    function tarjeta(nat) {
+        const color = COLORES[nat.estado] || COLORES.normal;
+        const tipo = nat.tipo === 'empalme' ? 'Empalme' : 'Distribución';
+        let puertos = '';
+        if (nat.tipo !== 'empalme' && nat.total) {
+            const uso = Math.round(nat.uso);
+            puertos = '<p><strong>Puertos:</strong> ' + nat.usados + ' de ' + nat.total + ' ocupados (' + uso + '%)</p>'
+                + '<div class="gm-bar"><div style="width:' + Math.min(uso, 100) + '%;background:' + color + '"></div></div>';
+        }
+        return '<div class="gm-card-head" style="background:' + color + '">'
+            + '<h4>' + esc(nat.nombre) + '</h4>'
+            + '<p>' + tipo + ' · ' + esc(nat.estado_texto) + '</p></div>'
+            + '<div class="gm-card-body">' + puertos
+            + '<p><strong>Modelo:</strong> ' + esc(nat.modelo || '—') + '</p>'
+            + '<p style="color:#70757a">' + nat.lat.toFixed(6) + ', ' + nat.lng.toFixed(6) + '</p>'
+            + '<div class="gm-acciones">'
+            + '<button type="button" class="gm-ir" data-ir="' + nat.id + '">'
+            + '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a1 1 0 00-1.42 0l-9 9a1 1 0 000 1.42l9 9a1 1 0 001.42 0l9-9a1 1 0 000-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 011-1h5V7.5l3.5 3.5z"/></svg>'
+            + 'Cómo llegar</button>'
+            + '<a class="gm-detalle" href="' + esc(nat.url_detalle) + '">Ver detalle</a>'
+            + '</div></div>';
+    }
+
+    const marcadores = new Map();
+    NATS.forEach(function (nat) {
+        if (typeof nat.lat !== 'number' || typeof nat.lng !== 'number') return;
+        const m = L.marker([nat.lat, nat.lng], { icon: iconoPin(nat), title: nat.nombre, riseOnHover: true })
+            .bindPopup(tarjeta(nat), { maxWidth: 290, minWidth: 270, autoPanPaddingTopLeft: L.point(60, 80), autoPanPaddingBottomRight: L.point(70, 40) })
+            .bindTooltip(nat.tipo === 'empalme' ? esc(nat.nombre) : esc(nat.nombre) + ' (' + Math.round(nat.uso) + '%)', { direction: 'top' })
+            .addTo(mapa);
+        marcadores.set(nat.id, { nat: nat, marker: m });
+    });
+
+    function encuadrarTodo() {
+        const visibles = [];
+        marcadores.forEach(function (item) { if (mapa.hasLayer(item.marker)) visibles.push(item.marker.getLatLng()); });
+        if (visibles.length === 1) mapa.setView(visibles[0], 17);
+        else if (visibles.length > 1) mapa.fitBounds(L.latLngBounds(visibles), { padding: [70, 70], maxZoom: 17 });
+    }
+    encuadrarTodo();
+    actualizarMiniatura();
+
+    function esVisible(nat) {
+        if (!tiposActivos.has(nat.tipo)) return false;
+        return nat.tipo === 'empalme' || estadosActivos.has(nat.estado);
+    }
     function aplicarFiltros() {
-        const root = getMapRoot();
-        root.querySelectorAll('.marker-caja').forEach(function (el) {
-            const tipo = el.getAttribute('data-tipo-caja');
-            const estado = el.getAttribute('data-estado');
-            const verTipo = tiposActivos.has(tipo);
-            const verEstado = tipo === 'empalme' ? tiposActivos.has('empalme') : estadosActivos.has(estado);
-            const visible = verTipo && verEstado;
-
-            const wrapper = el.closest('.leaflet-marker-icon');
-            if (wrapper) {
-                wrapper.classList.toggle('marker-oculto', !visible);
-                wrapper.style.opacity = visible ? '1' : '0';
-            }
-            el.style.display = visible ? '' : 'none';
-            el.style.opacity = visible ? '1' : '0';
+        marcadores.forEach(function (item) {
+            const ver = esVisible(item.nat);
+            if (ver && !mapa.hasLayer(item.marker)) item.marker.addTo(mapa);
+            if (!ver && mapa.hasLayer(item.marker)) mapa.removeLayer(item.marker);
         });
     }
-
     function bindToggles(selector, set, attr) {
-        document.querySelectorAll(selector).forEach(function(input) {
-            input.addEventListener('change', function() {
+        document.querySelectorAll(selector).forEach(function (input) {
+            input.addEventListener('change', function () {
                 const val = input.getAttribute(attr);
                 if (input.checked) set.add(val); else set.delete(val);
                 aplicarFiltros();
             });
         });
     }
-
     bindToggles('.tipo-toggle', tiposActivos, 'data-tipo');
     bindToggles('.estado-toggle', estadosActivos, 'data-estado');
-
-    document.getElementById('reset-filters').addEventListener('click', function() {
-        tiposActivos.clear();
-        tiposActivos.add('distribucion', 'empalme');
-        estadosActivos.clear();
-        estadosActivos.add('normal', 'critico', 'saturado', 'empalme');
-        document.querySelectorAll('.tipo-toggle, .estado-toggle').forEach(function(i) { i.checked = true; });
+    document.getElementById('reset-filters').addEventListener('click', function () {
+        TODOS_TIPOS.forEach(function (t) { tiposActivos.add(t); });
+        TODOS_ESTADOS.forEach(function (e) { estadosActivos.add(e); });
+        document.querySelectorAll('.tipo-toggle, .estado-toggle').forEach(function (i) { i.checked = true; });
         aplicarFiltros();
+        encuadrarTodo();
     });
 
-    window.addEventListener('mapaListo', function () {
-        setTimeout(function () {
-            ajustarTamanoMapa();
-            sincronizarEstadosMapa();
-            aplicarFiltros();
-        }, 200);
-        setTimeout(ajustarTamanoMapa, 800);
+    document.getElementById('mapa').addEventListener('click', function (ev) {
+        const boton = ev.target.closest('[data-ir]');
+        if (!boton) return;
+        const item = marcadores.get(Number(boton.getAttribute('data-ir')));
+        if (item) window.abrirMapsCaja(item.nat.lat, item.nat.lng, item.nat.nombre);
     });
-    window.addEventListener('resize', function () { ajustarTamanoMapa(); });
-    setTimeout(function () {
-        ajustarTamanoMapa();
-        sincronizarEstadosMapa();
-        aplicarFiltros();
-    }, 1200);
+
+    // Buscador
+    const caja = document.getElementById('gm-search');
+    const input = document.getElementById('gm-search-input');
+    const lista = document.getElementById('gm-results');
+    let resultados = [];
+    let indice = -1;
+    function irA(item) {
+        if (!mapa.hasLayer(item.marker)) item.marker.addTo(mapa);
+        mapa.flyTo(item.marker.getLatLng(), 18, { duration: 0.8 });
+        mapa.once('moveend', function () { item.marker.openPopup(); });
+        input.value = item.nat.nombre;
+        caja.classList.remove('open');
+        input.blur();
+    }
+    function pintarResultados() {
+        if (!resultados.length) {
+            lista.innerHTML = '<div class="gm-empty">No hay cajas con ese nombre</div>';
+            return;
+        }
+        lista.innerHTML = resultados.map(function (item, i) {
+            const nat = item.nat;
+            const sub = nat.tipo === 'empalme' ? 'Empalme' : 'Distribución · ' + nat.usados + '/' + nat.total + ' puertos';
+            return '<button type="button" class="gm-result' + (i === indice ? ' activo' : '') + '" data-i="' + i + '">'
+                + '<span class="gm-result-dot" style="background:' + (COLORES[nat.estado] || COLORES.normal) + '"></span>'
+                + '<span>' + esc(nat.nombre) + '<small>' + sub + '</small></span></button>';
+        }).join('');
+    }
+    input.addEventListener('input', function () {
+        const q = normalizar(input.value.trim());
+        indice = -1;
+        if (!q) { caja.classList.remove('open'); return; }
+        resultados = [];
+        marcadores.forEach(function (item) { if (normalizar(item.nat.nombre).includes(q)) resultados.push(item); });
+        resultados = resultados.slice(0, 8);
+        pintarResultados();
+        caja.classList.add('open');
+    });
+    input.addEventListener('keydown', function (ev) {
+        if (!caja.classList.contains('open')) return;
+        if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+            ev.preventDefault();
+            const paso = ev.key === 'ArrowDown' ? 1 : -1;
+            indice = Math.max(0, Math.min(resultados.length - 1, indice + paso));
+            pintarResultados();
+        } else if (ev.key === 'Enter') {
+            ev.preventDefault();
+            const item = resultados[indice >= 0 ? indice : 0];
+            if (item) irA(item);
+        } else if (ev.key === 'Escape') {
+            caja.classList.remove('open');
+        }
+    });
+    lista.addEventListener('click', function (ev) {
+        const btn = ev.target.closest('[data-i]');
+        if (btn) irA(resultados[Number(btn.getAttribute('data-i'))]);
+    });
+    document.addEventListener('click', function (ev) { if (!caja.contains(ev.target)) caja.classList.remove('open'); });
+    L.DomEvent.disableClickPropagation(caja);
+    L.DomEvent.disableScrollPropagation(caja);
+
+    // Zoom, ubicación y pantalla completa
+    document.getElementById('gm-zoom-in').addEventListener('click', function () { mapa.zoomIn(); });
+    document.getElementById('gm-zoom-out').addEventListener('click', function () { mapa.zoomOut(); });
+    document.querySelectorAll('.gm-ctrl').forEach(function (el) { L.DomEvent.disableClickPropagation(el); });
+
+    const botonUbicacion = document.getElementById('gm-locate');
+    let marcaYo = null;
+    let circuloYo = null;
+    botonUbicacion.addEventListener('click', function () {
+        if (!navigator.geolocation) { alert('Tu navegador no permite obtener la ubicación.'); return; }
+        botonUbicacion.classList.add('buscando');
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            botonUbicacion.classList.remove('buscando');
+            botonUbicacion.classList.add('ok');
+            const punto = [pos.coords.latitude, pos.coords.longitude];
+            if (marcaYo) { marcaYo.setLatLng(punto); circuloYo.setLatLng(punto).setRadius(pos.coords.accuracy); }
+            else {
+                circuloYo = L.circle(punto, { radius: pos.coords.accuracy, color: '#1a73e8', weight: 1, fillColor: '#1a73e8', fillOpacity: 0.12, interactive: false }).addTo(mapa);
+                marcaYo = L.marker(punto, { icon: L.divIcon({ className: '', html: '<div class="gm-yo"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), zIndexOffset: 1000 })
+                    .bindTooltip('Tu ubicación', { direction: 'top' }).addTo(mapa);
+            }
+            mapa.flyTo(punto, Math.max(mapa.getZoom(), 17), { duration: 0.8 });
+        }, function () {
+            botonUbicacion.classList.remove('buscando');
+            alert('No se pudo obtener tu ubicación. Revisa que el navegador tenga permiso.');
+        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+    });
+
+    const wrap = document.getElementById('map-wrap');
+    const botonPantalla = document.getElementById('gm-fullscreen');
+    if (!document.fullscreenEnabled) botonPantalla.style.display = 'none';
+    botonPantalla.addEventListener('click', function () {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else wrap.requestFullscreen();
+    });
+    document.addEventListener('fullscreenchange', function () { setTimeout(function () { mapa.invalidateSize(); }, 150); });
+    window.addEventListener('resize', function () { mapa.invalidateSize(); });
 })();
 
-/** Abrir navegación externa (Google Maps / Apple Maps) — ventana principal */
+/** Abrir navegación externa (Google Maps / Apple Maps) */
 window.abrirMapsCaja = function (lat, lng, nombre) {
     lat = parseFloat(lat);
     lng = parseFloat(lng);
@@ -318,22 +534,14 @@ window.abrirMapsCaja = function (lat, lng, nombre) {
 
     var coords = lat + ',' + lng;
     var nombreEnc = encodeURIComponent(nombre);
-    var ua = navigator.userAgent || '';
     var url;
-
-    if (/iPhone|iPad|iPod/i.test(ua)) {
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent || '')) {
         url = 'https://maps.apple.com/?daddr=' + coords + '&dirflg=d&q=' + nombreEnc;
     } else {
         url = 'https://www.google.com/maps/dir/?api=1&destination=' + coords
             + '&destination_place_name=' + nombreEnc + '&travelmode=driving';
     }
-
-    var w = window.top || window;
-    try {
-        w.location.href = url;
-    } catch (e) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-    }
+    window.location.href = url;
 };
 </script>
 {% endblock %}

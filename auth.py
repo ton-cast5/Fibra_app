@@ -213,7 +213,8 @@ def init_auth(app, db, ahora, en_produccion):
     def cabeceras_seguridad(response):
         response.headers.setdefault('X-Content-Type-Options', 'nosniff')
         response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
-        response.headers.setdefault('Referrer-Policy', 'same-origin')
+        # Los servidores de mapas exigen Referer; a sitios externos solo se envía el dominio.
+        response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
         if en_produccion:
             response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
         if request.endpoint != 'static':

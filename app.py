@@ -25,7 +25,6 @@ from io import BytesIO
 from sqlalchemy import Text, cast, text
 from sqlalchemy.pool import NullPool
 import json
-import html as html_stdlib
 import mimetypes
 import requests
 from urllib.parse import quote, unquote
@@ -722,11 +721,21 @@ def construir_query_nats(q=None, tipo=None, region=None, estado=None):
     return query.order_by(Nat.nombre)
 
 
+def _puertos_ocupados_red():
+    """Clientes activos que ocupan un puerto real (excluye la NAP placeholder sin puertos)."""
+    return (
+        db.session.query(func.count(Cliente.id))
+        .join(Nat, Cliente.nat_id == Nat.id)
+        .filter(Cliente.activo.is_(True), Nat.puertos_total > 0)
+        .scalar() or 0
+    )
+
+
 def stats_nats_listado():
     """Estadísticas globales del listado sin cargar todas las filas."""
     total_nats = Nat.query.count()
     total_puertos = db.session.query(func.sum(Nat.puertos_total)).scalar() or 0
-    puertos_usados = Cliente.query.filter_by(activo=True).count()
+    puertos_usados = _puertos_ocupados_red()
     criticas = (
         construir_query_nats(estado='critico').count()
         + construir_query_nats(estado='saturado').count()
@@ -794,169 +803,22 @@ def _nats_datos_mapa(nats=None):
     for nat in nats:
         uso, estado, usados, total = _nat_uso_y_estado(nat)
         datos.append({
+            'id': nat.id,
             'nombre': nat.nombre,
+            'lat': nat.latitud,
+            'lng': nat.longitud,
             'tipo': nat.tipo_caja,
             'estado': estado,
             'uso': uso,
             'usados': usados,
             'total': total,
+            'modelo': nat.modelo.nombre if nat.modelo else None,
             'color': _MAPA_COLORES_ESTADO[estado],
             'estado_texto': _MAPA_TEXTO_ESTADO[estado],
+            'url_detalle': url_for('ver_nat', nat_id=nat.id),
         })
     return datos
 
-
-def _url_google_maps_direcciones(lat, lng, nombre):
-    """URL de Google Maps para ruta hacia una caja (funciona en web, Android y iOS)."""
-    coords = f'{lat},{lng}'
-    nombre_enc = quote(nombre or 'Caja NAP')
-    return (
-        f'https://www.google.com/maps/dir/?api=1'
-        f'&destination={coords}'
-        f'&destination_place_name={nombre_enc}'
-        f'&travelmode=driving'
-    )
-
-
-def generar_mapa_mejorado(nats=None):
-    """Mapa limpio: solo cajas NAP (distribución) y empalmes."""
-    import folium
-    from folium.plugins import Fullscreen
-
-    if nats is None:
-        nats = Nat.query.options(joinedload(Nat.modelo)).filter(
-            Nat.latitud.isnot(None), Nat.longitud.isnot(None)
-        ).all()
-        preparar_ocupacion_nats(nats)
-
-    lat_center, lon_center = 19.4326, -99.1332
-    zoom_start = 6
-    if nats:
-        lats = [n.latitud for n in nats]
-        lons = [n.longitud for n in nats]
-        lat_center = sum(lats) / len(lats)
-        lon_center = sum(lons) / len(lons)
-        zoom_start = 14 if len(nats) == 1 else 13
-
-    mapa = folium.Map(
-        location=[lat_center, lon_center],
-        zoom_start=zoom_start,
-        tiles='CartoDB positron',
-        control_scale=True,
-        zoom_control=True
-    )
-    Fullscreen(position='topleft').add_to(mapa)
-    folium.TileLayer('CartoDB positron', name='Claro', show=True).add_to(mapa)
-    folium.TileLayer('OpenStreetMap', name='Calles', show=False).add_to(mapa)
-
-    fg_distribucion = folium.FeatureGroup(name='Distribución', show=True)
-    fg_empalme = folium.FeatureGroup(name='Empalmes', show=True)
-    mapa.add_child(fg_distribucion)
-    mapa.add_child(fg_empalme)
-
-    for nat in nats:
-        tipo = nat.tipo_caja
-        es_empalme = tipo == 'empalme'
-        uso, estado, usados, total = _nat_uso_y_estado(nat)
-        color_bg = _MAPA_COLORES_ESTADO[estado]
-        estado_texto = _MAPA_TEXTO_ESTADO[estado]
-        emoji = '🔗' if es_empalme else '📡'
-
-        tipo_label = 'Empalme' if es_empalme else 'Distribución'
-        puertos_info = (
-            f'<p><strong>Puertos:</strong> {usados}/{total} ({uso:.0f}%)</p>'
-            if not es_empalme and total
-            else ''
-        )
-        maps_url = _url_google_maps_direcciones(nat.latitud, nat.longitud, nat.nombre)
-        nombre_attr = html_stdlib.escape(nat.nombre, quote=True)
-        popup_html = f'''
-        <div style="min-width: 240px; font-family: system-ui, sans-serif;">
-            <div style="background: {color_bg}; color: white; padding: 12px; border-radius: 8px 8px 0 0;">
-                <h4 style="margin: 0; font-size: 14px;">{emoji} {nat.nombre}</h4>
-                <span style="font-size: 11px; opacity: 0.9;">{tipo_label} · {estado_texto}</span>
-            </div>
-            <div style="padding: 12px;">
-                {puertos_info}
-                <p style="margin: 8px 0 0;"><strong>Modelo:</strong> {nat.modelo.nombre if nat.modelo else "—"}</p>
-                <a href="{maps_url}" target="_top" rel="noopener noreferrer" class="fibra-maps-link"
-                   data-lat="{nat.latitud}" data-lng="{nat.longitud}" data-nombre="{nombre_attr}"
-                   style="display: block; width: 100%; margin-top: 10px; background: #0ea5e9; color: white; padding: 8px;
-                   text-align: center; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600;
-                   box-sizing: border-box;">
-                   🗺️ Abrir en Maps
-                </a>
-                <a href="{url_for('ver_nat', nat_id=nat.id)}" target="_blank"
-                   style="display: block; margin-top: 8px; background: #4f46e5; color: white; padding: 8px;
-                   text-align: center; text-decoration: none; border-radius: 6px; font-size: 13px;">
-                   Ver detalle
-                </a>
-            </div>
-        </div>
-        '''
-
-        icono_html = f'''
-        <div class="marker-caja marker-tipo-{tipo} marker-estado-{estado}"
-             data-tipo-caja="{tipo}" data-estado="{estado}" data-nombre="{nat.nombre}">
-            <div style="background:{color_bg};color:white;border:2px solid white;border-radius:50%;
-                width:34px;height:34px;display:flex;align-items:center;justify-content:center;
-                font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,0.25);">{emoji}</div>
-        </div>
-        '''
-        icono = folium.DivIcon(html=icono_html, icon_size=(34, 34), icon_anchor=(17, 17))
-        grupo = fg_empalme if es_empalme else fg_distribucion
-        tooltip = nat.nombre if es_empalme else f'{nat.nombre} ({uso:.0f}%)'
-
-        folium.Marker(
-            [nat.latitud, nat.longitud],
-            popup=folium.Popup(popup_html, max_width=300),
-            tooltip=tooltip,
-            icon=icono
-        ).add_to(grupo)
-
-    folium.LayerControl(collapsed=True, position='topright').add_to(mapa)
-    mapa.get_root().width = '100%'
-    mapa.get_root().height = '100%'
-    mapa.get_root().html.add_child(folium.Element('''
-<style>
-    .marker-caja[style*="display: none"] { pointer-events: none !important; }
-    .leaflet-marker-icon.marker-oculto {
-        display: none !important;
-        pointer-events: none !important;
-    }
-</style>
-<script>
-(function () {
-    function abrirMapsDesdePopup(ev) {
-        var el = ev.target.closest(".fibra-maps-link");
-        if (!el) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-        var url = el.getAttribute("href");
-        var lat = el.getAttribute("data-lat");
-        var lng = el.getAttribute("data-lng");
-        var nombre = el.getAttribute("data-nombre") || "Caja NAP";
-        try {
-            if (window.top && typeof window.top.abrirMapsCaja === "function") {
-                window.top.abrirMapsCaja(lat, lng, nombre);
-                return;
-            }
-        } catch (e) { /* ignorar */ }
-        try {
-            window.top.location.href = url;
-        } catch (e2) {
-            window.open(url, "_blank", "noopener,noreferrer");
-        }
-    }
-    document.addEventListener("click", abrirMapsDesdePopup, true);
-    setTimeout(function () {
-        try { if (window.parent) window.parent.dispatchEvent(new Event("mapaListo")); } catch (e) {}
-        window.dispatchEvent(new Event("mapaListo"));
-    }, 600);
-})();
-</script>
-    '''))
-    return mapa._repr_html_()
 
 # ============================================
 # RUTAS PARA EL REPOSITORIO DE ARCHIVOS
@@ -1525,8 +1387,9 @@ def dashboard():
         
         capacidad_total_resultado = db.session.query(func.sum(Nat.puertos_total)).scalar()
         capacidad_total = capacidad_total_resultado if capacidad_total_resultado is not None else 0
-        capacidad_libre = max(capacidad_total - clientes_activos, 0)
-        porcentaje_ocupacion = round((clientes_activos / capacidad_total) * 100) if capacidad_total > 0 else 0
+        puertos_ocupados = _puertos_ocupados_red()
+        capacidad_libre = max(capacidad_total - puertos_ocupados, 0)
+        porcentaje_ocupacion = round((puertos_ocupados / capacidad_total) * 100) if capacidad_total > 0 else 0
         total_nats = Nat.query.count()
         total_clientes = Cliente.query.count()
         total_empalmes = Nat.query.join(NapModel).filter(NapModel.tipo_caja == 'empalme').count()
@@ -1606,7 +1469,7 @@ def mapa_nats():
     total_distribucion = total_nats - total_empalmes
 
     capacidad_total = db.session.query(func.sum(Nat.puertos_total)).scalar() or 1
-    capacidad_usada = db.session.query(func.count(Cliente.id)).filter_by(activo=True).scalar() or 0
+    capacidad_usada = _puertos_ocupados_red()
     capacidad_ocupada = round((capacidad_usada / capacidad_total) * 100) if capacidad_total > 0 else 0
 
     nats_con_coords = Nat.query.options(joinedload(Nat.modelo)).filter(
@@ -1618,7 +1481,6 @@ def mapa_nats():
         if n.puertos_total and _nat_uso_y_estado(n)[1] in ('critico', 'saturado')
     )
     nats_mapa = _nats_datos_mapa(nats_con_coords)
-    mapa_html = generar_mapa_mejorado(nats_con_coords)
 
     return render_template('mapa_nats.html',
                          total_nats=total_nats,
@@ -1626,8 +1488,7 @@ def mapa_nats():
                          total_distribucion=total_distribucion,
                          capacidad_ocupada=capacidad_ocupada,
                          nats_criticas_count=nats_criticas_count,
-                         nats_mapa=nats_mapa,
-                         mapa_html=mapa_html)
+                         nats_mapa=nats_mapa)
 
 # ----------------------------------------------------------------------
 # (Aquí van todas las demás rutas existentes de tu aplicación...)
@@ -2220,7 +2081,7 @@ def api_critical_nats():
 def api_system_capacity():
     """API para notificaciones de capacidad del sistema"""
     total_capacity = db.session.query(func.sum(Nat.puertos_total)).scalar() or 0
-    used_capacity = Cliente.query.filter_by(activo=True).count()
+    used_capacity = _puertos_ocupados_red()
     usage_percentage = (used_capacity / total_capacity) * 100 if total_capacity > 0 else 0
     
     alert = usage_percentage >= 85
@@ -2782,7 +2643,7 @@ def inventarios():
     total_naps = Nat.query.count()
     
     # Calcular puertos ocupados (clientes conectados)
-    puertos_ocupados = Cliente.query.filter_by(activo=True).count()
+    puertos_ocupados = _puertos_ocupados_red()
     puertos_totales = db.session.query(db.func.sum(Nat.puertos_total)).scalar() or 0
     
     # Calcular ocupación promedio
