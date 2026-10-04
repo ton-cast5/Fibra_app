@@ -1,33 +1,36 @@
-# Base de datos Supabase
+# Configuración
 
-## 1. Crear tablas
+La app corre en Vercel y usa la base PostgreSQL del proyecto Supabase `ckzkznyaajmqwrjdlcld`.
+Los cambios de esquema se aplican como migraciones en Supabase (no hay `db.create_all()`).
 
-Supabase → **SQL Editor** → ejecuta todo `supabase_schema.sql`.
+## Variables de entorno
 
-## 2. `.env` (proyecto ckzkznyaajmqwrjdlcld)
+En Vercel: Project → Settings → Environment Variables. En local: copia `.env.example` a `.env`.
 
-```env
-SUPABASE_URL=https://ckzkznyaajmqwrjdlcld.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_...
-# Obligatorio para el Repositorio (subir/descargar archivos sin error RLS):
-SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Settings → API → service_role (secret)
-SUPABASE_STORAGE_BUCKET=documentos
-DB_PASSWORD=tu_contraseña
-DB_USE_POOLER=true
-DB_POOLER_HOST=aws-1-us-west-2.pooler.supabase.com
-DB_POOLER_PORT=6543
-```
+| Variable | Para qué |
+| --- | --- |
+| `DATABASE_URL` | URI del pooler: Supabase → Connect → Transaction pooler. Alternativa: `DB_PASSWORD` |
+| `SECRET_KEY` | Firma las sesiones de login. Si falta, se deriva de la URL de la base. Genera una con `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `SUPABASE_URL` | `https://ckzkznyaajmqwrjdlcld.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Solo servidor. Necesaria para subir y descargar archivos del Repositorio |
 
-**Repositorio / Storage:** la clave `publishable` (anon) no puede subir archivos si RLS está activo. Usa `SUPABASE_SERVICE_ROLE_KEY` solo en el servidor (nunca en el navegador).
+Si cambias `SECRET_KEY`, todas las sesiones abiertas se cierran.
 
-Si no quieres usar service role, ejecuta también `supabase_storage_policies.sql` en el SQL Editor (menos restrictivo).
+## Seguridad de la base
 
-En Windows no uses `db.xxx.supabase.co` (error DNS/IPv6). El host del pooler sale en Supabase → **Connect**.
+- Todas las tablas tienen RLS activo y los roles `anon` y `authenticated` no tienen permisos:
+  la API pública de Supabase no puede leer ni escribir nada. Solo el servidor Flask entra, con el usuario `postgres`.
+- Los buckets de Storage `documentos` y `Cajas` son privados.
+- Nunca pongas la clave `service_role` ni la contraseña de la base en el navegador ni en el repositorio.
 
-## 3. Comandos
+## Usuarios
+
+Todas las páginas piden login. Los usuarios se administran desde el menú de usuario → **Usuarios y contraseña**.
+Tras 5 intentos fallidos, el usuario queda bloqueado 15 minutos.
+
+## Probar la conexión local
 
 ```powershell
-venv\Scripts\python.exe scripts\test_connection.py
-venv\Scripts\python.exe scripts\init_database.py
-venv\Scripts\python.exe app.py
+python scripts\test_connection.py
+python app.py
 ```

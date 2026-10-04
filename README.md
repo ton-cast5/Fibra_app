@@ -104,3 +104,13 @@ Almacén de documentos de la operación (manuales, evidencias, planos, etc.):
 - Menú móvil organizado por secciones
 - **Tema claro y oscuro**
 - Alertas visuales cuando una caja está crítica o saturada
+
+---
+
+## Seguridad
+
+- Acceso solo con usuario y contraseña; los usuarios se administran desde la propia app
+- Bloqueo temporal tras varios intentos fallidos
+- La base de datos no es accesible desde la API pública de Supabase
+
+Configuración y variables de entorno: [SETUP_DATABASE.md](SETUP_DATABASE.md).

@@ -1,9 +1,7 @@
 # app.py (versión actualizada con repositorio de archivos)
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 import os
-import sys
 from collections import defaultdict
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, or_
@@ -20,6 +18,9 @@ from pagination_utils import (
 )
 import uuid
 import math
+import hashlib
+import hmac
+import secrets
 from io import BytesIO
 from sqlalchemy import Text, cast, text
 from sqlalchemy.pool import NullPool
@@ -28,8 +29,8 @@ import html as html_stdlib
 import mimetypes
 import requests
 from urllib.parse import quote, unquote
-from flask_cors import CORS
 from report_exports import exportar_dataframe_corporativo, crear_workbook_corporativo_multihoja
+from auth import init_auth
 
 # ----------------------------------------------------------------------
 # CONFIGURACIÓN SUPABASE - URL DEL POOLER (IPv4 compatible)
@@ -38,7 +39,7 @@ from report_exports import exportar_dataframe_corporativo, crear_workbook_corpor
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
-CORS(app)  # Habilitar CORS
+EN_PRODUCCION = os.getenv('VERCEL') == '1'
 
 # =========================================================================
 # CONFIGURACIÓN SUPABASE (desde .env)
@@ -113,9 +114,17 @@ except ValueError as exc:
     DATABASE_URL = None
     _db_config_error = str(exc)
 
+_secret_key = (os.environ.get('SECRET_KEY') or '').strip()
+if not _secret_key:
+    # Debe ser igual en todas las instancias serverless; la URL de la base ya es secreta.
+    _secret_key = (
+        hmac.new(DATABASE_URL.encode(), b'fibra-manager-session', hashlib.sha256).hexdigest()
+        if DATABASE_URL else secrets.token_hex(32)
+    )
+
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or 'sqlite:///:memory:'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fibra-manager-dev-key')
+app.config['SECRET_KEY'] = _secret_key
 app.config['DEBUG'] = os.getenv('FLASK_ENV', 'development') != 'production'
 app.config['PROPAGATE_EXCEPTIONS'] = True
 
@@ -152,7 +161,6 @@ SUPABASE_STORAGE_KEY = (
 _allow_anon_storage = os.getenv("SUPABASE_STORAGE_ALLOW_ANON", "").lower() in ("1", "true", "yes")
 if _allow_anon_storage and not SUPABASE_STORAGE_KEY:
     SUPABASE_STORAGE_KEY = SUPABASE_ANON_KEY
-SUPABASE_KEY = SUPABASE_STORAGE_KEY or SUPABASE_ANON_KEY
 SUPABASE_STORAGE_URL = f"{SUPABASE_URL_STORAGE}/storage/v1"
 STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "documentos")
 
@@ -163,11 +171,10 @@ else:
     UPLOAD_FOLDER = os.path.join(basedir, 'static/nap_images')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB límite
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
 # Inicializar extensiones
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
 if os.getenv('VERCEL') != '1':
     print("=" * 60)
@@ -428,9 +435,8 @@ def allowed_repo_file(filename):
 
 def _storage_rls_help_message():
     return (
-        'Storage bloqueado por RLS. En .env agrega SUPABASE_SERVICE_ROLE_KEY '
-        f'(Supabase → Settings → API → service_role, solo servidor) '
-        f'o ejecuta supabase_storage_policies.sql en el SQL Editor. '
+        'Storage bloqueado por RLS. Agrega SUPABASE_SERVICE_ROLE_KEY en las variables de entorno '
+        '(Supabase → Settings → API → service_role, solo servidor). '
         f'Bucket: {STORAGE_BUCKET}.'
     )
 
@@ -3308,24 +3314,6 @@ def descargar_excel_naps():
     )
 
 
-# ============================================
-# CONFIGURACIÓN ADICIONAL PARA FLASK
-# ============================================
-
-# Agrega esto en tu configuración Flask (si no lo tienes)
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB máximo
-#app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'json', 'xml'}
-
-# Función auxiliar para verificar extensiones
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
-# ----------------------------------------------------------------------
-# MIDDLEWARE PARA DETECCIÓN MÓVIL
-# ----------------------------------------------------------------------
-
 @app.route('/health')
 def health_check():
     if _db_config_error:
@@ -3338,84 +3326,15 @@ def require_database_config():
     if _db_config_error and request.endpoint not in ('health_check', 'static'):
         return (
             '<h1>Fibra Manager</h1>'
-            f'<p><strong>Base de datos no configurada:</strong> {_db_config_error}</p>'
+            f'<p><strong>Configuración incompleta:</strong> {_db_config_error}</p>'
             '<p>En Vercel → Settings → Environment Variables, agrega '
-            '<code>DATABASE_URL</code> o <code>DB_PASSWORD</code> y las variables de Supabase.</p>'
+            '<code>DATABASE_URL</code> (o <code>DB_PASSWORD</code>).</p>'
         ), 503
 
 
-@app.before_request
-def detect_mobile():
-    user_agent = request.headers.get('User-Agent', '').lower()
-    mobile_keywords = ['mobile', 'android', 'iphone', 'ipad', 'windows phone']
-    
-    request.is_mobile = any(keyword in user_agent for keyword in mobile_keywords)
-# ----------------------------------------------------------------------
-# INICIO AUTOMÁTICO CON APERTURA DE NAVEGADOR
-# ----------------------------------------------------------------------
+Usuario = init_auth(app, db, ahora_mexico, en_produccion=EN_PRODUCCION)
 
-# ----------------------------------------------------------------------
-# INICIO AUTOMÁTICO CON APERTURA DE NAVEGADOR
-# ----------------------------------------------------------------------
 
 if __name__ == '__main__':
-    # Detectar si es .exe
-    is_exe = getattr(sys, 'frozen', False)
-    
-    print("=" * 60)
-    print("FIBRA MANAGER - INICIANDO SERVIDOR")
-    print("=" * 60)
-    
-    if is_exe:
-        print("MODO: Ejecutable (.exe)")
-        print("URL: http://localhost:5000")
-        print("=" * 60)
-        
-        # Abrir navegador automáticamente después de 1 segundo
-        import threading
-        import webbrowser
-        import time
-        
-        def abrir_browser():
-            time.sleep(1.5)
-            webbrowser.open('http://localhost:5000')
-        
-        threading.Thread(target=abrir_browser, daemon=True).start()
-    else:
-        print("MODO: Desarrollo (Python)")
-        print("URL: http://127.0.0.1:5000")
-        print("=" * 60)
-    
-    with app.app_context():
-        try:
-            db.session.execute(text("SELECT 1")).fetchone()
-            total_clientes = Cliente.query.count()
-            total_nats = Nat.query.count()
-            db.create_all()
-            print(f"Conexion OK | Clientes: {total_clientes} | Cajas: {total_nats}")
-        except Exception as e:
-            print(f"Advertencia BD: {e}")
-    
-    print("Rutas: /  /dashboard  /mapa_nats  /clientes  /nap_models")
-    print("=" * 60)
-    
-    # Iniciar servidor
-    try:
-        app.run(
-            debug=not is_exe,          # Debug solo en desarrollo
-            host='0.0.0.0', 
-            port=5000,
-            use_reloader=not is_exe,   # Reloader solo en desarrollo
-            threaded=True
-        )
-    except Exception as e:
-        print(f"ERROR al iniciar servidor: {e}")
-        print("Posibles causas:")
-        print("   - Puerto 5000 en uso")
-        print("   - Problemas de red")
-        print("   - Firewall bloqueando")
-        print("Soluciones:")
-        print("   - Cierra otros programas usando puerto 5000")
-        print("   - Prueba con: netstat -ano | findstr :5000")
-        print("   - O ejecuta en otro puerto: port=5001")
-        input("Presiona Enter para salir...")
+    print("FIBRA MANAGER - servidor local en http://127.0.0.1:5000")
+    app.run(debug=True, host='127.0.0.1', port=5000)

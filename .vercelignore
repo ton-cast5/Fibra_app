@@ -8,13 +8,9 @@ __pycache__/
 .vscode/
 .cursor/
 .vercel/
-build/
-dist/
+node_modules/
+importacion/
+scripts/
 *.db
-*.exe
-*.spec
-setup_exe.py
-ngrok_integrado.py
-configurar_supabase.py
 .env
 .env.*

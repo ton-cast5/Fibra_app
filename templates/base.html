@@ -736,6 +736,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Fibra Manager">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-96.png') }}">
 </head>
 <body class="bg-gray-50 min-h-screen transition-colors duration-300">
 
@@ -838,6 +839,23 @@
                             </div>
                         </div>
 
+                        {% if usuario_actual %}
+                        <div class="dropdown-container">
+                            <a href="{{ url_for('auth.usuarios') }}" class="nav-link-white" title="Sesión de {{ usuario_actual.nombre }}">
+                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                {{ usuario_actual.username }}
+                            </a>
+                            <div class="dropdown-menu">
+                                <div class="py-1" role="menu" aria-orientation="vertical">
+                                    <a href="{{ url_for('auth.usuarios') }}" class="dropdown-item-base" role="menuitem">👤 Usuarios y contraseña</a>
+                                    <form method="POST" action="{{ url_for('auth.logout') }}">
+                                        <button type="submit" class="dropdown-item-base w-full text-left" role="menuitem">🚪 Cerrar sesión</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
                     </div>
                 </div>
                 
@@ -938,6 +956,22 @@
                         </a>
                     </div>
                 </div>
+
+                {% if usuario_actual %}
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 px-1 pt-1">Sesión: {{ usuario_actual.username }}</p>
+                <div class="grid grid-cols-1 gap-2">
+                    <a href="{{ url_for('auth.usuarios') }}" class="mobile-nav-item">
+                        <span class="mobile-nav-item-icon indigo">👤</span>
+                        <span class="mobile-nav-item-text">Usuarios y contraseña</span>
+                    </a>
+                    <form method="POST" action="{{ url_for('auth.logout') }}">
+                        <button type="submit" class="mobile-nav-item w-full text-left">
+                            <span class="mobile-nav-item-icon">🚪</span>
+                            <span class="mobile-nav-item-text">Cerrar sesión</span>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
         </div>
     </nav>

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Usuarios - Fibra Manager{% endblock %}
+
+{% block content %}
+{% set clase_input = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' %}
+<div class="max-w-5xl mx-auto pb-12">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">👤 Usuarios</h1>
+        <p class="text-gray-600 mt-1">Quién puede entrar a Fibra Manager. Todos los usuarios tienen acceso completo.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <section class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-1">Mi contraseña</h2>
+            <p class="text-sm text-gray-500 mb-4">Sesión iniciada como <strong>{{ usuario_actual.username }}</strong>. Al cambiarla se cierran tus sesiones en otros dispositivos.</p>
+            <form method="POST" action="{{ url_for('auth.cambiar_password', usuario_id=usuario_actual.id) }}" class="space-y-3">
+                <input type="password" name="password_actual" required autocomplete="current-password" placeholder="Contraseña actual" class="{{ clase_input }}">
+                <input type="password" name="password" required minlength="{{ longitud_minima }}" autocomplete="new-password" placeholder="Nueva contraseña (mín. {{ longitud_minima }} caracteres)" class="{{ clase_input }}">
+                <input type="password" name="password_confirmacion" required minlength="{{ longitud_minima }}" autocomplete="new-password" placeholder="Repite la nueva contraseña" class="{{ clase_input }}">
+                <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Cambiar mi contraseña</button>
+            </form>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-1">Nuevo usuario</h2>
+            <p class="text-sm text-gray-500 mb-4">Comparte la contraseña en persona y pídele que la cambie al entrar.</p>
+            <form method="POST" action="{{ url_for('auth.crear_usuario') }}" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" name="username" required maxlength="50" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Usuario (ej. juan)" class="{{ clase_input }}">
+                    <input type="text" name="nombre" required maxlength="120" autocomplete="off" placeholder="Nombre completo" class="{{ clase_input }}">
+                </div>
+                <input type="password" name="password" required minlength="{{ longitud_minima }}" autocomplete="new-password" placeholder="Contraseña (mín. {{ longitud_minima }} caracteres)" class="{{ clase_input }}">
+                <input type="password" name="password_confirmacion" required minlength="{{ longitud_minima }}" autocomplete="new-password" placeholder="Repite la contraseña" class="{{ clase_input }}">
+                <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Crear usuario</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Usuario</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Último acceso</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Estado</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for u in usuarios %}
+                    {% set es_yo = u.id == usuario_actual.id %}
+                    <tr class="{{ '' if u.activo else 'opacity-60' }}">
+                        <td class="px-4 py-3">
+                            <div class="font-semibold text-gray-900">{{ u.nombre }}{% if es_yo %} <span class="text-xs text-indigo-600">(tú)</span>{% endif %}</div>
+                            <div class="text-xs text-gray-500 font-mono">{{ u.username }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ u.ultimo_acceso|datetime_format if u.ultimo_acceso else 'Nunca' }}</td>
+                        <td class="px-4 py-3 text-sm">
+                            {% if not u.activo %}
+                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-700">Desactivado</span>
+                            {% elif u.bloqueado_hasta and u.bloqueado_hasta > ahora %}
+                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Bloqueado por intentos</span>
+                            {% else %}
+                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Activo</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {% if not es_yo %}
+                            <div class="flex flex-col sm:flex-row gap-2 justify-end items-end">
+                                <details class="text-left">
+                                    <summary class="cursor-pointer text-sm text-indigo-600 hover:underline">Nueva contraseña</summary>
+                                    <form method="POST" action="{{ url_for('auth.cambiar_password', usuario_id=u.id) }}" class="mt-2 space-y-2 w-64">
+                                        <input type="password" name="password" required minlength="{{ longitud_minima }}" autocomplete="new-password" placeholder="Nueva contraseña" class="{{ clase_input }}">
+                                        <input type="password" name="password_confirmacion" required minlength="{{ longitud_minima }}" autocomplete="new-password" placeholder="Repítela" class="{{ clase_input }}">
+                                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">Guardar</button>
+                                    </form>
+                                </details>
+                                <form method="POST" action="{{ url_for('auth.cambiar_activo', usuario_id=u.id) }}"
+                                      onsubmit="return confirm('{{ '¿Desactivar' if u.activo else '¿Reactivar' }} a {{ u.username }}?');">
+                                    <button type="submit" class="px-3 py-1.5 rounded-lg text-sm font-semibold {{ 'bg-red-100 text-red-700 hover:bg-red-200' if u.activo else 'bg-green-100 text-green-700 hover:bg-green-200' }}">
+                                        {{ 'Desactivar' if u.activo else 'Reactivar' }}
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
