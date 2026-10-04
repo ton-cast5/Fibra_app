@@ -113,7 +113,7 @@
                     </div>
                     <input type="text" name="q" id="buscador" value="{{ filtros.q }}"
                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 search-glow transition-all duration-300"
-                           placeholder="🔍 Buscar por nombre, dirección, contacto o NAP...">
+                           placeholder="🔍 Buscar por nombre, dirección, contacto, IP, servicio o NAP...">
                 </div>
             </div>
 
@@ -202,6 +202,12 @@
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium fm-tag-indigo mt-1">
                                         {{ cliente.plan }}
                                     </span>
+                                    {% if cliente.ip or cliente.servicio %}
+                                    <div class="text-xs text-gray-500 font-mono mt-1">
+                                        {% if cliente.ip %}<span title="IP">🌐 {{ cliente.ip }}</span>{% endif %}
+                                        {% if cliente.servicio %}<span class="ml-2" title="Servicio">🔑 {{ cliente.servicio }}</span>{% endif %}
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </td>

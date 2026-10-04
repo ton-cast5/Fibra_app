@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Agregar Nuevo Cliente - Fibra Manager{% endblock %}
+{% block title %}{{ 'Editar Cliente' if cliente is defined and cliente else 'Agregar Nuevo Cliente' }} - Fibra Manager{% endblock %}
 
 {% block head %}
 <style>
@@ -56,6 +56,17 @@
 {% endblock %}
 
 {% block content %}
+{% set es_edicion = cliente is defined and cliente %}
+{% set enviado = request.method == 'POST' %}
+{% set v_nombre = request.form.get('nombre', cliente.nombre if es_edicion else '') %}
+{% set v_plan = request.form.get('plan', (cliente.plan or '') if es_edicion else '') %}
+{% set v_direccion = request.form.get('direccion', cliente.direccion if es_edicion else '') %}
+{% set v_contacto = request.form.get('contacto', (cliente.contacto or '') if es_edicion else '') %}
+{% set v_ip = request.form.get('ip', (cliente.ip or '') if es_edicion else '') %}
+{% set v_servicio = request.form.get('servicio', (cliente.servicio or '') if es_edicion else '') %}
+{% set v_nat_id = (request.form.get('nat_id') or (cliente.nat_id if es_edicion else (nat_destino.id if nat_destino else '')))|string %}
+{% set v_activo = ('activo' in request.form) if enviado else (cliente.activo if es_edicion else true) %}
+{% set url_volver = url_for('ver_nat', nat_id=cliente.nat_id) if es_edicion else (url_for('ver_nat', nat_id=nat_destino.id) if nat_destino else url_for('index')) %}
 <div class="fade-in">
     <!-- Header Premium -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
@@ -68,10 +79,10 @@
                 </div>
                 <div>
                     <span class="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        Agregar Nuevo Cliente
+                        {{ 'Editar Cliente' if es_edicion else 'Agregar Nuevo Cliente' }}
                     </span>
                     <p class="text-lg text-gray-600 font-normal mt-1">
-                        Registra un nuevo cliente en la red de fibra óptica
+                        {{ 'Actualiza los datos o mueve al cliente a otra NAP' if es_edicion else 'Registra un nuevo cliente en la red de fibra óptica' }}
                     </p>
                 </div>
             </h1>
@@ -79,12 +90,12 @@
         
         <!-- Botón de Volver Premium -->
         <div class="flex space-x-3 mt-4 lg:mt-0">
-            <a href="{{ url_for('ver_nat', nat_id=nat_destino.id) if nat_destino else url_for('index') }}" 
+            <a href="{{ url_volver }}" 
                class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
-                {% if nat_destino %}Volver a {{ nat_destino.nombre }}{% else %}Volver al Listado{% endif %}
+                {% if es_edicion %}Volver a {{ cliente.nat.nombre }}{% elif nat_destino %}Volver a {{ nat_destino.nombre }}{% else %}Volver al Listado{% endif %}
             </a>
         </div>
     </div>
@@ -117,12 +128,12 @@
                         </svg>
                         Información del Cliente
                     </h2>
-                    <p class="text-emerald-100 mt-2">Completa los datos del nuevo cliente</p>
+                    <p class="text-emerald-100 mt-2">{{ 'Modifica los datos del cliente' if es_edicion else 'Completa los datos del nuevo cliente' }}</p>
                 </div>
 
                 <!-- Cuerpo del Formulario -->
                 <div class="p-8">
-                    <form method="POST" action="{{ url_for('agregar_cliente') }}" class="space-y-6">
+                    <form method="POST" action="{{ url_for('editar_cliente', cliente_id=cliente.id) if es_edicion else url_for('agregar_cliente') }}" class="space-y-6">
                         
                         <!-- Campo NAP de Destino -->
                         <div class="space-y-2">
@@ -136,12 +147,17 @@
                                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300 bg-white">
                                 <option value="" class="text-gray-400">-- Selecciona una NAP --</option>
                                 {% for nat in nats %}
+                                    {% set es_placeholder = nat.nombre == NAT_SIN_ASIGNAR %}
+                                    {% set es_actual = es_edicion and nat.id == cliente.nat_id %}
+                                    {% set llena = not es_placeholder and not es_actual and nat.puertos_usados >= nat.puertos_total %}
                                     <option value="{{ nat.id }}" 
-                                        {% if nat.puertos_usados >= nat.puertos_total %}disabled class="nap-option-full"{% else %}class="nap-option-available"{% endif %}
-                                        {% if nat_destino and nat.id == nat_destino.id %}selected{% endif %}>
+                                        {% if llena %}disabled class="nap-option-full"{% else %}class="nap-option-available"{% endif %}
+                                        {% if nat.id|string == v_nat_id %}selected{% endif %}>
                                         
                                         {{ nat.nombre }} 
-                                        {% if nat.puertos_usados >= nat.puertos_total %} 
+                                        {% if es_placeholder %}
+                                            ⚪ (sin NAP asignada)
+                                        {% elif llena %} 
                                             🔴 (LLENA - {{ nat.puertos_usados }}/{{ nat.puertos_total }})
                                         {% else %} 
                                             🟢 ({{ nat.puertos_usados }}/{{ nat.puertos_total }} Usados)
@@ -151,7 +167,7 @@
                             </select>
                             
                             <!-- Indicador de Capacidad -->
-                            {% if nat_destino %}
+                            {% if nat_destino and nat_destino.puertos_total > 0 %}
                                 <div class="mt-3 p-4 rounded-xl {% if nat_destino.puertos_usados >= nat_destino.puertos_total %}capacity-warning{% else %}capacity-normal{% endif %}">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center">
@@ -201,7 +217,7 @@
                                        id="nombre" 
                                        name="nombre" 
                                        required
-                                       value="{{ request.form.nombre if request.form.nombre else '' }}"
+                                       value="{{ v_nombre }}"
                                        placeholder="Ej: Juan Pérez Hernández">
                             </div>
 
@@ -218,7 +234,7 @@
                                        id="plan" 
                                        name="plan" 
                                        required
-                                       value="{{ request.form.plan if request.form.plan else '' }}"
+                                       value="{{ v_plan }}"
                                        placeholder="Ej: 100 Mbps, 200 Mbps Fibra">
                             </div>
                         </div>
@@ -236,7 +252,7 @@
                                    id="direccion" 
                                    name="direccion" 
                                    required
-                                   value="{{ request.form.direccion if request.form.direccion else '' }}"
+                                   value="{{ v_direccion }}"
                                    placeholder="Ej: Calle Principal #123, Colonia Centro">
                         </div>
 
@@ -252,13 +268,52 @@
                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300" 
                                    id="contacto" 
                                    name="contacto" 
-                                   value="{{ request.form.contacto if request.form.contacto else '' }}"
+                                   value="{{ v_contacto }}"
                                    placeholder="Ej: 555-123-4567">
                         </div>
 
+                        <!-- IP y Servicio -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label for="ip" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white p-1 rounded-lg mr-2">
+                                        🌐
+                                    </span>
+                                    IP
+                                </label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300 font-mono" 
+                                       id="ip" 
+                                       name="ip" 
+                                       maxlength="45"
+                                       value="{{ v_ip }}"
+                                       placeholder="Ej: 192.168.4.20">
+                            </div>
+                            <div class="space-y-2">
+                                <label for="servicio" class="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <span class="bg-gradient-to-r from-slate-500 to-slate-600 text-white p-1 rounded-lg mr-2">
+                                        🔑
+                                    </span>
+                                    Servicio (usuario PPPoE / CURP)
+                                </label>
+                                <input type="text" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 input-glow transition-all duration-300 font-mono" 
+                                       id="servicio" 
+                                       name="servicio" 
+                                       maxlength="100"
+                                       value="{{ v_servicio }}"
+                                       placeholder="Ej: PEHJ790623HTCRRN08">
+                            </div>
+                        </div>
+
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" name="activo" class="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500" {% if v_activo %}checked{% endif %}>
+                            <span class="text-sm font-semibold text-gray-700">Cliente activo</span>
+                        </label>
+
                         <!-- Botones de Acción -->
                         <div class="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-                            <a href="{{ url_for('ver_nat', nat_id=nat_destino.id) if nat_destino else url_for('index') }}" 
+                            <a href="{{ url_volver }}" 
                                class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-2 sm:order-1">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -271,7 +326,7 @@
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                Guardar Nuevo Cliente
+                                {{ 'Guardar Cambios' if es_edicion else 'Guardar Nuevo Cliente' }}
                             </button>
                         </div>
 
@@ -342,7 +397,7 @@
                     NAPs Disponibles
                 </h3>
                 <div class="space-y-3 text-sm">
-                    {% for nat in nats %}
+                    {% for nat in nats if nat.puertos_total > 0 %}
                     <div class="flex items-center justify-between p-2 bg-white rounded-lg border {% if nat.puertos_usados >= nat.puertos_total %}border-red-200 bg-red-50{% else %}border-green-200 bg-green-50{% endif %}">
                         <div class="flex items-center space-x-2">
                             <span class="text-lg">

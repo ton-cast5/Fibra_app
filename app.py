@@ -278,6 +278,8 @@ class Cliente(db.Model):
     direccion = db.Column(db.Text, nullable=False)
     plan = db.Column(db.String(100), nullable=True)
     contacto = db.Column(db.String(150), nullable=True)
+    ip = db.Column(db.String(45), nullable=True, index=True)
+    servicio = db.Column(db.String(100), nullable=True)
     activo = db.Column(db.Boolean, default=True, index=True)
     nat_id = db.Column(db.Integer, 
                       db.ForeignKey('nat.id', ondelete='CASCADE'), 
@@ -634,6 +636,24 @@ def _nat_uso_y_estado(nat):
     return _calcular_ocupacion_nat(nat)
 
 
+NAT_SIN_ASIGNAR = 'SIN ASIGNAR'
+app.jinja_env.globals['NAT_SIN_ASIGNAR'] = NAT_SIN_ASIGNAR
+
+
+def _nat_sin_cupo(nat):
+    """La NAP placeholder de clientes importados no tiene límite de puertos."""
+    if not nat or nat.nombre == NAT_SIN_ASIGNAR:
+        return False
+    return nat.puertos_usados >= nat.puertos_total
+
+
+def _nats_formulario_cliente(cliente=None):
+    nats = Nat.query.join(NapModel).filter(NapModel.tipo_caja == 'distribucion').order_by(Nat.nombre).all()
+    if cliente and cliente.nat and cliente.nat not in nats:
+        nats.insert(0, cliente.nat)
+    return nats
+
+
 def _subquery_usados_clientes():
     return (
         db.session.query(
@@ -723,6 +743,8 @@ def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
             func.lower(Cliente.nombre).like(term),
             func.lower(Cliente.direccion).like(term),
             func.lower(func.coalesce(Cliente.contacto, '')).like(term),
+            func.lower(func.coalesce(Cliente.ip, '')).like(term),
+            func.lower(func.coalesce(Cliente.servicio, '')).like(term),
             func.lower(func.coalesce(Nat.nombre, '')).like(term),
         ))
 
@@ -1259,6 +1281,8 @@ def api_clientes():
         'direccion': c.direccion,
         'plan': c.plan,
         'contacto': c.contacto,
+        'ip': c.ip,
+        'servicio': c.servicio,
         'activo': c.activo,
         'nat_id': c.nat_id,
         'nap_nombre': c.nat.nombre if c.nat else None,
@@ -1418,6 +1442,8 @@ def descargar_excel_todo():
         'Dirección': c.direccion,
         'Plan': c.plan,
         'Contacto': c.contacto,
+        'IP': c.ip,
+        'Servicio': c.servicio,
         'Activo': 'Sí' if c.activo else 'No',
         'NAP ID': c.nat_id,
     } for c in clientes])
@@ -1966,8 +1992,7 @@ def ver_cliente(cliente_id):
 @app.route('/agregar_cliente/<int:nat_id>', methods=['GET', 'POST'])
 @app.route('/agregar_cliente', methods=['GET', 'POST'])
 def agregar_cliente(nat_id=None):
-    # Solo mostrar NAPs de distribución (no empalme)
-    nats = Nat.query.join(NapModel).filter(NapModel.tipo_caja == 'distribucion').order_by(Nat.nombre).all()
+    nats = _nats_formulario_cliente()
     nat_destino = Nat.query.get(nat_id) if nat_id else None
     
     if request.method == 'POST':
@@ -1975,6 +2000,8 @@ def agregar_cliente(nat_id=None):
         direccion = request.form.get('direccion')
         plan = request.form.get('plan')
         contacto = request.form.get('contacto')
+        ip = (request.form.get('ip') or '').strip() or None
+        servicio = (request.form.get('servicio') or '').strip() or None
         nat_seleccionada_id = request.form.get('nat_id')
         activo = request.form.get('activo') == 'on'
         
@@ -1983,7 +2010,7 @@ def agregar_cliente(nat_id=None):
             return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino)
 
         nat_obj = Nat.query.get(nat_seleccionada_id)
-        if nat_obj and nat_obj.puertos_usados >= nat_obj.puertos_total and activo:
+        if activo and _nat_sin_cupo(nat_obj):
              flash('Error: La NAT seleccionada está llena (100% de uso).', 'danger')
              return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino)
         
@@ -1993,6 +2020,8 @@ def agregar_cliente(nat_id=None):
                 direccion=direccion,
                 plan=plan,
                 contacto=contacto,
+                ip=ip,
+                servicio=servicio,
                 nat_id=nat_seleccionada_id,
                 activo=activo
             )
@@ -2013,14 +2042,15 @@ def agregar_cliente(nat_id=None):
 @app.route('/editar_cliente/<int:cliente_id>', methods=['GET', 'POST'])
 def editar_cliente(cliente_id):
     cliente = Cliente.query.get_or_404(cliente_id)
-    # Solo mostrar NAPs de distribución (no empalme)
-    nats = Nat.query.join(NapModel).filter(NapModel.tipo_caja == 'distribucion').order_by(Nat.nombre).all()
+    nats = _nats_formulario_cliente(cliente)
     
     if request.method == 'POST':
         nombre = request.form.get('nombre')
         direccion = request.form.get('direccion')
         plan = request.form.get('plan')
         contacto = request.form.get('contacto')
+        ip = (request.form.get('ip') or '').strip() or None
+        servicio = (request.form.get('servicio') or '').strip() or None
         nat_seleccionada_id = request.form.get('nat_id')
         activo = request.form.get('activo') == 'on'
         
@@ -2030,20 +2060,21 @@ def editar_cliente(cliente_id):
 
         nat_obj = Nat.query.get(nat_seleccionada_id)
         
-        if activo and nat_obj and nat_obj.puertos_usados >= nat_obj.puertos_total:
+        if activo and _nat_sin_cupo(nat_obj):
             if int(nat_seleccionada_id) == cliente.nat_id and not cliente.activo:
                  flash('Error: La NAT seleccionada está llena (100% de uso) y no permite reactivación.', 'danger')
                  return render_template('agregar_cliente.html', cliente=cliente, nats=nats)
             if int(nat_seleccionada_id) != cliente.nat_id:
-                 if nat_obj.puertos_usados >= nat_obj.puertos_total:
-                     flash('Error: La nueva NAT seleccionada está llena (100% de uso).', 'danger')
-                     return render_template('agregar_cliente.html', cliente=cliente, nats=nats)
+                 flash('Error: La nueva NAT seleccionada está llena (100% de uso).', 'danger')
+                 return render_template('agregar_cliente.html', cliente=cliente, nats=nats)
 
         try:
             cliente.nombre = nombre
             cliente.direccion = direccion
             cliente.plan = plan
             cliente.contacto = contacto
+            cliente.ip = ip
+            cliente.servicio = servicio
             cliente.nat_id = nat_seleccionada_id
             cliente.activo = activo
             
@@ -2063,7 +2094,7 @@ def activar_cliente(cliente_id):
 
     if not cliente.activo:
         nat_obj = Nat.query.get(nat_id)
-        if nat_obj and nat_obj.puertos_usados >= nat_obj.puertos_total:
+        if _nat_sin_cupo(nat_obj):
             flash(f'Error: No se puede reactivar al cliente "{cliente.nombre}". La NAT {nat_obj.nombre} está al 100% de su capacidad.', 'danger')
             return redirect(url_for('ver_nat', nat_id=nat_id))
 
@@ -3202,6 +3233,8 @@ def descargar_excel_clientes():
             'Dirección': cliente.direccion,
             'Plan': cliente.plan,
             'Contacto': cliente.contacto,
+            'IP': cliente.ip,
+            'Servicio': cliente.servicio,
             'Activo': 'Sí' if cliente.activo else 'No',
             'NAP': nat_nombre,
         })

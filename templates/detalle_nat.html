@@ -742,6 +742,7 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-semibold text-gray-900">{{ cliente.nombre }}</div>
                             <div class="text-xs text-gray-500 truncate max-w-xs">{{ cliente.direccion }}</div>
+                            {% if cliente.ip %}<div class="text-xs text-gray-500 font-mono">🌐 {{ cliente.ip }}</div>{% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium fm-tag-indigo">

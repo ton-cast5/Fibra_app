@@ -37,5 +37,6 @@ Thumbs.db
 
 # Datos locales
 uploads/
+importacion/
 static/nap_images/*
 !static/nap_images/.gitkeep
