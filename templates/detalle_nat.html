@@ -103,147 +103,128 @@
     {% endif %}
 
     <div class="fn-nat-grid">
-        <div class="fn-nat-col">
-            <section class="fn-nat-card" id="info">
-                <div class="fn-nat-card-head">
-                    <h2>Datos de la caja</h2>
-                    <p>Todo lo esencial, a un toque</p>
-                </div>
-
-                {% if nat.descripcion and nat.descripcion.strip() %}
-                <details class="fn-nat-note" open>
-                    <summary>Notas de campo</summary>
-                    <p>{{ nat.descripcion.strip() }}</p>
-                </details>
-                {% endif %}
-
-                <div class="fn-nat-facts">
-                    <div class="fn-nat-fact">
-                        <span>Tipo</span>
-                        <strong>{% if nat.tipo_caja == 'empalme' %}Empalme{% else %}Distribución (NAP){% endif %}</strong>
-                    </div>
-                    <div class="fn-nat-fact">
-                        <span>Región</span>
-                        <strong>{{ nat.region or 'No especificada' }}</strong>
-                    </div>
-                    <div class="fn-nat-fact">
-                        <span>Modelo</span>
-                        <strong>{{ nat.modelo.nombre if nat.modelo else 'Genérico' }}</strong>
-                    </div>
-                    <div class="fn-nat-fact">
-                        <span>Capacidad modelo</span>
-                        <strong>{% if nat.modelo and nat.modelo.capacidad_max is not none %}{{ nat.modelo.capacidad_max }} puertos{% else %}—{% endif %}</strong>
-                    </div>
-                    <div class="fn-nat-fact wide">
-                        <span>Ubicación GPS</span>
-                        <strong class="mono">{{ nat.ubicacion or 'No especificada' }}</strong>
-                    </div>
-                    <div class="fn-nat-fact">
-                        <span>Color del hilo</span>
-                        <strong class="fn-nat-hilo">
-                            <i style="background:{{ hilo_ns.hex or '#D1D5DB' }}"></i>
-                            {{ hilo_val or 'No especificado' }}
-                        </strong>
-                    </div>
-                </div>
-            </section>
-
-            <section class="fn-nat-card" id="clients">
-                <div class="fn-nat-card-head fn-nat-clients-bar">
-                    <div>
-                        <h2>Clientes</h2>
-                        <p><span id="fn-nat-visible-count">{{ clientes|length }}</span> visibles · {{ activos }} activos</p>
-                    </div>
-                    <div class="fn-nat-tools">
-                        <label class="fn-nat-search">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
-                            <input type="search" id="fn-nat-q" placeholder="Buscar nombre, IP, plan…" autocomplete="off">
-                        </label>
-                        <div class="fn-nat-segs" role="tablist" aria-label="Filtrar clientes">
-                            <button type="button" class="is-on" data-filter="all" role="tab" aria-selected="true">Todos</button>
-                            <button type="button" data-filter="active" role="tab" aria-selected="false">Activos</button>
-                            <button type="button" data-filter="inactive" role="tab" aria-selected="false">Inactivos</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="fn-nat-clients" id="fn-nat-clients">
-                    {% for cliente in clientes %}
-                    <article class="fn-nat-client"
-                             data-status="{{ 'active' if cliente.activo else 'inactive' }}"
-                             data-q="{{ (cliente.nombre ~ ' ' ~ (cliente.direccion or '') ~ ' ' ~ (cliente.ip or '') ~ ' ' ~ (cliente.plan or '') ~ ' ' ~ (cliente.contacto or ''))|lower }}">
-                        <button type="button" class="fn-nat-client-main" aria-expanded="false">
-                            <span class="fn-nat-avatar">{{ cliente.nombre[:1]|upper }}</span>
-                            <span class="fn-nat-client-text">
-                                <strong>{{ cliente.nombre }}</strong>
-                                <small>{{ cliente.direccion or 'Sin dirección' }}{% if cliente.ip %} · {{ cliente.ip }}{% endif %}</small>
-                            </span>
-                            <span class="fn-status {{ 'ok' if cliente.activo else 'bad' }}">{{ 'Activo' if cliente.activo else 'Inactivo' }}</span>
-                        </button>
-                        <div class="fn-nat-client-body">
-                            <div class="fn-nat-client-meta">
-                                <div><span>Plan</span><strong>{{ cliente.plan or 'Sin plan' }}</strong></div>
-                                <div><span>Contacto</span><strong>{{ cliente.contacto or '—' }}</strong></div>
-                                <div><span>IP</span><strong class="mono">{{ cliente.ip or '—' }}</strong></div>
-                            </div>
-                            <div class="fn-nat-client-actions">
-                                <form method="POST" action="{{ url_for('activar_cliente', cliente_id=cliente.id) }}"
-                                      onsubmit="return confirm('¿{{ 'Desactivar' if cliente.activo else 'Activar' }} a {{ cliente.nombre }}?');">
-                                    <button type="submit" class="fn-nat-chip">{{ 'Desactivar' if cliente.activo else 'Activar' }}</button>
-                                </form>
-                                <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}" class="fn-nat-chip">Editar</a>
-                                <form method="POST" action="{{ url_for('eliminar_cliente', cliente_id=cliente.id) }}"
-                                      onsubmit="return confirm('¿Eliminar a {{ cliente.nombre }}?');">
-                                    <button type="submit" class="fn-nat-chip danger">Eliminar</button>
-                                </form>
-                            </div>
-                        </div>
-                    </article>
-                    {% else %}
-                    <div class="fn-nat-empty">
-                        <h3>Aún no hay clientes</h3>
-                        <p>Agrega el primero y verás aquí su estado al instante.</p>
-                        <a href="{{ url_for('agregar_cliente', nat_id=nat.id) }}" class="fn-btn-primary">+ Nuevo cliente</a>
-                    </div>
-                    {% endfor %}
-                    <div class="fn-nat-empty fn-nat-empty-filter" id="fn-nat-empty-filter" hidden>
-                        <h3>Sin coincidencias</h3>
-                        <p>Prueba otro filtro o limpia la búsqueda.</p>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <aside class="fn-nat-aside">
-            <div class="fn-nat-card fn-nat-model">
-                {% set imagen_path = nat.modelo.imagen_url if nat.modelo and nat.modelo.imagen_url else url_for('static', filename='nap_images/placeholder.jpg') %}
-                <div class="fn-nat-model-media">
-                    <img src="{{ imagen_path }}"
-                         alt="{{ nat.modelo.nombre if nat.modelo else nat.nombre }}"
-                         loading="lazy"
-                         onerror="this.src='https://placehold.co/400x220/F3F1F8/6C5CEF?text={{ (nat.modelo.nombre if nat.modelo else nat.nombre)|urlencode }}';">
-                </div>
-                <div class="fn-nat-model-body">
-                    <h3>{{ nat.modelo.nombre if nat.modelo else 'Genérico' }}</h3>
-                    <p>{% if nat.modelo and nat.modelo.capacidad_max is not none %}{{ nat.modelo.capacidad_max }} puertos de modelo{% else %}Sin capacidad definida{% endif %}</p>
-                </div>
+        <section class="fn-nat-card" id="info">
+            <div class="fn-nat-card-head">
+                <h2>Datos de la caja</h2>
+                <p>Todo lo esencial, a un toque</p>
             </div>
 
-            <div class="fn-nat-card">
-                <div class="fn-nat-card-head">
-                    <h2>Capacidad</h2>
+            {% if nat.descripcion and nat.descripcion.strip() %}
+            <details class="fn-nat-note" open>
+                <summary>Notas de campo</summary>
+                <p>{{ nat.descripcion.strip() }}</p>
+            </details>
+            {% endif %}
+
+            <div class="fn-nat-facts">
+                <div class="fn-nat-fact">
+                    <span>Tipo</span>
+                    <strong>{% if nat.tipo_caja == 'empalme' %}Empalme{% else %}Distribución (NAP){% endif %}</strong>
                 </div>
-                <ul class="fn-nat-summary">
-                    <li><span>Usados</span><strong>{{ nat.puertos_usados }}</strong></li>
-                    <li><span>Libres</span><strong>{{ libres }}</strong></li>
-                    <li><span>Total</span><strong>{{ nat.puertos_total }}</strong></li>
-                    <li><span>Actividad</span><strong>{% if clientes|length %}{{ "%.0f"|format(activos / clientes|length * 100) }}%{% else %}0%{% endif %}</strong></li>
-                </ul>
-                <div class="fn-nat-meter" aria-hidden="true">
-                    <span class="tone-{{ tone }}" style="width:{{ uso_clamp }}%"></span>
+                <div class="fn-nat-fact">
+                    <span>Región</span>
+                    <strong>{{ nat.region or 'No especificada' }}</strong>
                 </div>
+                <div class="fn-nat-fact">
+                    <span>Modelo</span>
+                    <strong>{{ nat.modelo.nombre if nat.modelo else 'Genérico' }}</strong>
+                </div>
+                <div class="fn-nat-fact">
+                    <span>Capacidad modelo</span>
+                    <strong>{% if nat.modelo and nat.modelo.capacidad_max is not none %}{{ nat.modelo.capacidad_max }} puertos{% else %}—{% endif %}</strong>
+                </div>
+                <div class="fn-nat-fact wide">
+                    <span>Ubicación GPS</span>
+                    <strong class="mono">{{ nat.ubicacion or 'No especificada' }}</strong>
+                </div>
+                <div class="fn-nat-fact">
+                    <span>Color del hilo</span>
+                    <strong class="fn-nat-hilo">
+                        <i style="background:{{ hilo_ns.hex or '#D1D5DB' }}"></i>
+                        {{ hilo_val or 'No especificado' }}
+                    </strong>
+                </div>
+            </div>
+        </section>
+
+        <aside class="fn-nat-card fn-nat-model">
+            {% set imagen_path = nat.modelo.imagen_url if nat.modelo and nat.modelo.imagen_url else url_for('static', filename='nap_images/placeholder.jpg') %}
+            <div class="fn-nat-model-media">
+                <img src="{{ imagen_path }}"
+                     alt="{{ nat.modelo.nombre if nat.modelo else nat.nombre }}"
+                     loading="lazy"
+                     onerror="this.src='https://placehold.co/400x220/F3F1F8/6C5CEF?text={{ (nat.modelo.nombre if nat.modelo else nat.nombre)|urlencode }}';">
+            </div>
+            <div class="fn-nat-model-body">
+                <h3>{{ nat.modelo.nombre if nat.modelo else 'Genérico' }}</h3>
+                <p>{% if nat.modelo and nat.modelo.capacidad_max is not none %}{{ nat.modelo.capacidad_max }} puertos de modelo{% else %}Sin capacidad definida{% endif %}</p>
             </div>
         </aside>
+
+        <section class="fn-nat-card fn-nat-clients-wide" id="clients">
+            <div class="fn-nat-card-head fn-nat-clients-bar">
+                <div>
+                    <h2>Clientes</h2>
+                    <p><span id="fn-nat-visible-count">{{ clientes|length }}</span> visibles · {{ activos }} activos</p>
+                </div>
+                <div class="fn-nat-tools">
+                    <label class="fn-nat-search">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
+                        <input type="search" id="fn-nat-q" placeholder="Buscar nombre, IP, plan…" autocomplete="off">
+                    </label>
+                    <div class="fn-nat-segs" role="tablist" aria-label="Filtrar clientes">
+                        <button type="button" class="is-on" data-filter="all" role="tab" aria-selected="true">Todos</button>
+                        <button type="button" data-filter="active" role="tab" aria-selected="false">Activos</button>
+                        <button type="button" data-filter="inactive" role="tab" aria-selected="false">Inactivos</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fn-nat-clients" id="fn-nat-clients">
+                {% for cliente in clientes %}
+                <article class="fn-nat-client"
+                         data-status="{{ 'active' if cliente.activo else 'inactive' }}"
+                         data-q="{{ (cliente.nombre ~ ' ' ~ (cliente.direccion or '') ~ ' ' ~ (cliente.ip or '') ~ ' ' ~ (cliente.plan or '') ~ ' ' ~ (cliente.contacto or ''))|lower }}">
+                    <button type="button" class="fn-nat-client-main" aria-expanded="false">
+                        <span class="fn-nat-avatar">{{ cliente.nombre[:1]|upper }}</span>
+                        <span class="fn-nat-client-text">
+                            <strong>{{ cliente.nombre }}</strong>
+                            <small>{{ cliente.direccion or 'Sin dirección' }}{% if cliente.ip %} · {{ cliente.ip }}{% endif %}</small>
+                        </span>
+                        <span class="fn-status {{ 'ok' if cliente.activo else 'bad' }}">{{ 'Activo' if cliente.activo else 'Inactivo' }}</span>
+                    </button>
+                    <div class="fn-nat-client-body">
+                        <div class="fn-nat-client-meta">
+                            <div><span>Plan</span><strong>{{ cliente.plan or 'Sin plan' }}</strong></div>
+                            <div><span>Contacto</span><strong>{{ cliente.contacto or '—' }}</strong></div>
+                            <div><span>IP</span><strong class="mono">{{ cliente.ip or '—' }}</strong></div>
+                        </div>
+                        <div class="fn-nat-client-actions">
+                            <form method="POST" action="{{ url_for('activar_cliente', cliente_id=cliente.id) }}"
+                                  onsubmit="return confirm('¿{{ 'Desactivar' if cliente.activo else 'Activar' }} a {{ cliente.nombre }}?');">
+                                <button type="submit" class="fn-nat-chip">{{ 'Desactivar' if cliente.activo else 'Activar' }}</button>
+                            </form>
+                            <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}" class="fn-nat-chip">Editar</a>
+                            <form method="POST" action="{{ url_for('eliminar_cliente', cliente_id=cliente.id) }}"
+                                  onsubmit="return confirm('¿Eliminar a {{ cliente.nombre }}?');">
+                                <button type="submit" class="fn-nat-chip danger">Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+                {% else %}
+                <div class="fn-nat-empty">
+                    <h3>Aún no hay clientes</h3>
+                    <p>Agrega el primero y verás aquí su estado al instante.</p>
+                    <a href="{{ url_for('agregar_cliente', nat_id=nat.id) }}" class="fn-btn-primary">+ Nuevo cliente</a>
+                </div>
+                {% endfor %}
+                <div class="fn-nat-empty fn-nat-empty-filter" id="fn-nat-empty-filter" hidden>
+                    <h3>Sin coincidencias</h3>
+                    <p>Prueba otro filtro o limpia la búsqueda.</p>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 
