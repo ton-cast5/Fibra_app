@@ -177,7 +177,7 @@ db = SQLAlchemy(app)
 
 if os.getenv('VERCEL') != '1':
     print("=" * 60)
-    print("FIBRA MANAGER - Supabase PostgreSQL")
+    print("TONYLEX - Supabase PostgreSQL")
     print(f"Proyecto: {SUPABASE_URL_STORAGE}")
     if SUPABASE_STORAGE_KEY:
         _storage_key_label = "service_role (OK para subir)"
@@ -3186,7 +3186,7 @@ def health_check():
 def require_database_config():
     if _db_config_error and request.endpoint not in ('health_check', 'static'):
         return (
-            '<h1>Fibra Manager</h1>'
+            '<h1>TONYLEX</h1>'
             f'<p><strong>Configuración incompleta:</strong> {_db_config_error}</p>'
             '<p>En Vercel → Settings → Environment Variables, agrega '
             '<code>DATABASE_URL</code> (o <code>DB_PASSWORD</code>).</p>'
@@ -3195,7 +3195,25 @@ def require_database_config():
 
 Usuario = init_auth(app, db, ahora_mexico, en_produccion=EN_PRODUCCION)
 
+from api_v1 import init_api_v1
+
+init_api_v1(
+    app,
+    db,
+    Usuario,
+    models={
+        'NapModel': NapModel,
+        'Nat': Nat,
+        'Cliente': Cliente,
+        'Potencia': Potencia,
+        'Trabajador': Trabajador,
+        'RegistroAsistencia': RegistroAsistencia,
+        'Archivo': Archivo,
+    },
+    ahora=ahora_mexico,
+)
+
 
 if __name__ == '__main__':
-    print("FIBRA MANAGER - servidor local en http://127.0.0.1:5000")
+    print("TONYLEX - servidor local en http://127.0.0.1:5000")
     app.run(debug=True, host='127.0.0.1', port=5000)

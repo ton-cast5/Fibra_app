@@ -12,7 +12,11 @@ MINUTOS_BLOQUEO = 15
 LONGITUD_MINIMA_PASSWORD = 10
 DURACION_SESION = timedelta(hours=12)
 
-ENDPOINTS_PUBLICOS = {'auth.login', 'static', 'health_check', 'service_worker', 'manifest'}
+ENDPOINTS_PUBLICOS = {
+    'auth.login', 'auth.splash', 'auth.splash_done',
+    'api_v1.login',
+    'static', 'health_check', 'service_worker', 'manifest',
+}
 METODOS_SEGUROS = {'GET', 'HEAD', 'OPTIONS'}
 
 # Hash de referencia para que un usuario inexistente tarde lo mismo que uno real.
@@ -78,12 +82,28 @@ def init_auth(app, db, ahora, en_produccion):
         session.permanent = True
         session['uid'] = usuario.id
         session['sv'] = usuario.sesion_version
+        session['splash_ok'] = True
+
+    @bp.route('/splash')
+    def splash():
+        destino = _destino_seguro(request.args.get('next')) or url_for('auth.login')
+        if session.get('splash_ok'):
+            return redirect(destino)
+        return render_template('splash.html', next_url=url_for('auth.splash_done', next=destino))
+
+    @bp.route('/splash/done')
+    def splash_done():
+        session['splash_ok'] = True
+        destino = _destino_seguro(request.args.get('next')) or url_for('auth.login')
+        return redirect(destino)
 
     @bp.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'GET':
             if session.get('uid'):
                 return redirect(url_for('dashboard'))
+            if not session.get('splash_ok'):
+                return redirect(url_for('auth.splash', next=url_for('auth.login')))
             return render_template('login.html', next=_destino_seguro(request.args.get('next')))
 
         username = (request.form.get('username') or '').strip().lower()
@@ -195,6 +215,27 @@ def init_auth(app, db, ahora, en_produccion):
             if origen and urlparse(origen).netloc != request.host:
                 abort(403)
 
+        # API móvil: auth por Bearer (manejada en api_v1); no exige cookie de sesión.
+        if request.path.startswith('/api/v1/'):
+            if request.endpoint == 'api_v1.login' or request.endpoint in ENDPOINTS_PUBLICOS:
+                return None
+            auth_hdr = request.headers.get('Authorization', '')
+            if auth_hdr.lower().startswith('bearer '):
+                try:
+                    from api_v1 import verificar_token
+                    api_user = verificar_token(auth_hdr[7:].strip(), Usuario)
+                except Exception:
+                    api_user = None
+                if api_user:
+                    g.usuario = api_user
+                    return None
+            if session.get('uid'):
+                usuario = db.session.get(Usuario, session.get('uid'))
+                if usuario and usuario.activo and usuario.sesion_version == session.get('sv'):
+                    g.usuario = usuario
+                    return None
+            return jsonify({'error': 'No autorizado'}), 401
+
         if request.endpoint in ENDPOINTS_PUBLICOS or request.endpoint is None:
             return None
 
@@ -207,6 +248,14 @@ def init_auth(app, db, ahora, en_produccion):
             destino = request.full_path.rstrip('?') if request.method == 'GET' else None
             return redirect(url_for('auth.login', next=destino))
         g.usuario = usuario
+        if (
+            request.method == 'GET'
+            and not session.get('splash_ok')
+            and not _quiere_json()
+            and request.endpoint not in ('auth.splash', 'auth.splash_done')
+        ):
+            destino = request.full_path.rstrip('?') or url_for('dashboard')
+            return redirect(url_for('auth.splash', next=destino))
         return None
 
     @app.after_request

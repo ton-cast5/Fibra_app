@@ -1,11 +1,11 @@
 {
-  "name": "Fibra Manager",
-  "short_name": "FibraManager",
-  "description": "Sistema de gestión de infraestructura de fibra óptica",
+  "name": "TONYLEX",
+  "short_name": "TONYLEX",
+  "description": "Gestión de infraestructura de fibra óptica",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1f2937",
-  "theme_color": "#3B82F6",
+  "background_color": "#000000",
+  "theme_color": "#7C3AED",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/static/icons/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any maskable" },

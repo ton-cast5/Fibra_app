@@ -10,7 +10,7 @@
             if (stored === 'dark') document.documentElement.classList.add('dark');
         })();
     </script>
-    <title>{% block title %}Fibra Manager{% endblock %}</title>
+    <title>{% block title %}TONYLEX{% endblock %}</title>
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
     <script src="{{ url_for('static', filename='js/fibra-tiempo.js') }}"></script>
@@ -726,7 +726,7 @@
     
     <!-- Responsive Meta Tags -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#3B82F6">
+    <meta name="theme-color" content="#7C3AED">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -734,24 +734,103 @@
     <!-- iOS Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Fibra Manager">
+    <meta name="apple-mobile-web-app-title" content="TONYLEX">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-96.png') }}">
-</head>
-<body class="bg-gray-50 min-h-screen transition-colors duration-300">
 
-    <nav class="bg-gray-800 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
+    <style>
+        :root {
+            --tx-violet: #7C3AED;
+            --tx-violet-soft: #A78BFA;
+            --tx-bg: #F4F2FB;
+            --tx-surface: #ffffff;
+            --tx-ink: #1e1b2e;
+            --tx-nav: #1a1528;
+        }
+        body.tx-shell {
+            background:
+                radial-gradient(900px 420px at 0% 0%, rgba(124, 58, 237, 0.08), transparent 55%),
+                radial-gradient(700px 380px at 100% 0%, rgba(167, 139, 250, 0.07), transparent 50%),
+                var(--tx-bg);
+        }
+        html.dark body.tx-shell {
+            background:
+                radial-gradient(900px 420px at 0% 0%, rgba(124, 58, 237, 0.18), transparent 55%),
+                var(--fm-bg, #0c1222);
+        }
+        .tx-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            padding: 0.75rem 1rem 0;
+        }
+        .tx-nav-pill {
+            max-width: 80rem;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #1a1528 0%, #251b3d 55%, #1e1633 100%);
+            border: 1px solid rgba(167, 139, 250, 0.22);
+            border-radius: 1.25rem;
+            box-shadow: 0 18px 40px -22px rgba(76, 29, 149, 0.55);
+            padding: 0.35rem 0.75rem;
+        }
+        .tx-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: #fff;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-decoration: none;
+        }
+        .tx-brand img {
+            width: 2.1rem;
+            height: auto;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+        }
+        .tx-brand-word {
+            font-size: 1.05rem;
+            background: linear-gradient(90deg, #fff, #ddd6fe);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        main.tx-main > * {
+            animation: txEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes txEnter {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fm-card, .stats-card, .rounded-xl.shadow-2xl, .rounded-2xl.shadow-xl {
+            border-radius: 1.25rem !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .fm-card:hover, .stats-card:hover {
+            transform: translateY(-3px);
+        }
+        .dropdown-menu {
+            border-radius: 1rem !important;
+            overflow: hidden;
+            box-shadow: 0 20px 40px -18px rgba(76, 29, 149, 0.35) !important;
+            border-color: rgba(124, 58, 237, 0.12) !important;
+        }
+    </style>
+</head>
+<body class="tx-shell min-h-screen transition-colors duration-300">
+
+    <div class="tx-topbar">
+    <nav class="tx-nav-pill">
+        <div class="px-2 sm:px-3">
+            <div class="flex items-center justify-between h-14">
                 <div class="flex items-center">
-                    <a class="flex-shrink-0 text-white text-xl font-extrabold flex items-center" href="{{ url_for('dashboard') }}">
-                        <svg class="w-6 h-6 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 3m0 0l-3 3m3-3h18M3 12h18M3 18l3-3m0 0l-3-3m3 3h18"></path></svg>
-                        Fibra Manager
+                    <a class="tx-brand" href="{{ url_for('dashboard') }}">
+                        <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}" alt="">
+                        <span class="tx-brand-word">TONYLEX</span>
                     </a>
                 </div>
                 
                 <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
+                    <div class="ml-6 flex items-center space-x-1">
                         
                         <a href="{{ url_for('dashboard') }}" class="nav-link-white">
                             <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -975,15 +1054,16 @@
             </div>
         </div>
     </nav>
+    </div>
     
-    <main class="container mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+    <main class="tx-main container mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-16">
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="w-full mb-4">
                     {% for category, message in messages %}
                         {% set bg_color = 'bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-700 text-red-700 dark:text-red-200' if category == 'danger' or category == 'error' else 'bg-green-100 dark:bg-green-900/40 border-green-400 dark:border-green-700 text-green-700 dark:text-green-200' %}
-                        <div class="{{ bg_color }} border px-4 py-3 rounded relative mb-2 flex justify-between items-center" role="alert">
+                        <div class="{{ bg_color }} border px-4 py-3 rounded-2xl relative mb-2 flex justify-between items-center" role="alert">
                             <span class="block sm:inline">{{ message }}</span>
                             <span class="cursor-pointer ml-4" onclick="this.parentElement.style.display='none';">>
                                 <svg class="fill-current h-6 w-6 text-{{ 'red' if category == 'danger' or category == 'error' else 'green' }}-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 01-1.697 0L10 11.819l-2.651 3.03a1.2 1.2 0 11-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 111.697-1.697L10 8.183l2.651-3.03a1.2 1.2 0 111.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 010 1.698z"/></svg>
@@ -1018,7 +1098,7 @@
                 var isDark = document.documentElement.classList.contains('dark');
                 iconSun.classList.toggle('theme-icon-hidden', !isDark);
                 iconMoon.classList.toggle('theme-icon-hidden', isDark);
-                if (metaTheme) metaTheme.setAttribute('content', isDark ? '#0c1222' : '#4f46e5');
+                if (metaTheme) metaTheme.setAttribute('content', isDark ? '#0c1222' : '#7C3AED');
             }
 
             function applyTheme(mode) {

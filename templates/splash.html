@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <title>TONYLEX</title>
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-96.png') }}">
+    <style>
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .stage {
+            width: min(92vw, 420px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2.25rem;
+        }
+        .logo-wrap {
+            width: min(58vw, 220px);
+            aspect-ratio: 319 / 356;
+            opacity: 0;
+            transform: scale(0.82);
+            filter: drop-shadow(0 12px 28px rgba(0,0,0,0.55));
+            animation: logoIn 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+        }
+        .logo-wrap img, .logo-wrap object, .logo-wrap svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .word-wrap {
+            width: min(86vw, 340px);
+            opacity: 0;
+            transform: translateY(14px) scale(0.96);
+            animation: wordIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 1.15s forwards;
+        }
+        .word-wrap img {
+            width: 100%;
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 0 18px rgba(255,255,255,0.12));
+        }
+        .bar {
+            width: 72px;
+            height: 3px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, transparent, #a78bfa, transparent);
+            opacity: 0;
+            animation: barIn 0.6s ease 1.7s forwards;
+        }
+        @keyframes logoIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes wordIn {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes barIn {
+            to { opacity: 1; }
+        }
+        .fade-out {
+            animation: fadeOut 0.45s ease forwards;
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: scale(1.02); }
+        }
+    </style>
+</head>
+<body>
+    <div class="stage" id="stage">
+        <div class="logo-wrap">
+            <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}"
+                 alt="TONYLEX"
+                 width="319" height="356">
+        </div>
+        <div class="word-wrap">
+            <img src="{{ url_for('static', filename='brand/tonylex-wordmark.png') }}"
+                 alt="TONYLEX"
+                 width="640" height="120">
+        </div>
+        <div class="bar" aria-hidden="true"></div>
+    </div>
+    <script>
+        (function () {
+            var nextUrl = {{ next_url|tojson }};
+            var done = false;
+            function go() {
+                if (done) return;
+                done = true;
+                var stage = document.getElementById('stage');
+                stage.classList.add('fade-out');
+                setTimeout(function () {
+                    window.location.replace(nextUrl);
+                }, 420);
+            }
+            // Marca splash como visto en esta sesión de navegador
+            try { sessionStorage.setItem('tonylex-splash', '1'); } catch (e) {}
+            setTimeout(go, 2600);
+        })();
+    </script>
+</body>
+</html>
