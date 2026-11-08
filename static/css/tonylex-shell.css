@@ -670,34 +670,53 @@ main.tx-main .rounded-2xl > .bg-gradient-to-r.from-purple-600 {
   background: #F7F5FC;
   color: var(--fn-violet) !important;
 }
-.fn-detail-foot {
+.fn-detail-foot,
+.fn-detail-foot-split {
   margin-top: auto;
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(140px, 180px);
   align-items: stretch;
   gap: 0.85rem;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
+  width: 100%;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
   color: var(--fn-muted);
 }
-.fn-foot-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+/* Legacy cramped footer — force separation if old HTML still cached */
+.fn-detail-foot .sums {
+  display: contents !important;
+}
+.fn-detail-foot .sums > div {
+  background: #fff;
+  border: 1px solid var(--fn-border);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  box-shadow: var(--fn-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   min-width: 0;
+}
+.fn-detail-foot .sums > div strong {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--fn-ink);
+  margin-top: 0.15rem;
 }
 .fn-foot-stat {
   background: #fff;
   border: 1px solid var(--fn-border);
   border-radius: 16px;
-  padding: 0.75rem 0.85rem;
+  padding: 0.85rem 1rem;
   box-shadow: var(--fn-shadow);
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  min-width: 0;
 }
 .fn-foot-stat span {
   font-size: 0.72rem;
@@ -705,28 +724,42 @@ main.tx-main .rounded-2xl > .bg-gradient-to-r.from-purple-600 {
   color: var(--fn-muted);
 }
 .fn-foot-stat strong {
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--fn-ink);
+  line-height: 1.15;
 }
-.fn-pay-btn {
+.fn-detail-foot .fn-pay-btn,
+.fn-detail-foot-split .fn-pay-btn {
   background: var(--fn-violet);
   color: #fff !important;
   font-weight: 800;
   border-radius: 16px;
-  padding: 0.85rem 1.25rem;
+  padding: 0.85rem 1.1rem;
   text-decoration: none !important;
   box-shadow: 0 12px 24px -12px rgba(108, 92, 239, 0.85);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch;
   white-space: nowrap;
+  min-height: 100%;
 }
 .fn-pay-btn:hover { filter: brightness(1.05); color: #fff !important; }
-@media (max-width: 700px) {
-  .fn-detail-foot { grid-template-columns: 1fr; }
-  .fn-foot-grid { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .fn-detail-foot,
+  .fn-detail-foot-split {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fn-detail-foot .fn-pay-btn,
+  .fn-detail-foot-split .fn-pay-btn {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 560px) {
+  .fn-detail-foot,
+  .fn-detail-foot-split {
+    grid-template-columns: 1fr;
+  }
 }
 
 html.dark .fn-workspace {

@@ -172,20 +172,18 @@
             <a class="fn-add-card soft" href="{{ url_for('index') }}">Ver cajas</a>
         </div>
 
-        <div class="fn-detail-foot">
-            <div class="fn-foot-grid">
-                <div class="fn-foot-stat">
-                    <span>Total cajas</span>
-                    <strong>{{ total_nats }}</strong>
-                </div>
-                <div class="fn-foot-stat">
-                    <span>Clientes</span>
-                    <strong>{{ total_clientes }}</strong>
-                </div>
-                <div class="fn-foot-stat">
-                    <span>Ocupación</span>
-                    <strong>{% if selected and selected.puertos_total %}{{ (([selected.puertos_usados, selected.puertos_total]|min / selected.puertos_total) * 100)|round|int }}%{% else %}{{ porcentaje_ocupacion }}%{% endif %}</strong>
-                </div>
+        <div class="fn-detail-foot fn-detail-foot-split">
+            <div class="fn-foot-stat">
+                <span>Total cajas</span>
+                <strong>{{ total_nats }}</strong>
+            </div>
+            <div class="fn-foot-stat">
+                <span>Clientes</span>
+                <strong>{{ total_clientes }}</strong>
+            </div>
+            <div class="fn-foot-stat">
+                <span>Ocupación</span>
+                <strong>{% if selected and selected.puertos_total %}{{ (([selected.puertos_usados, selected.puertos_total]|min / selected.puertos_total) * 100)|round|int }}%{% else %}{{ porcentaje_ocupacion }}%{% endif %}</strong>
             </div>
             <a class="fn-pay-btn" href="{{ url_for('ver_nat', nat_id=selected.id) if selected else url_for('mapa_nats') }}">
                 {{ 'Ver detalle' if selected else 'Abrir mapa' }}
