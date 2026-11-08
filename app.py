@@ -1399,23 +1399,26 @@ def api_buscar_global():
                     'url': url_for('ver_nat', nat_id=nat.id),
                 })
         if tipo in ('', 'all', 'cliente', 'clientes'):
-            for cli in Cliente.query.filter(
-                db.or_(
-                    Cliente.nombre.ilike(like),
-                    Cliente.direccion.ilike(like),
-                    Cliente.contacto.ilike(like),
-                    Cliente.ip.ilike(like),
-                    Cliente.servicio.ilike(like),
-                    Cliente.plan.ilike(like),
-                )
-            ).order_by(Cliente.nombre.asc()).limit(10 if tipo.startswith('cliente') else 8).all():
+            cli_q = Cliente.query.options(joinedload(Cliente.nat)).outerjoin(
+                Nat, Cliente.nat_id == Nat.id
+            ).filter(db.or_(
+                Cliente.nombre.ilike(like),
+                Cliente.direccion.ilike(like),
+                func.coalesce(Cliente.contacto, '').ilike(like),
+                func.coalesce(Cliente.ip, '').ilike(like),
+                func.coalesce(Cliente.servicio, '').ilike(like),
+                func.coalesce(Cliente.plan, '').ilike(like),
+                func.coalesce(Nat.nombre, '').ilike(like),
+            )).order_by(Cliente.nombre.asc()).limit(10 if tipo.startswith('cliente') else 8)
+            for cli in cli_q.all():
                 nap_nombre = cli.nat.nombre if cli.nat else 'Sin NAP'
                 hint_bits = [bit for bit in (cli.plan, nap_nombre, cli.ip) if bit]
                 results.append({
                     'type': 'cliente',
                     'label': cli.nombre,
                     'hint': ' · '.join(hint_bits) if hint_bits else (cli.direccion or 'Cliente'),
-                    'url': url_for('editar_cliente', cliente_id=cli.id),
+                    # Quedarse en el listado filtrado (no ir a editar).
+                    'url': url_for('listar_clientes', q=cli.nombre),
                 })
     except Exception as e:
         print(f'api_buscar_global: {e}')

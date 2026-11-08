@@ -436,10 +436,16 @@ main.tx-main .rounded-2xl > .bg-gradient-to-r.from-purple-600 {
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
   gap: 0.1rem 0.65rem;
+  width: 100%;
   padding: 0.75rem 0.9rem;
+  text-align: left;
   text-decoration: none !important;
   color: var(--fn-ink) !important;
+  background: transparent;
+  border: 0;
   border-bottom: 1px solid rgba(20,19,28,0.05);
+  cursor: pointer;
+  font: inherit;
 }
 .fn-suggest-item:hover { background: rgba(108,92,239,0.06); }
 .fn-suggest-type {

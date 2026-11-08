@@ -195,10 +195,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var input = document.getElementById('buscador');
     var box = document.getElementById('clientes-suggest');
     var wrap = document.getElementById('clientes-search');
-    var rows = Array.prototype.slice.call(document.querySelectorAll('.cliente-row'));
-    var emptyRow = document.getElementById('clientes-empty-live');
-    var timer = null;
-    var last = '';
+    var suggestTimer = null;
+    var submitTimer = null;
+    var lastSuggest = '';
+    var initialQ = (input && input.value || '').trim();
+    var reqId = 0;
 
     document.querySelectorAll('.filtro-servidor').forEach(function (el) {
         el.addEventListener('change', function () { form.submit(); });
@@ -211,81 +212,80 @@ document.addEventListener('DOMContentLoaded', function () {
         box.innerHTML = '';
     }
 
-    function ensureEmptyRow() {
-        if (emptyRow) return emptyRow;
-        var tbody = document.getElementById('tabla-body');
-        if (!tbody) return null;
-        emptyRow = document.createElement('tr');
-        emptyRow.id = 'clientes-empty-live';
-        emptyRow.innerHTML = '<td colspan="5" class="px-6 py-10 text-center text-gray-500"><p class="font-semibold mb-1">Sin coincidencias</p><p class="text-sm">Prueba otro nombre, IP o NAP.</p></td>';
-        emptyRow.hidden = true;
-        tbody.appendChild(emptyRow);
-        return emptyRow;
-    }
-
-    function filterRows(q) {
-        var term = (q || '').trim().toLowerCase();
-        var shown = 0;
-        rows.forEach(function (row) {
-            if (!term) {
-                row.hidden = false;
-                shown += 1;
-                return;
-            }
-            var blob = [
-                row.dataset.nombre || '',
-                row.dataset.direccion || '',
-                row.dataset.contacto || '',
-                row.dataset.plan || '',
-                row.dataset.ip || '',
-                row.dataset.servicio || '',
-                row.dataset.napNombre || ''
-            ].join(' ');
-            var ok = blob.indexOf(term) !== -1;
-            row.hidden = !ok;
-            if (ok) shown += 1;
+    function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
         });
-        var empty = ensureEmptyRow();
-        if (empty) empty.hidden = !(rows.length && shown === 0);
     }
 
     function renderSuggest(items) {
         if (!items.length) {
-            box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
+            box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias en clientes</div>';
             box.hidden = false;
             return;
         }
         box.innerHTML = items.map(function (it) {
-            return '<a class="fn-suggest-item" href="' + it.url + '" role="option">' +
+            return '<button type="button" class="fn-suggest-item" data-q="' + escapeHtml(it.label) + '" role="option">' +
                 '<span class="fn-suggest-type">Cliente</span>' +
-                '<span class="fn-suggest-label">' + it.label + '</span>' +
-                '<span class="fn-suggest-hint">' + (it.hint || '') + '</span></a>';
+                '<span class="fn-suggest-label">' + escapeHtml(it.label) + '</span>' +
+                '<span class="fn-suggest-hint">' + escapeHtml(it.hint || '') + '</span></button>';
         }).join('');
         box.hidden = false;
+        box.querySelectorAll('.fn-suggest-item').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                input.value = btn.getAttribute('data-q') || '';
+                hideSuggest();
+                form.submit();
+            });
+        });
     }
 
     function fetchSuggest(q) {
+        var myId = ++reqId;
         fetch('/api/buscar?tipo=cliente&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
             .then(function (r) { return r.json(); })
-            .then(function (data) { renderSuggest((data && data.results) || []); })
-            .catch(function () { hideSuggest(); });
+            .then(function (data) {
+                if (myId !== reqId) return;
+                if ((input.value || '').trim() !== q) return;
+                renderSuggest((data && data.results) || []);
+            })
+            .catch(function () {
+                if (myId === reqId) hideSuggest();
+            });
+    }
+
+    function scheduleServerSearch(trimmed) {
+        clearTimeout(submitTimer);
+        // Vacío: volver al listado completo de una.
+        if (!trimmed) {
+            if (initialQ) form.submit();
+            return;
+        }
+        // Buscar en servidor (toda la cartera, no solo esta página).
+        submitTimer = setTimeout(function () {
+            if ((input.value || '').trim() === initialQ) return;
+            form.submit();
+        }, 450);
     }
 
     function onQueryChange() {
-        var q = input.value || '';
-        var trimmed = q.trim();
-        filterRows(trimmed);
-        clearTimeout(timer);
+        var trimmed = (input.value || '').trim();
+        clearTimeout(suggestTimer);
+
         if (!trimmed) {
-            last = '';
+            lastSuggest = '';
             hideSuggest();
+            scheduleServerSearch('');
             return;
         }
-        if (trimmed === last) return;
-        timer = setTimeout(function () {
-            last = trimmed;
+
+        scheduleServerSearch(trimmed);
+
+        if (trimmed === lastSuggest) return;
+        suggestTimer = setTimeout(function () {
+            lastSuggest = trimmed;
             fetchSuggest(trimmed);
-        }, 140);
+        }, 120);
     }
 
     input.addEventListener('input', onQueryChange);
@@ -296,8 +296,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (e) {
         if (!wrap.contains(e.target)) hideSuggest();
     });
-
-    if ((input.value || '').trim()) filterRows(input.value);
 });
 </script>
 {% endblock %}
