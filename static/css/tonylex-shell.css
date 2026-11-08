@@ -832,6 +832,12 @@ main.tx-main section.bg-white {
   flex: 1 1 220px;
   min-width: 180px;
   position: relative;
+  z-index: 5;
+}
+.fn-toolbar .fn-search-live .fn-suggest {
+  z-index: 40;
+  max-height: 320px;
+  overflow: auto;
 }
 .fn-toolbar .fn-search-field svg {
   position: absolute;

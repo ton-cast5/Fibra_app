@@ -1382,39 +1382,46 @@ def index():
 def api_buscar_global():
     """Sugerencias en vivo de cajas y clientes para el buscador."""
     q = (request.args.get('q') or '').strip()
+    tipo = (request.args.get('tipo') or '').strip().lower()
     if len(q) < 1:
         return jsonify({'results': []})
     like = f'%{q}%'
     results = []
     try:
-        for nat in Nat.query.filter(
-            db.or_(Nat.nombre.ilike(like), Nat.region.ilike(like), Nat.descripcion.ilike(like))
-        ).order_by(Nat.nombre.asc()).limit(8).all():
-            results.append({
-                'type': 'caja',
-                'label': nat.nombre,
-                'hint': nat.region or (nat.tipo_caja if hasattr(nat, 'tipo_caja') else 'Caja'),
-                'url': url_for('ver_nat', nat_id=nat.id),
-            })
-        for cli in Cliente.query.filter(
-            db.or_(
-                Cliente.nombre.ilike(like),
-                Cliente.direccion.ilike(like),
-                Cliente.contacto.ilike(like),
-                Cliente.ip.ilike(like),
-                Cliente.servicio.ilike(like),
-            )
-        ).order_by(Cliente.nombre.asc()).limit(8).all():
-            results.append({
-                'type': 'cliente',
-                'label': cli.nombre,
-                'hint': cli.direccion or cli.plan or 'Cliente',
-                'url': url_for('listar_clientes', q=cli.nombre),
-            })
+        if tipo in ('', 'all', 'caja', 'cajas'):
+            for nat in Nat.query.filter(
+                db.or_(Nat.nombre.ilike(like), Nat.region.ilike(like), Nat.descripcion.ilike(like))
+            ).order_by(Nat.nombre.asc()).limit(8).all():
+                results.append({
+                    'type': 'caja',
+                    'label': nat.nombre,
+                    'hint': nat.region or (nat.tipo_caja if hasattr(nat, 'tipo_caja') else 'Caja'),
+                    'url': url_for('ver_nat', nat_id=nat.id),
+                })
+        if tipo in ('', 'all', 'cliente', 'clientes'):
+            for cli in Cliente.query.filter(
+                db.or_(
+                    Cliente.nombre.ilike(like),
+                    Cliente.direccion.ilike(like),
+                    Cliente.contacto.ilike(like),
+                    Cliente.ip.ilike(like),
+                    Cliente.servicio.ilike(like),
+                    Cliente.plan.ilike(like),
+                )
+            ).order_by(Cliente.nombre.asc()).limit(10 if tipo.startswith('cliente') else 8).all():
+                nap_nombre = cli.nat.nombre if cli.nat else 'Sin NAP'
+                hint_bits = [bit for bit in (cli.plan, nap_nombre, cli.ip) if bit]
+                results.append({
+                    'type': 'cliente',
+                    'label': cli.nombre,
+                    'hint': ' · '.join(hint_bits) if hint_bits else (cli.direccion or 'Cliente'),
+                    'url': url_for('editar_cliente', cliente_id=cli.id),
+                })
     except Exception as e:
         print(f'api_buscar_global: {e}')
         return jsonify({'results': []})
-    return jsonify({'results': results[:12]})
+    limit = 12 if not tipo.startswith('cliente') else 10
+    return jsonify({'results': results[:limit]})
 
 
 @app.route('/dashboard')

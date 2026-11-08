@@ -73,9 +73,10 @@
     </div>
 
     <form method="GET" action="{{ url_for('listar_clientes') }}" id="filtros-clientes" class="fn-toolbar fade-in">
-        <div class="fn-search-field">
+        <div class="fn-search-field fn-search-live" id="clientes-search">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
-            <input type="text" name="q" id="buscador" value="{{ filtros.q }}" placeholder="Buscar cliente, IP, NAP…">
+            <input type="search" name="q" id="buscador" value="{{ filtros.q }}" placeholder="Buscar cliente, IP, NAP…" autocomplete="off" aria-autocomplete="list" aria-controls="clientes-suggest">
+            <div class="fn-suggest" id="clientes-suggest" hidden role="listbox"></div>
         </div>
         <select name="estado" class="filtro-servidor">
             <option value="todos" {% if filtros.estado == 'todos' %}selected{% endif %}>Todos los estados</option>
@@ -119,11 +120,13 @@
                 </thead>
                 <tbody class="fm-table-body divide-y divide-gray-200" id="tabla-body">
                     {% for cliente in clientes %}
-                    <tr class="table-row-hover" 
+                    <tr class="table-row-hover cliente-row"
                         data-nombre="{{ cliente.nombre.lower() }}"
-                        data-direccion="{{ cliente.direccion.lower() }}"
-                        data-contacto="{{ cliente.contacto.lower() if cliente.contacto else '' }}"
-                        data-plan="{{ cliente.plan.lower() }}"
+                        data-direccion="{{ (cliente.direccion or '')|lower }}"
+                        data-contacto="{{ (cliente.contacto or '')|lower }}"
+                        data-plan="{{ (cliente.plan or '')|lower }}"
+                        data-ip="{{ (cliente.ip or '')|lower }}"
+                        data-servicio="{{ (cliente.servicio or '')|lower }}"
                         data-estado="{{ 'activo' if cliente.activo else 'inactivo' }}"
                         data-nap-id="{{ cliente.nat.id if cliente.nat else 'sin_nap' }}"
                         data-nap-nombre="{{ cliente.nat.nombre.lower() if cliente.nat else '' }}">
@@ -187,11 +190,114 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('filtros-clientes');
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('filtros-clientes');
+    var input = document.getElementById('buscador');
+    var box = document.getElementById('clientes-suggest');
+    var wrap = document.getElementById('clientes-search');
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.cliente-row'));
+    var emptyRow = document.getElementById('clientes-empty-live');
+    var timer = null;
+    var last = '';
+
     document.querySelectorAll('.filtro-servidor').forEach(function (el) {
         el.addEventListener('change', function () { form.submit(); });
     });
+
+    if (!input || !box || !wrap) return;
+
+    function hideSuggest() {
+        box.hidden = true;
+        box.innerHTML = '';
+    }
+
+    function ensureEmptyRow() {
+        if (emptyRow) return emptyRow;
+        var tbody = document.getElementById('tabla-body');
+        if (!tbody) return null;
+        emptyRow = document.createElement('tr');
+        emptyRow.id = 'clientes-empty-live';
+        emptyRow.innerHTML = '<td colspan="5" class="px-6 py-10 text-center text-gray-500"><p class="font-semibold mb-1">Sin coincidencias</p><p class="text-sm">Prueba otro nombre, IP o NAP.</p></td>';
+        emptyRow.hidden = true;
+        tbody.appendChild(emptyRow);
+        return emptyRow;
+    }
+
+    function filterRows(q) {
+        var term = (q || '').trim().toLowerCase();
+        var shown = 0;
+        rows.forEach(function (row) {
+            if (!term) {
+                row.hidden = false;
+                shown += 1;
+                return;
+            }
+            var blob = [
+                row.dataset.nombre || '',
+                row.dataset.direccion || '',
+                row.dataset.contacto || '',
+                row.dataset.plan || '',
+                row.dataset.ip || '',
+                row.dataset.servicio || '',
+                row.dataset.napNombre || ''
+            ].join(' ');
+            var ok = blob.indexOf(term) !== -1;
+            row.hidden = !ok;
+            if (ok) shown += 1;
+        });
+        var empty = ensureEmptyRow();
+        if (empty) empty.hidden = !(rows.length && shown === 0);
+    }
+
+    function renderSuggest(items) {
+        if (!items.length) {
+            box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
+            box.hidden = false;
+            return;
+        }
+        box.innerHTML = items.map(function (it) {
+            return '<a class="fn-suggest-item" href="' + it.url + '" role="option">' +
+                '<span class="fn-suggest-type">Cliente</span>' +
+                '<span class="fn-suggest-label">' + it.label + '</span>' +
+                '<span class="fn-suggest-hint">' + (it.hint || '') + '</span></a>';
+        }).join('');
+        box.hidden = false;
+    }
+
+    function fetchSuggest(q) {
+        fetch('/api/buscar?tipo=cliente&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) { renderSuggest((data && data.results) || []); })
+            .catch(function () { hideSuggest(); });
+    }
+
+    function onQueryChange() {
+        var q = input.value || '';
+        var trimmed = q.trim();
+        filterRows(trimmed);
+        clearTimeout(timer);
+        if (!trimmed) {
+            last = '';
+            hideSuggest();
+            return;
+        }
+        if (trimmed === last) return;
+        timer = setTimeout(function () {
+            last = trimmed;
+            fetchSuggest(trimmed);
+        }, 140);
+    }
+
+    input.addEventListener('input', onQueryChange);
+    input.addEventListener('search', onQueryChange);
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hideSuggest();
+    });
+    document.addEventListener('click', function (e) {
+        if (!wrap.contains(e.target)) hideSuggest();
+    });
+
+    if ((input.value || '').trim()) filterRows(input.value);
 });
 </script>
 {% endblock %}
