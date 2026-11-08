@@ -11,10 +11,15 @@
         })();
     </script>
     <title>{% block title %}TONYLEX{% endblock %}</title>
-    
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap"></noscript>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tonylex-shell.css') }}?v=fn-box-cards-1">
-    <script src="{{ url_for('static', filename='js/fibra-tiempo.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tonylex-shell.css') }}?v=fn-detail-2">
+    <script src="{{ url_for('static', filename='js/fibra-tiempo.js') }}" defer></script>
     
     {% block head %}{% endblock %}
     

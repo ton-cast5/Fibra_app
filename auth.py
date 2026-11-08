@@ -266,7 +266,10 @@ def init_auth(app, db, ahora, en_produccion):
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
         if en_produccion:
             response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-        if request.endpoint != 'static':
+        if request.endpoint == 'static':
+            # CSS/JS/imágenes: cache corto para que el shell no “parpadee” lento en cada carga.
+            response.headers['Cache-Control'] = 'public, max-age=86400'
+        else:
             response.headers['Cache-Control'] = 'no-store'
         return response
 
