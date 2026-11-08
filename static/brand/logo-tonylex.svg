@@ -1,10 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 319 356" width="100%" height="100%" role="img" aria-label="TONYLEX logo">
-  <defs>
-    <filter id="depth" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.65"/>
-    </filter>
-  </defs>
-  <rect width="100%" height="100%" rx="18" ry="18" fill="#000000"/>
-  <image xlink:href="logo-tonylex.png" href="logo-tonylex.png" x="0" y="0" width="319" height="356" filter="url(#depth)" preserveAspectRatio="xMidYMid meet"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 319 356" width="319" height="356"><image href="logo-tonylex.png" width="319" height="356"/></svg>

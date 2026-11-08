@@ -1,0 +1,366 @@
+/* TONYLEX shell — inspiración FINNOVA (no aplica a .leaflet-*) */
+:root {
+  --tx-violet: #7C3AED;
+  --tx-violet-2: #6D28D9;
+  --tx-violet-soft: #A78BFA;
+  --tx-violet-tint: rgba(124, 58, 237, 0.12);
+  --tx-bg: #EEEDF5;
+  --tx-bg-soft: #F7F6FB;
+  --tx-surface: #FFFFFF;
+  --tx-ink: #1A1630;
+  --tx-muted: #6B6685;
+  --tx-dark: #1B1629;
+  --tx-dark-2: #231E36;
+  --tx-dark-3: #2C2545;
+  --tx-border: rgba(26, 22, 48, 0.08);
+  --tx-shadow: 0 18px 40px -24px rgba(76, 29, 149, 0.35);
+  --tx-radius: 1.35rem;
+  --tx-radius-sm: 1rem;
+}
+
+body.tx-shell {
+  background:
+    radial-gradient(1000px 480px at -5% -10%, rgba(124, 58, 237, 0.10), transparent 55%),
+    radial-gradient(800px 420px at 105% 0%, rgba(167, 139, 250, 0.10), transparent 50%),
+    linear-gradient(180deg, var(--tx-bg-soft) 0%, var(--tx-bg) 100%) !important;
+  color: var(--tx-ink);
+  font-family: "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+html.dark body.tx-shell {
+  background:
+    radial-gradient(900px 420px at 0% 0%, rgba(124, 58, 237, 0.22), transparent 55%),
+    #0c1020 !important;
+}
+
+/* Top bar FINNOVA */
+.tx-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 0.85rem 1rem 0;
+}
+
+.tx-nav-shell {
+  max-width: 80rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  box-shadow: 0 14px 36px -20px rgba(76, 29, 149, 0.45);
+}
+
+html.dark .tx-nav-shell {
+  background: rgba(27, 22, 41, 0.88);
+  border-color: rgba(167, 139, 250, 0.18);
+}
+
+.tx-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  padding-left: 0.35rem;
+}
+.tx-brand img {
+  width: 2.15rem;
+  height: 2.15rem;
+  object-fit: contain;
+  border-radius: 0.65rem;
+}
+.tx-brand-word {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+  color: var(--tx-ink);
+}
+html.dark .tx-brand-word { color: #f5f3ff; }
+
+.tx-nav-pill {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: #EFEDF7;
+  border: 1px solid rgba(124, 58, 237, 0.08);
+  max-width: 100%;
+  overflow-x: auto;
+}
+html.dark .tx-nav-pill {
+  background: rgba(0, 0, 0, 0.28);
+  border-color: rgba(167, 139, 250, 0.15);
+}
+
+.tx-nav-pill a.nav-link-white,
+.tx-nav-pill .nav-link-white {
+  color: var(--tx-muted) !important;
+  background: transparent !important;
+  border-radius: 999px !important;
+  padding: 0.55rem 0.95rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+}
+.tx-nav-pill a.nav-link-white:hover,
+.tx-nav-pill .dropdown-container:hover > .nav-link-white {
+  color: var(--tx-ink) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+html.dark .tx-nav-pill a.nav-link-white {
+  color: #c4b5fd !important;
+}
+html.dark .tx-nav-pill a.nav-link-white:hover {
+  color: #fff !important;
+  background: rgba(124, 58, 237, 0.25) !important;
+}
+
+.tx-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+.tx-avatar {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--tx-violet), #4c1d95);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  box-shadow: 0 8px 18px -10px rgba(124, 58, 237, 0.8);
+}
+
+/* Page chrome */
+main.tx-main {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+main.tx-main > * {
+  animation: txEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes txEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tx-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.35rem;
+}
+.tx-page-head h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--tx-ink);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.tx-page-head p {
+  margin: 0.25rem 0 0;
+  color: var(--tx-muted);
+  font-size: 0.92rem;
+}
+.tx-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, var(--tx-violet), var(--tx-violet-2));
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.7rem 1.15rem;
+  box-shadow: 0 12px 24px -12px rgba(124, 58, 237, 0.85);
+  border: none;
+  text-decoration: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.tx-btn-primary:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  color: #fff !important;
+}
+
+/* KPI cards claras (FINNOVA) */
+.tx-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 1024px) {
+  .tx-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .tx-kpi-grid { grid-template-columns: 1fr; }
+}
+.tx-kpi {
+  background: var(--tx-surface);
+  border: 1px solid var(--tx-border);
+  border-radius: var(--tx-radius);
+  padding: 1.15rem 1.2rem;
+  box-shadow: var(--tx-shadow);
+  position: relative;
+  overflow: hidden;
+  min-height: 8.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.tx-kpi:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 44px -22px rgba(76, 29, 149, 0.4);
+}
+.tx-kpi .label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tx-muted);
+  margin-bottom: 0.55rem;
+}
+.tx-kpi .value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--tx-ink);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.tx-kpi .hint {
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--tx-muted);
+}
+.tx-kpi .accent {
+  position: absolute;
+  right: -0.5rem;
+  bottom: -0.5rem;
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16), rgba(167, 139, 250, 0.08));
+}
+
+/* Panel oscuro principal */
+.tx-dark-panel {
+  background: linear-gradient(160deg, var(--tx-dark) 0%, var(--tx-dark-2) 55%, #171325 100%);
+  border-radius: 1.6rem;
+  border: 1px solid rgba(167, 139, 250, 0.14);
+  box-shadow: 0 28px 60px -28px rgba(15, 10, 30, 0.65);
+  color: #EDE9FE;
+  padding: 1.15rem;
+  overflow: hidden;
+}
+.tx-dark-panel h2,
+.tx-dark-panel h3 {
+  color: #F5F3FF;
+}
+.tx-dark-panel .tx-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 1rem;
+  transition: background 0.15s ease;
+}
+.tx-dark-panel .tx-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.tx-dark-panel .tx-row.is-active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(109, 40, 217, 0.92));
+  box-shadow: 0 12px 28px -14px rgba(124, 58, 237, 0.9);
+}
+.tx-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(167, 139, 250, 0.18);
+  color: #DDD6FE;
+}
+.tx-chip.ok { background: rgba(16, 185, 129, 0.18); color: #6EE7B7; }
+.tx-chip.warn { background: rgba(245, 158, 11, 0.18); color: #FCD34D; }
+.tx-chip.bad { background: rgba(239, 68, 68, 0.18); color: #FCA5A5; }
+
+/* Cards / tablas globales del shell (no Leaflet) */
+main.tx-main .fm-card,
+main.tx-main .rounded-xl.shadow-lg,
+main.tx-main .rounded-xl.shadow-2xl,
+main.tx-main .rounded-2xl.shadow-xl,
+main.tx-main .bg-white.rounded-xl,
+main.tx-main .bg-white.rounded-2xl {
+  border-radius: var(--tx-radius) !important;
+  border: 1px solid var(--tx-border) !important;
+  box-shadow: var(--tx-shadow) !important;
+}
+main.tx-main table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+main.tx-main thead th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+main.tx-main tbody tr {
+  transition: background 0.15s ease;
+}
+main.tx-main input[type="text"],
+main.tx-main input[type="search"],
+main.tx-main input[type="number"],
+main.tx-main input[type="email"],
+main.tx-main input[type="password"],
+main.tx-main select,
+main.tx-main textarea {
+  border-radius: 0.9rem !important;
+}
+
+/* Filters bar estilo inspiración */
+.tx-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--tx-border);
+  border-radius: 999px;
+  padding: 0.45rem 0.65rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--tx-shadow);
+}
+html.dark .tx-filters {
+  background: rgba(27, 22, 41, 0.85);
+}
+
+/* Mobile: nav pill full width */
+@media (max-width: 768px) {
+  .tx-nav-shell {
+    grid-template-columns: 1fr auto;
+    border-radius: 1.25rem;
+  }
+  .tx-nav-pill-desktop { display: none !important; }
+}
+
+/* No tocar Leaflet */
+.leaflet-container,
+.leaflet-pane,
+.leaflet-map-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-control {
+  /* isolation: avoid shell overrides bleeding into map chrome */
+  border-radius: inherit;
+}

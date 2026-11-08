@@ -7,61 +7,77 @@
     <meta name="theme-color" content="#7C3AED">
     <title>Iniciar sesión - TONYLEX</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tonylex-shell.css') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-96.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <style>
-        body {
+        body.login-shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
             background:
-                radial-gradient(1200px 600px at 10% -10%, rgba(124, 58, 237, 0.35), transparent 55%),
-                radial-gradient(900px 500px at 100% 0%, rgba(167, 139, 250, 0.22), transparent 50%),
-                linear-gradient(160deg, #0b0a12 0%, #16122a 45%, #0f172a 100%);
+                radial-gradient(900px 420px at 0% 0%, rgba(124,58,237,.14), transparent 55%),
+                radial-gradient(700px 380px at 100% 10%, rgba(167,139,250,.12), transparent 50%),
+                linear-gradient(180deg, #F7F6FB, #EEEDF5);
         }
+        .login-wrap { width: min(100%, 420px); }
         .login-card {
-            background: rgba(255, 255, 255, 0.96);
-            border: 1px solid rgba(124, 58, 237, 0.12);
-            box-shadow: 0 25px 60px -20px rgba(76, 29, 149, 0.55);
-            animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+            background: #fff;
+            border: 1px solid rgba(26,22,48,.08);
+            border-radius: 1.75rem;
+            box-shadow: 0 28px 60px -28px rgba(76,29,149,.4);
+            padding: 1.75rem;
+            animation: rise .55s cubic-bezier(.22,1,.36,1) both;
         }
         @keyframes rise {
-            from { opacity: 0; transform: translateY(16px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from { opacity: 0; transform: translateY(16px) scale(.98); }
+            to { opacity: 1; transform: none; }
         }
-        .brand-mark {
-            filter: drop-shadow(0 12px 24px rgba(0,0,0,0.35));
-            animation: pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        .login-card input {
+            width: 100%;
+            border: 1px solid rgba(26,22,48,.12);
+            background: #F7F6FB;
+            border-radius: 1rem;
+            padding: .9rem 1rem;
+            outline: none;
         }
-        @keyframes pop {
-            from { opacity: 0; transform: scale(0.88); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .tx-btn {
-            background: linear-gradient(135deg, #7C3AED, #6D28D9);
-            box-shadow: 0 10px 24px -8px rgba(124, 58, 237, 0.65);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-        }
-        .tx-btn:hover {
-            filter: brightness(1.05);
-            transform: translateY(-1px);
-            box-shadow: 0 14px 28px -8px rgba(124, 58, 237, 0.75);
-        }
-        .tx-input:focus {
+        .login-card input:focus {
             border-color: #8B5CF6;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+            box-shadow: 0 0 0 3px rgba(139,92,246,.22);
+            background: #fff;
+        }
+        .login-btn {
+            width: 100%;
+            border: 0;
+            border-radius: 999px;
+            padding: .95rem 1rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #7C3AED, #6D28D9);
+            box-shadow: 0 14px 28px -12px rgba(124,58,237,.85);
+            cursor: pointer;
+        }
+        .login-btn:hover { filter: brightness(1.05); }
+        .brand-logo {
+            width: 5.5rem;
+            height: auto;
+            margin: 0 auto 0.75rem;
+            display: block;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4">
-    <div class="w-full max-w-sm">
-        <div class="text-center mb-8">
-            <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}"
-                 alt="TONYLEX" class="brand-mark w-24 h-auto mx-auto mb-4">
-            <img src="{{ url_for('static', filename='brand/tonylex-wordmark.png') }}"
-                 alt="TONYLEX" class="h-8 mx-auto mb-2 opacity-95">
-            <p class="text-sm text-violet-200/80 mt-2">Inicia sesión para continuar</p>
+<body class="login-shell">
+    <div class="login-wrap">
+        <div class="text-center mb-6">
+            <img class="brand-logo" src="{{ url_for('static', filename='brand/logo-tonylex.png') }}" alt="TONYLEX">
+            <img src="{{ url_for('static', filename='brand/tonylex-wordmark.png') }}" alt="TONYLEX" style="height:1.75rem;margin:0 auto;display:block;filter:brightness(0.15);">
+            <p style="margin-top:.75rem;color:#6B6685;font-size:.9rem;">Gestiona tu red con estilo</p>
         </div>
 
-        <div class="login-card rounded-3xl p-6 sm:p-7">
+        <div class="login-card">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% for category, message in messages %}
                 <div class="mb-4 px-4 py-3 rounded-2xl text-sm border {{ 'bg-red-50 border-red-200 text-red-700' if category in ('danger', 'error') else 'bg-emerald-50 border-emerald-200 text-emerald-700' }}" role="alert">
@@ -76,19 +92,13 @@
                     <label for="username" class="block text-sm font-semibold text-slate-700 mb-1.5">Usuario</label>
                     <input id="username" name="username" type="text" required autofocus
                            autocomplete="username" autocapitalize="none" spellcheck="false"
-                           value="{{ username or '' }}"
-                           class="tx-input w-full px-4 py-3 border border-slate-200 rounded-2xl focus:outline-none bg-slate-50/80">
+                           value="{{ username or '' }}">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-semibold text-slate-700 mb-1.5">Contraseña</label>
-                    <input id="password" name="password" type="password" required
-                           autocomplete="current-password"
-                           class="tx-input w-full px-4 py-3 border border-slate-200 rounded-2xl focus:outline-none bg-slate-50/80">
+                    <input id="password" name="password" type="password" required autocomplete="current-password">
                 </div>
-                <button type="submit"
-                        class="tx-btn w-full py-3.5 rounded-2xl text-white font-semibold">
-                    Entrar
-                </button>
+                <button type="submit" class="login-btn">Entrar</button>
             </form>
         </div>
     </div>

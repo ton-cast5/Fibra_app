@@ -4,7 +4,7 @@
 
 @layer components {
   .nav-link-white {
-    @apply px-3 py-2 rounded-full text-sm font-medium text-white/90 hover:bg-violet-500/25 hover:text-white flex items-center transition-colors;
+    @apply px-3 py-2 rounded-full text-sm font-semibold flex items-center transition-colors;
   }
 
   .mobile-menu-white {

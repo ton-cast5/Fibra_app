@@ -13,6 +13,7 @@
     <title>{% block title %}TONYLEX{% endblock %}</title>
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tonylex-shell.css') }}">
     <script src="{{ url_for('static', filename='js/fibra-tiempo.js') }}"></script>
     
     {% block head %}{% endblock %}
@@ -738,114 +739,24 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-96.png') }}">
 
-    <style>
-        :root {
-            --tx-violet: #7C3AED;
-            --tx-violet-soft: #A78BFA;
-            --tx-bg: #F4F2FB;
-            --tx-surface: #ffffff;
-            --tx-ink: #1e1b2e;
-            --tx-nav: #1a1528;
-        }
-        body.tx-shell {
-            background:
-                radial-gradient(900px 420px at 0% 0%, rgba(124, 58, 237, 0.08), transparent 55%),
-                radial-gradient(700px 380px at 100% 0%, rgba(167, 139, 250, 0.07), transparent 50%),
-                var(--tx-bg);
-        }
-        html.dark body.tx-shell {
-            background:
-                radial-gradient(900px 420px at 0% 0%, rgba(124, 58, 237, 0.18), transparent 55%),
-                var(--fm-bg, #0c1222);
-        }
-        .tx-topbar {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            padding: 0.75rem 1rem 0;
-        }
-        .tx-nav-pill {
-            max-width: 80rem;
-            margin: 0 auto;
-            background: linear-gradient(135deg, #1a1528 0%, #251b3d 55%, #1e1633 100%);
-            border: 1px solid rgba(167, 139, 250, 0.22);
-            border-radius: 1.25rem;
-            box-shadow: 0 18px 40px -22px rgba(76, 29, 149, 0.55);
-            padding: 0.35rem 0.75rem;
-        }
-        .tx-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-            color: #fff;
-            font-weight: 800;
-            letter-spacing: 0.04em;
-            text-decoration: none;
-        }
-        .tx-brand img {
-            width: 2.1rem;
-            height: auto;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));
-        }
-        .tx-brand-word {
-            font-size: 1.05rem;
-            background: linear-gradient(90deg, #fff, #ddd6fe);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        main.tx-main > * {
-            animation: txEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes txEnter {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fm-card, .stats-card, .rounded-xl.shadow-2xl, .rounded-2xl.shadow-xl {
-            border-radius: 1.25rem !important;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .fm-card:hover, .stats-card:hover {
-            transform: translateY(-3px);
-        }
-        .dropdown-menu {
-            border-radius: 1rem !important;
-            overflow: hidden;
-            box-shadow: 0 20px 40px -18px rgba(76, 29, 149, 0.35) !important;
-            border-color: rgba(124, 58, 237, 0.12) !important;
-        }
-    </style>
 </head>
 <body class="tx-shell min-h-screen transition-colors duration-300">
 
     <div class="tx-topbar">
-    <nav class="tx-nav-pill">
-        <div class="px-2 sm:px-3">
-            <div class="flex items-center justify-between h-14">
-                <div class="flex items-center">
-                    <a class="tx-brand" href="{{ url_for('dashboard') }}">
-                        <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}" alt="">
-                        <span class="tx-brand-word">TONYLEX</span>
-                    </a>
-                </div>
-                
-                <div class="hidden md:block">
-                    <div class="ml-6 flex items-center space-x-1">
-                        
-                        <a href="{{ url_for('dashboard') }}" class="nav-link-white">
-                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                            Dashboard
-                        </a>
-                        
-                        <a href="{{ url_for('mapa_nats') }}" class="nav-link-white">
-                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            Mapa Geográfico
-                        </a>
+    <nav class="tx-nav-shell">
+        <a class="tx-brand" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}" alt="TONYLEX">
+            <span class="tx-brand-word">TONYLEX</span>
+        </a>
+
+        <div class="tx-nav-pill tx-nav-pill-desktop hidden md:inline-flex">
+                        <a href="{{ url_for('dashboard') }}" class="nav-link-white">Dashboard</a>
+                        <a href="{{ url_for('mapa_nats') }}" class="nav-link-white">Mapa</a>
 
                         <div class="dropdown-container">
                             <a href="#" class="nav-link-white cursor-pointer">
                                 <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12h14m-8 6h-6m6 0h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 104 0"></path></svg>
-                                Inventario Lógico
+                                Inventario
                             </a>
                             <div class="dropdown-menu">
                                 <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
@@ -872,7 +783,7 @@
                         <div class="dropdown-container">
                             <a href="#" class="nav-link-white">
                                 <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                Configuración/Física
+                                Config
                             </a>
                             <div class="dropdown-menu">
                                 <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
@@ -918,41 +829,37 @@
                             </div>
                         </div>
 
-                        {% if usuario_actual %}
-                        <div class="dropdown-container">
-                            <a href="{{ url_for('auth.usuarios') }}" class="nav-link-white" title="Sesión de {{ usuario_actual.nombre }}">
-                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                {{ usuario_actual.username }}
-                            </a>
-                            <div class="dropdown-menu">
-                                <div class="py-1" role="menu" aria-orientation="vertical">
-                                    <a href="{{ url_for('auth.usuarios') }}" class="dropdown-item-base" role="menuitem">👤 Usuarios y contraseña</a>
-                                    <form method="POST" action="{{ url_for('auth.logout') }}">
-                                        <button type="submit" class="dropdown-item-base w-full text-left" role="menuitem">🚪 Cerrar sesión</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                    </div>
-                </div>
-                
-                <div class="-mr-2 flex md:hidden">
-                    <button id="mobile-menu-button" type="button" class="mobile-btn-white inline-flex items-center justify-center p-2.5 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-400" aria-controls="mobile-menu" aria-expanded="false">
-                        <span class="sr-only">Abrir menú principal</span>
-                        <svg class="icon-menu h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                        <svg class="icon-close h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
         </div>
 
-        <div class="md:hidden hidden mobile-nav-panel" id="mobile-menu">
+        <div class="tx-nav-actions">
+            {% if usuario_actual %}
+            <div class="dropdown-container hidden md:block">
+                <a href="{{ url_for('auth.usuarios') }}" class="tx-avatar" title="{{ usuario_actual.nombre }}">
+                    {{ usuario_actual.username[:2]|upper }}
+                </a>
+                <div class="dropdown-menu">
+                    <div class="py-1" role="menu" aria-orientation="vertical">
+                        <a href="{{ url_for('auth.usuarios') }}" class="dropdown-item-base" role="menuitem">Usuarios y contraseña</a>
+                        <form method="POST" action="{{ url_for('auth.logout') }}">
+                            <button type="submit" class="dropdown-item-base w-full text-left" role="menuitem">Cerrar sesión</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <button id="mobile-menu-button" type="button" class="md:hidden inline-flex items-center justify-center p-2.5 rounded-full text-violet-700 hover:bg-violet-100 focus:outline-none" aria-controls="mobile-menu" aria-expanded="false">
+                <span class="sr-only">Abrir menú principal</span>
+                <svg class="icon-menu h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <svg class="icon-close h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+        <div class="md:hidden hidden mobile-nav-panel mt-2 rounded-3xl overflow-hidden" id="mobile-menu">
             <div class="px-4 py-4 space-y-3">
                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 px-1">Principal</p>
                 <div class="grid grid-cols-1 gap-2">
@@ -1053,7 +960,6 @@
                 {% endif %}
             </div>
         </div>
-    </nav>
     </div>
     
     <main class="tx-main container mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-16">

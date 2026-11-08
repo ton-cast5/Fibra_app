@@ -83,87 +83,57 @@
 {% endblock %}
 
 {% block content %}
-    <div class="dash-hero fade-in flex items-center justify-between gap-4 flex-wrap">
-        <h1 class="text-violet-800 dark:text-violet-200 text-3xl font-bold flex items-center m-0">
-            <svg class="w-7 h-7 mr-3 text-violet-600 pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-            </svg>
-            Dashboard de la Red
-        </h1>
-        <p class="text-sm text-violet-700/70 dark:text-violet-200/70 m-0">Resumen operativo TONYLEX</p>
-    </div>
-    
-    <!-- Alertas del Sistema -->
-    {% if nats_saturadas or nats_criticas %}
-    <div class="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl p-4 mb-6 fade-in">
-        <div class="flex items-center">
-            <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.332 16c-.77 1.333.192 3 1.732 3z"></path>
-            </svg>
-            <div>
-                <h3 class="font-bold text-lg">Alertas del Sistema</h3>
-                <p class="text-sm opacity-90">
-                    {% if nats_saturadas %} {{ nats_saturadas|length }} NATs saturadas • {% endif %}
-                    {% if nats_criticas %} {{ nats_criticas|length }} NATs críticas {% endif %}
-                </p>
-            </div>
+    <div class="tx-page-head fade-in">
+        <div>
+            <h1>Dashboard</h1>
+            <p>Resumen operativo de la red TONYLEX</p>
         </div>
+        <a class="tx-btn-primary" href="{{ url_for('mapa_nats') }}">Ver mapa</a>
+    </div>
+
+    {% if nats_saturadas or nats_criticas %}
+    <div class="mb-5 fade-in rounded-3xl px-5 py-4 text-white" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 18px 40px -20px rgba(220,38,38,.55);">
+        <h3 class="font-bold text-lg m-0">Alertas del sistema</h3>
+        <p class="text-sm opacity-90 m-0 mt-1">
+            {% if nats_saturadas %} {{ nats_saturadas|length }} NATs saturadas • {% endif %}
+            {% if nats_criticas %} {{ nats_criticas|length }} NATs críticas {% endif %}
+        </p>
     </div>
     {% endif %}
 
-    <!-- Tarjetas Principales con Gradientes -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 fade-in">
-        <div class="stats-card text-white rounded-xl shadow-2xl p-6 relative overflow-hidden">
-            <div class="absolute top-0 right-0 -mt-4 -mr-4 fm-deco-circle dash-kpi-deco rounded-full w-20 h-20"></div>
-            <div class="relative z-10">
-                <h5 class="text-lg font-semibold opacity-90 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    Clientes Activos
-                </h5>
-                <p class="text-4xl font-extrabold mt-2">{{ clientes_activos }}</p>
-                <p class="text-sm opacity-80 mt-1">Conectados a la red</p>
-            </div>
+    <div class="tx-kpi-grid fade-in">
+        <div class="tx-kpi">
+            <div class="label">Clientes activos</div>
+            <div class="value">{{ clientes_activos }}</div>
+            <div class="hint">Conectados a la red</div>
+            <div class="accent" aria-hidden="true"></div>
         </div>
-        
-        <div class="bg-gradient-to-r from-gray-700 to-gray-900 text-white rounded-xl shadow-2xl p-6 relative overflow-hidden">
-            <div class="absolute top-0 right-0 -mt-4 -mr-4 fm-deco-circle dash-kpi-deco rounded-full w-20 h-20"></div>
-            <div class="relative z-10">
-                <h5 class="text-lg font-semibold opacity-90 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                    Capacidad Total
-                </h5>
-                <p class="text-4xl font-extrabold mt-2">{{ capacidad_total }}</p>
-                <p class="text-sm opacity-80 mt-1">Puertos disponibles</p>
-            </div>
+        <div class="tx-kpi">
+            <div class="label">Capacidad total</div>
+            <div class="value">{{ capacidad_total }}</div>
+            <div class="hint">Puertos disponibles</div>
+            <div class="accent" aria-hidden="true"></div>
         </div>
-        
-        <div class="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl shadow-2xl p-6 relative overflow-hidden">
-            <div class="absolute top-0 right-0 -mt-4 -mr-4 fm-deco-circle dash-kpi-deco rounded-full w-20 h-20"></div>
-            <div class="relative z-10">
-                <h5 class="text-lg font-semibold opacity-90 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8-4v10m0 0l-8-4m8 4l8-4m-8 4v10l-8 4"></path></svg>
-                    NATs Registradas
-                </h5>
-                <p class="text-4xl font-extrabold mt-2">{{ total_nats }}</p>
-                <p class="text-sm opacity-80 mt-1">Puntos de distribución</p>
-            </div>
+        <div class="tx-kpi">
+            <div class="label">NATs registradas</div>
+            <div class="value">{{ total_nats }}</div>
+            <div class="hint">Puntos de distribución</div>
+            <div class="accent" aria-hidden="true"></div>
         </div>
-        
-        <div class="bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-xl shadow-2xl p-6 relative overflow-hidden">
-            <div class="absolute top-0 right-0 -mt-4 -mr-4 fm-deco-circle dash-kpi-deco rounded-full w-20 h-20"></div>
-            <div class="relative z-10">
-                <h5 class="text-lg font-semibold opacity-90 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Total Clientes
-                </h5>
-                <p class="text-4xl font-extrabold mt-2">{{ total_clientes }}</p>
-                <p class="text-sm opacity-80 mt-1">{{ total_empalmes }} empalmes · {{ total_distribucion }} NAP</p>
-            </div>
+        <div class="tx-kpi">
+            <div class="label">Total clientes</div>
+            <div class="value">{{ total_clientes }}</div>
+            <div class="hint">{{ total_empalmes }} empalmes · {{ total_distribucion }} NAP</div>
+            <div class="accent" aria-hidden="true"></div>
         </div>
     </div>
 
-    <!-- Estadísticas Avanzadas -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 fade-in">
+    <div class="tx-dark-panel mb-6 fade-in">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-3 px-1">
+            <h2 class="text-lg font-bold m-0">Panel operativo</h2>
+            <span class="tx-chip">TONYLEX live</span>
+        </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-2">
         <!-- Tarjeta de Capacidad Libre -->
         <div class="fm-card rounded-xl shadow-lg p-6 hover-lift">
             <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -258,6 +228,7 @@
             </div>
             {% endfor %}
         </div>
+    </div>
     </div>
 
     <!-- Alertas de Capacidad -->
