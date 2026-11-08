@@ -327,20 +327,22 @@ private fun DarkWorkspace(
     totalClientes: Int,
 ) {
     val current = nats.getOrNull(selected)
+    val panelBg = Color(0xFFF7F5FC)
     Card(
         shape = RoundedCornerShape(30.dp),
-        colors = CardDefaults.cardColors(TxDark),
-        elevation = CardDefaults.cardElevation(8.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier.fillMaxWidth().height(460.dp),
     ) {
-        Row(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TxDark, TxDark2)))) {
+        Row(Modifier.fillMaxSize().background(panelBg)) {
             Column(
                 Modifier
                     .width(160.dp)
                     .fillMaxHeight()
+                    .background(Color.White.copy(alpha = 0.7f))
                     .padding(12.dp),
             ) {
-                Text("Cajas", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Cajas", color = FnInk, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     itemsIndexed(nats.take(20)) { idx, nat ->
                         val active = idx == selected
@@ -357,15 +359,32 @@ private fun DarkWorkspace(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Box(
-                                Modifier.size(32.dp).clip(CircleShape).background(Color.White.copy(0.15f)),
+                                Modifier.size(32.dp).clip(CircleShape).background(
+                                    if (active) Color.White.copy(0.2f) else Color(0xFFEEEAFB),
+                                ),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Text(nat.nombre.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(
+                                    nat.nombre.take(1),
+                                    color = if (active) Color.White else FnViolet,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                )
                             }
                             Spacer(Modifier.width(8.dp))
                             Column {
-                                Text(nat.nombre, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                                Text("${nat.puertosTotal} p", color = Color.White.copy(0.7f), fontSize = 10.sp)
+                                Text(
+                                    nat.nombre,
+                                    color = if (active) Color.White else FnInk,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                )
+                                Text(
+                                    "${nat.puertosTotal} p",
+                                    color = if (active) Color.White.copy(0.75f) else TxMuted,
+                                    fontSize = 10.sp,
+                                )
                             }
                         }
                     }
@@ -379,16 +398,16 @@ private fun DarkWorkspace(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Panel de operación", color = Color.White.copy(0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("Panel de operación", color = TxMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (current != null) "# ${current.nombre}" else "TONYLEX",
-                    color = Color.White,
+                    color = FnInk,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 20.sp,
                 )
                 Text(
                     current?.region ?: "Tu red está al día — todo claro a simple vista",
-                    color = Color.White.copy(0.78f),
+                    color = TxMuted,
                     fontSize = 12.sp,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -402,21 +421,22 @@ private fun DarkWorkspace(
                             .weight(1f)
                             .height(48.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(FnViolet.copy(0.28f))
-                            .border(1.dp, Color.White.copy(0.18f), RoundedCornerShape(16.dp)),
+                            .background(FnViolet.copy(alpha = 0.12f))
+                            .border(1.dp, FnViolet.copy(alpha = 0.28f), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("+ Agregar", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("+ Agregar", color = FnViolet, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                     Box(
                         Modifier
                             .weight(1f)
                             .height(48.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White.copy(0.08f)),
+                            .background(Color.White)
+                            .border(1.dp, Color(0x14000000), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("Ver cajas", color = Color.White.copy(0.85f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("Ver cajas", color = FnInk, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
                 Spacer(Modifier.weight(1f))
@@ -424,22 +444,23 @@ private fun DarkWorkspace(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Color.Black.copy(0.18f))
+                        .background(Color.White)
+                        .border(1.dp, Color(0x14000000), RoundedCornerShape(18.dp))
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
-                        Text("Balance red", color = Color.White.copy(0.7f), fontSize = 11.sp)
-                        Text("${nats.size} cajas", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Balance red", color = TxMuted, fontSize = 11.sp)
+                        Text("${nats.size} cajas", color = FnInk, fontWeight = FontWeight.Bold)
                     }
                     Box(
                         Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .background(Color.White)
+                            .background(FnViolet)
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                     ) {
-                        Text("Ver detalle", color = TxDark, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                        Text("Ver detalle", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                     }
                 }
             }
@@ -452,12 +473,13 @@ private fun SoftStat(label: String, value: String) {
     Column(
         Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(FnViolet.copy(alpha = 0.22f))
+            .background(Color.White)
+            .border(1.dp, Color(0x14000000), RoundedCornerShape(16.dp))
             .padding(10.dp)
             .width(72.dp),
     ) {
-        Text(label, color = Color.White.copy(0.75f), fontSize = 10.sp)
-        Text(value, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+        Text(label, color = TxMuted, fontSize = 10.sp)
+        Text(value, color = FnInk, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
     }
 }
 

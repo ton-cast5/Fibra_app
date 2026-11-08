@@ -140,12 +140,10 @@
                 {% endif %}
             </div>
             <div class="fn-user-card">
-                <div class="avatar" style="width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:800;">
-                    {{ (usuario_actual.username[:1]|upper) if usuario_actual else 'T' }}
-                </div>
+                <div class="avatar">{{ (usuario_actual.username[:1]|upper) if usuario_actual else 'T' }}</div>
                 <div>
                     <div style="font-weight:750;font-size:.88rem;">{{ usuario_actual.nombre if usuario_actual else 'Operador' }}</div>
-                    <div style="font-size:.72rem;opacity:.7;">Sesión activa</div>
+                    <div class="sub">Sesión activa</div>
                 </div>
             </div>
         </div>
@@ -153,7 +151,7 @@
         <div class="fn-cards-grid">
             <div class="fn-soft-card">
                 <div class="t">Puertos en uso</div>
-                <div class="v">{% if selected %}{{ selected.puertos_usados }}/{{ selected.puertos_total }}{% else %}{{ clientes_activos }}/{{ capacidad_total }}{% endif %}</div>
+                <div class="v">{% if selected %}{{ selected.puertos_usados }}/{{ selected.puertos_total }}{% else %}{{ (capacidad_total - capacidad_libre) }}/{{ capacidad_total }}{% endif %}</div>
                 <div class="h">Capacidad ocupada ahora</div>
             </div>
             <div class="fn-soft-card">
