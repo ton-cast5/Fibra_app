@@ -1427,6 +1427,47 @@ def api_buscar_global():
     return jsonify({'results': results[:limit]})
 
 
+@app.route('/api/clientes')
+def api_clientes_listado():
+    """Listado JSON de clientes para búsqueda en vivo sin recargar la página."""
+    q = (request.args.get('q') or '').strip()
+    estado = request.args.get('estado', 'todos')
+    nat_id = request.args.get('nap', 'todas')
+    plan = request.args.get('plan', 'todos')
+    try:
+        limit = min(max(int(request.args.get('limit', 100)), 1), 200)
+    except (TypeError, ValueError):
+        limit = 100
+
+    query = construir_query_clientes(q=q or None, estado=estado, nat_id=nat_id, plan=plan)
+    total = query.count()
+    clientes = query.limit(limit).all()
+    items = []
+    for cli in clientes:
+        nat = cli.nat
+        items.append({
+            'id': cli.id,
+            'nombre': cli.nombre or '',
+            'direccion': cli.direccion or '',
+            'contacto': cli.contacto or '',
+            'plan': cli.plan or '',
+            'ip': cli.ip or '',
+            'servicio': cli.servicio or '',
+            'activo': bool(cli.activo),
+            'nat_id': nat.id if nat else None,
+            'nat_nombre': nat.nombre if nat else None,
+            'url_editar': url_for('editar_cliente', cliente_id=cli.id),
+            'url_eliminar': url_for('eliminar_cliente', cliente_id=cli.id),
+            'url_nat': url_for('ver_nat', nat_id=nat.id) if nat else None,
+        })
+    return jsonify({
+        'total': total,
+        'count': len(items),
+        'truncated': total > len(items),
+        'items': items,
+    })
+
+
 @app.route('/dashboard')
 def dashboard():
     """Dashboard principal - ÚNICO dashboard"""

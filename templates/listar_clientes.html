@@ -184,8 +184,11 @@
                 </tbody>
             </table>
         </div>
-        {% set base_url = url_for('listar_clientes') %}
-        {% include '_paginacion.html' %}
+        <div id="clientes-paginacion">
+            {% set base_url = url_for('listar_clientes') %}
+            {% include '_paginacion.html' %}
+        </div>
+        <p class="fn-live-note" id="clientes-live-note" hidden></p>
     </div>
 </div>
 
@@ -195,17 +198,27 @@ document.addEventListener('DOMContentLoaded', function () {
     var input = document.getElementById('buscador');
     var box = document.getElementById('clientes-suggest');
     var wrap = document.getElementById('clientes-search');
+    var tbody = document.getElementById('tabla-body');
+    var pagWrap = document.getElementById('clientes-paginacion');
+    var liveNote = document.getElementById('clientes-live-note');
+    var resultsStat = document.querySelector('.fn-mini-stats .fn-mini-stat:last-child .v');
+    var originalBody = tbody ? tbody.innerHTML : '';
+    var originalResults = resultsStat ? resultsStat.textContent : '';
     var suggestTimer = null;
-    var submitTimer = null;
+    var liveTimer = null;
     var lastSuggest = '';
-    var initialQ = (input && input.value || '').trim();
+    var lastLive = null;
     var reqId = 0;
+    var liveActive = false;
+
+    var ICON_EDIT = '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>';
+    var ICON_DEL = '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
 
     document.querySelectorAll('.filtro-servidor').forEach(function (el) {
         el.addEventListener('change', function () { form.submit(); });
     });
 
-    if (!input || !box || !wrap) return;
+    if (!input || !box || !wrap || !tbody) return;
 
     function hideSuggest() {
         box.hidden = true;
@@ -216,6 +229,27 @@ document.addEventListener('DOMContentLoaded', function () {
         return String(s || '').replace(/[&<>"']/g, function (c) {
             return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
         });
+    }
+
+    function filtersQuery() {
+        var estado = (form.querySelector('[name="estado"]') || {}).value || 'todos';
+        var nap = (form.querySelector('[name="nap"]') || {}).value || 'todas';
+        var plan = (form.querySelector('[name="plan"]') || {}).value || 'todos';
+        var q = (input.value || '').trim();
+        return 'q=' + encodeURIComponent(q) +
+            '&estado=' + encodeURIComponent(estado) +
+            '&nap=' + encodeURIComponent(nap) +
+            '&plan=' + encodeURIComponent(plan);
+    }
+
+    function syncUrl(q) {
+        try {
+            var url = new URL(window.location.href);
+            if (q) url.searchParams.set('q', q);
+            else url.searchParams.delete('q');
+            url.searchParams.delete('page');
+            history.replaceState(null, '', url.pathname + url.search);
+        } catch (e) {}
     }
 
     function renderSuggest(items) {
@@ -235,51 +269,117 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.addEventListener('click', function () {
                 input.value = btn.getAttribute('data-q') || '';
                 hideSuggest();
-                form.submit();
+                liveSearch(true);
             });
         });
     }
 
-    function fetchSuggest(q) {
+    function rowHtml(c) {
+        var initial = escapeHtml((c.nombre || '?').charAt(0).toUpperCase());
+        var planIp = escapeHtml(c.plan || 'Sin plan') + (c.ip ? ' · ' + escapeHtml(c.ip) : '');
+        var napCell = c.url_nat
+            ? '<a href="' + escapeHtml(c.url_nat) + '" class="text-sm font-semibold" style="color:var(--fn-violet);text-decoration:none;">' + escapeHtml(c.nat_nombre) + '</a>'
+            : '<span class="fn-status muted">Sin NAP</span>';
+        var estado = c.activo
+            ? '<span class="fn-status ok">Activo</span>'
+            : '<span class="fn-status bad">Inactivo</span>';
+        var safeName = (c.nombre || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return '<tr class="table-row-hover cliente-row">' +
+            '<td class="px-5 py-4"><div class="flex items-center gap-3">' +
+            '<div class="fn-row-icon">' + initial + '</div><div>' +
+            '<div class="text-sm font-semibold text-gray-900">' + escapeHtml(c.nombre) + '</div>' +
+            '<div class="text-xs text-gray-500">' + planIp + '</div></div></div></td>' +
+            '<td class="px-5 py-4"><div class="text-sm text-gray-800 truncate max-w-xs">' + escapeHtml(c.direccion) + '</div>' +
+            '<div class="text-xs text-gray-500 mt-0.5">' + escapeHtml(c.contacto || 'Sin contacto') + '</div></td>' +
+            '<td class="px-5 py-4 whitespace-nowrap">' + napCell + '</td>' +
+            '<td class="px-5 py-4 whitespace-nowrap text-center">' + estado + '</td>' +
+            '<td class="px-5 py-4 whitespace-nowrap text-right"><div class="flex items-center justify-end gap-2">' +
+            '<a href="' + escapeHtml(c.url_editar) + '" class="fn-action" title="Editar">' + ICON_EDIT + '</a>' +
+            '<form action="' + escapeHtml(c.url_eliminar) + '" method="POST" class="inline-block" onsubmit="return confirm(\'¿Eliminar a ' + safeName + '?\');">' +
+            '<button type="submit" class="fn-action" title="Eliminar" style="color:#B42318;">' + ICON_DEL + '</button></form>' +
+            '</div></td></tr>';
+    }
+
+    function renderTable(data) {
+        var items = (data && data.items) || [];
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-14 text-center text-gray-500">' +
+                '<p class="font-semibold mb-1">Sin coincidencias</p>' +
+                '<p class="text-sm">Prueba otro nombre, IP o NAP.</p></td></tr>';
+        } else {
+            tbody.innerHTML = items.map(rowHtml).join('');
+        }
+        if (resultsStat) resultsStat.textContent = String(data.total || 0);
+        if (pagWrap) pagWrap.hidden = true;
+        if (liveNote) {
+            liveNote.hidden = false;
+            liveNote.textContent = data.truncated
+                ? ('Mostrando ' + data.count + ' de ' + data.total + ' coincidencias')
+                : (data.total + (data.total === 1 ? ' coincidencia' : ' coincidencias'));
+        }
+    }
+
+    function restoreOriginal() {
+        liveActive = false;
+        tbody.innerHTML = originalBody;
+        if (resultsStat) resultsStat.textContent = originalResults;
+        if (pagWrap) pagWrap.hidden = false;
+        if (liveNote) liveNote.hidden = true;
+        syncUrl('');
+    }
+
+    function liveSearch(force) {
+        var q = (input.value || '').trim();
+        var key = filtersQuery();
+        if (!force && key === lastLive) return;
+        lastLive = key;
+
+        if (!q && !liveActive) {
+            hideSuggest();
+            return;
+        }
+        if (!q) {
+            hideSuggest();
+            restoreOriginal();
+            return;
+        }
+
         var myId = ++reqId;
-        fetch('/api/buscar?tipo=cliente&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+        liveActive = true;
+        fetch('/api/clientes?' + key + '&limit=100', { headers: { 'Accept': 'application/json' } })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (myId !== reqId) return;
                 if ((input.value || '').trim() !== q) return;
-                renderSuggest((data && data.results) || []);
+                renderTable(data || { items: [], total: 0, count: 0 });
+                syncUrl(q);
             })
-            .catch(function () {
-                if (myId === reqId) hideSuggest();
-            });
+            .catch(function () {});
     }
 
-    function scheduleServerSearch(trimmed) {
-        clearTimeout(submitTimer);
-        // Vacío: volver al listado completo de una.
-        if (!trimmed) {
-            if (initialQ) form.submit();
-            return;
-        }
-        // Buscar en servidor (toda la cartera, no solo esta página).
-        submitTimer = setTimeout(function () {
-            if ((input.value || '').trim() === initialQ) return;
-            form.submit();
-        }, 450);
+    function fetchSuggest(q) {
+        fetch('/api/buscar?tipo=cliente&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if ((input.value || '').trim() !== q) return;
+                renderSuggest((data && data.results) || []);
+            })
+            .catch(function () { hideSuggest(); });
     }
 
     function onQueryChange() {
         var trimmed = (input.value || '').trim();
         clearTimeout(suggestTimer);
+        clearTimeout(liveTimer);
 
         if (!trimmed) {
             lastSuggest = '';
             hideSuggest();
-            scheduleServerSearch('');
+            liveTimer = setTimeout(function () { liveSearch(true); }, 80);
             return;
         }
 
-        scheduleServerSearch(trimmed);
+        liveTimer = setTimeout(function () { liveSearch(false); }, 180);
 
         if (trimmed === lastSuggest) return;
         suggestTimer = setTimeout(function () {
@@ -287,6 +387,12 @@ document.addEventListener('DOMContentLoaded', function () {
             fetchSuggest(trimmed);
         }, 120);
     }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        hideSuggest();
+        liveSearch(true);
+    });
 
     input.addEventListener('input', onQueryChange);
     input.addEventListener('search', onQueryChange);

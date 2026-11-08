@@ -845,6 +845,12 @@ main.tx-main section.bg-white {
   max-height: 320px;
   overflow: auto;
 }
+.fn-live-note {
+  margin: 0.75rem 1rem 1rem;
+  font-size: 0.78rem;
+  color: var(--fn-muted);
+  font-weight: 650;
+}
 .fn-toolbar .fn-search-field svg {
   position: absolute;
   left: 0.85rem;
