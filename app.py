@@ -1378,6 +1378,45 @@ def index():
         stats=stats_nats_listado(),
     )
 
+@app.route('/api/buscar')
+def api_buscar_global():
+    """Sugerencias en vivo de cajas y clientes para el buscador."""
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 1:
+        return jsonify({'results': []})
+    like = f'%{q}%'
+    results = []
+    try:
+        for nat in Nat.query.filter(
+            db.or_(Nat.nombre.ilike(like), Nat.region.ilike(like), Nat.descripcion.ilike(like))
+        ).order_by(Nat.nombre.asc()).limit(8).all():
+            results.append({
+                'type': 'caja',
+                'label': nat.nombre,
+                'hint': nat.region or (nat.tipo_caja if hasattr(nat, 'tipo_caja') else 'Caja'),
+                'url': url_for('ver_nat', nat_id=nat.id),
+            })
+        for cli in Cliente.query.filter(
+            db.or_(
+                Cliente.nombre.ilike(like),
+                Cliente.direccion.ilike(like),
+                Cliente.contacto.ilike(like),
+                Cliente.ip.ilike(like),
+                Cliente.servicio.ilike(like),
+            )
+        ).order_by(Cliente.nombre.asc()).limit(8).all():
+            results.append({
+                'type': 'cliente',
+                'label': cli.nombre,
+                'hint': cli.direccion or cli.plan or 'Cliente',
+                'url': url_for('listar_clientes', q=cli.nombre),
+            })
+    except Exception as e:
+        print(f'api_buscar_global: {e}')
+        return jsonify({'results': []})
+    return jsonify({'results': results[:12]})
+
+
 @app.route('/dashboard')
 def dashboard():
     """Dashboard principal - ÚNICO dashboard"""

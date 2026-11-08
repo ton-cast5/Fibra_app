@@ -17,9 +17,6 @@
         </div>
     </div>
     <div class="fn-page-actions">
-        <a class="fn-btn-ghost" href="{{ url_for('inventarios') }}" title="Filtros / reportes">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h18M6 12h12M10 20h4"/></svg>
-        </a>
         <a class="fn-btn-primary" href="{{ url_for('agregar_nat') }}">+ Crear caja</a>
     </div>
 </div>
@@ -62,15 +59,14 @@
 </div>
 
 <div class="fn-filters">
-    <a class="fn-chip" href="{{ url_for('listar_clientes') }}">Todos los clientes ▾</a>
-    <a class="fn-chip" href="{{ url_for('index') }}">Todos los estados ▾</a>
+    <a class="fn-chip" href="{{ url_for('listar_clientes') }}">Clientes</a>
+    <a class="fn-chip" href="{{ url_for('index') }}">Cajas</a>
     <a class="fn-chip" href="{{ url_for('inventarios') }}">Inventario</a>
     <a class="fn-chip" href="/potencias">Potencias</a>
-    <div class="fn-search">
+    <div class="fn-search fn-search-live" id="global-search">
         <svg width="16" height="16" fill="none" stroke="#A09BB3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
-        <form action="{{ url_for('listar_clientes') }}" method="get" style="flex:1;margin:0;">
-            <input type="search" name="q" placeholder="Buscar cliente o caja #" aria-label="Buscar">
-        </form>
+        <input type="search" id="tx-live-search" placeholder="Buscar cliente o caja…" aria-label="Buscar" autocomplete="off">
+        <div class="fn-suggest" id="tx-live-suggest" hidden></div>
     </div>
 </div>
 
@@ -79,7 +75,7 @@
         <h3>{% if alerta_nats %}Cajas en alerta{% else %}Estado de la red{% endif %}</h3>
         {% if alerta_nats %}
             {% for nat in alerta_nats[:12] %}
-            <a class="fn-row {{ 'is-active' if loop.first else '' }}" href="{{ url_for('ver_nat', nat_id=nat.id) }}">
+            <a class="fn-row {{ 'is-active' if loop.first else '' }}" href="{{ url_for('ver_nat', nat_id=nat.id) }}" data-detail-row>
                 <div class="avatar">{{ nat.nombre[:1]|upper }}</div>
                 <div class="meta">
                     <div class="id"># {{ nat.nombre }}</div>
@@ -128,16 +124,18 @@
         <div class="fn-detail-top">
             <div>
                 {% if selected %}
+                <p class="fn-detail-kicker">Atención prioritaria</p>
                 <h2># {{ selected.nombre }} <span class="fn-tag {{ 'bad' if selected in nats_saturadas else 'warn' }}">{{ 'Saturada' if selected in nats_saturadas else 'Crítica' }}</span></h2>
                 <div class="company">
                     <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}" alt="" width="28" height="28" style="border-radius:8px;">
                     <span>{{ selected.region or 'Sin región' }} · {{ selected.tipo_caja }}</span>
                 </div>
                 {% else %}
-                <h2>Operación TONYLEX <span class="fn-tag ok">Estable</span></h2>
+                <p class="fn-detail-kicker">Panel de operación</p>
+                <h2>TONYLEX <span class="fn-tag ok">Estable</span></h2>
                 <div class="company">
                     <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}" alt="" width="28" height="28" style="border-radius:8px;">
-                    <span>Resumen general de la red</span>
+                    <span>Tu red está al día — todo claro a simple vista</span>
                 </div>
                 {% endif %}
             </div>
@@ -156,18 +154,25 @@
             <div class="fn-soft-card">
                 <div class="t">Puertos en uso</div>
                 <div class="v">{% if selected %}{{ selected.puertos_usados }}/{{ selected.puertos_total }}{% else %}{{ clientes_activos }}/{{ capacidad_total }}{% endif %}</div>
+                <div class="h">Capacidad ocupada ahora</div>
             </div>
             <div class="fn-soft-card">
                 <div class="t">Capacidad libre</div>
                 <div class="v">{% if selected %}{{ selected.puertos_total - selected.puertos_usados }}{% else %}{{ capacidad_libre }}{% endif %}</div>
+                <div class="h">Puertos disponibles</div>
             </div>
             <div class="fn-soft-card">
                 <div class="t">Ocupación</div>
                 <div class="v">{% if selected and selected.puertos_total %}{{ ((selected.puertos_usados / selected.puertos_total) * 100)|round|int }}%{% else %}{{ porcentaje_ocupacion }}%{% endif %}</div>
+                <div class="h">Salud de la red</div>
             </div>
         </div>
 
-        <a class="fn-add-card" href="{{ url_for('agregar_cliente') if selected else url_for('agregar_nat') }}">+ Agregar {{ 'cliente' if selected else 'caja' }}</a>
+        <div class="fn-quick-actions">
+            <a class="fn-add-card" href="{{ url_for('agregar_cliente') if selected else url_for('agregar_nat') }}">+ Agregar {{ 'cliente' if selected else 'caja' }}</a>
+            <a class="fn-add-card soft" href="{{ url_for('listar_clientes') }}">Ver clientes</a>
+            <a class="fn-add-card soft" href="{{ url_for('index') }}">Ver cajas</a>
+        </div>
 
         <div class="fn-detail-foot">
             <div class="sums">
@@ -181,4 +186,52 @@
         </div>
     </section>
 </div>
+
+<script>
+(function () {
+    var input = document.getElementById('tx-live-search');
+    var box = document.getElementById('tx-live-suggest');
+    if (!input || !box) return;
+    var timer = null;
+    var last = '';
+
+    function hide() { box.hidden = true; box.innerHTML = ''; }
+
+    function render(items) {
+        if (!items.length) {
+            box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
+            box.hidden = false;
+            return;
+        }
+        box.innerHTML = items.map(function (it) {
+            return '<a class="fn-suggest-item" href="' + it.url + '">' +
+                '<span class="fn-suggest-type">' + (it.type === 'caja' ? 'Caja' : 'Cliente') + '</span>' +
+                '<span class="fn-suggest-label">' + it.label + '</span>' +
+                '<span class="fn-suggest-hint">' + (it.hint || '') + '</span></a>';
+        }).join('');
+        box.hidden = false;
+    }
+
+    function search(q) {
+        fetch('/api/buscar?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) { render((data && data.results) || []); })
+            .catch(function () { hide(); });
+    }
+
+    input.addEventListener('input', function () {
+        var q = (input.value || '').trim();
+        clearTimeout(timer);
+        if (q.length < 1) { hide(); return; }
+        if (q === last) return;
+        timer = setTimeout(function () { last = q; search(q); }, 160);
+    });
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hide();
+    });
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('global-search').contains(e.target)) hide();
+    });
+})();
+</script>
 {% endblock %}

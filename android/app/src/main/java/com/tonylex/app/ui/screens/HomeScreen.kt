@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -64,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tonylex.app.TonylexApp
+import com.tonylex.app.data.local.NapModelEntity
 import com.tonylex.app.data.local.NatEntity
 import com.tonylex.app.data.sync.SyncWorker
 import com.tonylex.app.ui.theme.TxDark
@@ -163,6 +167,20 @@ private fun FinnovaDashboard() {
     val activos = clientes.count { it.activo }
     val scope = rememberCoroutineScope()
     var showAdd by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val suggestions = remember(query, nats, clientes) {
+        val q = query.trim().lowercase()
+        if (q.isEmpty()) emptyList()
+        else {
+            val cajaHits = nats.filter {
+                it.nombre.lowercase().contains(q) || (it.region ?: "").lowercase().contains(q)
+            }.take(5).map { "Caja · ${it.nombre}" }
+            val cliHits = clientes.filter {
+                it.nombre.lowercase().contains(q) || it.direccion.lowercase().contains(q)
+            }.take(5).map { "Cliente · ${it.nombre}" }
+            cajaHits + cliHits
+        }
+    }
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -170,39 +188,17 @@ private fun FinnovaDashboard() {
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .border(1.dp, Color(0x14000000), CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = FnInk)
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text("Resumen", fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = FnInk)
-                        Text("Administra tu red en un solo lugar.", color = TxMuted, fontSize = 13.sp)
-                    }
+                Column {
+                    Text("Resumen", fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = FnInk)
+                    Text("Tu red, clara y a simple vista.", color = TxMuted, fontSize = 13.sp)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center,
-                    ) { Icon(Icons.Default.Tune, null, tint = FnInk) }
-                    Button(
-                        onClick = { showAdd = true },
-                        shape = RoundedCornerShape(999.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = FnViolet),
-                    ) {
-                        Icon(Icons.Default.Add, null)
-                        Text(" Crear caja")
-                    }
+                Button(
+                    onClick = { showAdd = true },
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = FnViolet),
+                ) {
+                    Icon(Icons.Default.Add, null)
+                    Text(" Crear caja")
                 }
             }
         }
@@ -221,17 +217,30 @@ private fun FinnovaDashboard() {
         }
 
         item {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.85f))
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip("Todos")
-                FilterChip("Activos")
-                FilterChip("Alertas")
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("Buscar cliente o caja…") },
+                shape = RoundedCornerShape(999.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedBorderColor = FnViolet,
+                    unfocusedBorderColor = Color(0x14000000),
+                ),
+            )
+        }
+        if (suggestions.isNotEmpty()) {
+            item {
+                Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        suggestions.forEach {
+                            Text(it, color = FnInk, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(vertical = 4.dp, horizontal = 6.dp))
+                        }
+                    }
+                }
             }
         }
 
@@ -370,15 +379,16 @@ private fun DarkWorkspace(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                Text("Panel de operación", color = Color.White.copy(0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    if (current != null) "# ${current.nombre}" else "Operación TONYLEX",
+                    if (current != null) "# ${current.nombre}" else "TONYLEX",
                     color = Color.White,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                 )
                 Text(
-                    current?.region ?: "Resumen general de la red",
-                    color = Color.White.copy(0.75f),
+                    current?.region ?: "Tu red está al día — todo claro a simple vista",
+                    color = Color.White.copy(0.78f),
                     fontSize = 12.sp,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -386,21 +396,35 @@ private fun DarkWorkspace(
                     SoftStat("Activos", "$clientesActivos")
                     SoftStat("Total", "$totalClientes")
                 }
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .border(1.5.dp, Color.White.copy(0.22f), RoundedCornerShape(18.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("+ Agregar ítem", color = Color.White.copy(0.7f), fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(FnViolet.copy(0.28f))
+                            .border(1.dp, Color.White.copy(0.18f), RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("+ Agregar", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(0.08f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("Ver cajas", color = Color.White.copy(0.85f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
                 }
                 Spacer(Modifier.weight(1f))
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Color.Black.copy(0.22f))
+                        .background(Color.Black.copy(0.18f))
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -524,11 +548,19 @@ fun ModulesHub(onOpen: (Int) -> Unit) {
     val docs by app.repository.documentos().collectAsState(initial = emptyList())
     val nats by app.repository.nats().collectAsState(initial = emptyList())
     val clientes by app.repository.clientes().collectAsState(initial = emptyList())
+    val modelos by app.repository.napModels().collectAsState(initial = emptyList())
+    var modelQuery by remember { mutableStateOf("") }
+    val filteredModels = remember(modelQuery, modelos) {
+        val q = modelQuery.trim().lowercase()
+        if (q.isEmpty()) modelos else modelos.filter {
+            it.nombre.lowercase().contains(q) || (it.tipoCaja ?: "").lowercase().contains(q)
+        }
+    }
 
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("Todos los módulos", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = FnInk)
-            Text("Acceso rápido a toda la app", color = TxMuted, fontSize = 13.sp)
+            Text("Misma experiencia clara que en web", color = TxMuted, fontSize = 13.sp)
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -543,36 +575,77 @@ fun ModulesHub(onOpen: (Int) -> Unit) {
             }
         }
         item {
+            Text("Catálogo de modelos", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = FnInk)
+            Text("${modelos.size} referencias visuales", color = TxMuted, fontSize = 12.sp)
+        }
+        item {
+            OutlinedTextField(
+                value = modelQuery,
+                onValueChange = { modelQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("Filtrar modelos…") },
+                shape = RoundedCornerShape(18.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedBorderColor = FnViolet,
+                    unfocusedBorderColor = Color(0x14000000),
+                ),
+            )
+        }
+        items(filteredModels.chunked(2)) { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { model ->
+                    ModelCatalogCard(model, Modifier.weight(1f))
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+        item {
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Potencias", fontWeight = FontWeight.Bold, color = FnInk)
-                    Text("${potencias.size} mediciones locales", color = TxMuted, fontSize = 13.sp)
-                    potencias.take(8).forEach {
+                    Text("Potencias · ${potencias.size}", fontWeight = FontWeight.Bold, color = FnInk)
+                    potencias.take(6).forEach {
                         Text("#${it.id}  ${it.potenciaEntrada}/${it.potenciaSalida} dBm", color = TxMuted, fontSize = 12.sp)
                     }
+                    Text("Asistencias · ${asistencias.size}", fontWeight = FontWeight.Bold, color = FnInk)
+                    Text("Documentos · ${docs.size}", fontWeight = FontWeight.Bold, color = FnInk)
                 }
             }
         }
-        item {
-            Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Asistencias", fontWeight = FontWeight.Bold, color = FnInk)
-                    Text("${asistencias.size} registros", color = TxMuted, fontSize = 13.sp)
-                    asistencias.take(8).forEach {
-                        Text("Trab ${it.trabajadorId}: ${it.tipo}", color = TxMuted, fontSize = 12.sp)
-                    }
-                }
+    }
+}
+
+@Composable
+private fun ModelCatalogCard(model: NapModelEntity, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.height(150.dp),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .background(Brush.linearGradient(listOf(Color(0xFFF4F2FA), Color(0xFFE9E6F5)))),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    if (model.tipoCaja == "empalme") "Empalme" else "NAP",
+                    color = FnViolet,
+                    fontWeight = FontWeight.ExtraBold,
+                )
             }
-        }
-        item {
-            Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Documentos", fontWeight = FontWeight.Bold, color = FnInk)
-                    Text("${docs.size} archivos", color = TxMuted, fontSize = 13.sp)
-                    docs.take(8).forEach {
-                        Text(it.nombreOriginal ?: it.nombre, color = TxMuted, fontSize = 12.sp)
-                    }
-                }
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(model.nombre, fontWeight = FontWeight.Bold, color = FnInk, maxLines = 1, fontSize = 13.sp)
+                Text(
+                    model.capacidadMax?.let { "$it puertos" } ?: "Sin límite",
+                    color = TxMuted,
+                    fontSize = 12.sp,
+                )
             }
         }
     }
