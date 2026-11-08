@@ -1,29 +1,38 @@
 package com.tonylex.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Router
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,7 +62,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tonylex.app.TonylexApp
+import com.tonylex.app.data.local.NatEntity
 import com.tonylex.app.data.sync.SyncWorker
 import com.tonylex.app.ui.theme.TxDark
 import com.tonylex.app.ui.theme.TxDark2
@@ -63,6 +74,10 @@ import com.tonylex.app.ui.theme.TxViolet
 import com.tonylex.app.ui.theme.TxViolet2
 import kotlinx.coroutines.launch
 
+private val FnBg = Color(0xFFECEAF3)
+private val FnInk = Color(0xFF14131C)
+private val FnViolet = Color(0xFF6C5CEF)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onLogout: () -> Unit) {
@@ -70,44 +85,41 @@ fun HomeScreen(onLogout: () -> Unit) {
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
     val pending by app.repository.outboxCount().collectAsState(initial = 0)
-    var onlineHint by remember { mutableStateOf("Listo") }
+    var hint by remember { mutableStateOf("Listo") }
 
     Scaffold(
-        containerColor = TxSoftBg,
+        containerColor = FnBg,
         topBar = {
             TopAppBar(
                 title = {
-                    Text("TONYLEX", fontWeight = FontWeight.ExtraBold)
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF1A1630),
-                    actionIconContentColor = TxViolet,
-                ),
-                actions = {
-                    if (pending > 0) {
-                        Text("$pending pend.", color = TxViolet, modifier = Modifier.padding(end = 6.dp))
+                    Column {
+                        Text("TONYLEX", fontWeight = FontWeight.ExtraBold, color = FnInk, fontSize = 18.sp)
+                        Text("Red óptica, mejor operación", color = TxMuted, fontSize = 11.sp)
                     }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+                actions = {
+                    if (pending > 0) Text("$pending", color = FnViolet, modifier = Modifier.padding(end = 4.dp))
                     IconButton(onClick = {
                         scope.launch {
-                            onlineHint = "Sincronizando…"
+                            hint = "Sincronizando…"
                             runCatching { app.repository.refresh() }
-                                .onSuccess { onlineHint = "Sincronizado" }
-                                .onFailure { onlineHint = it.message ?: "Sin red" }
+                                .onSuccess { hint = "Sincronizado" }
+                                .onFailure { hint = it.message ?: "Sin red" }
                             SyncWorker.enqueue(app)
                         }
-                    }) { Icon(Icons.Default.CloudSync, contentDescription = "Sync") }
+                    }) { Icon(Icons.Default.CloudSync, null, tint = FnViolet) }
                     IconButton(onClick = {
                         app.repository.logout()
                         onLogout()
-                    }) { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Salir") }
+                    }) { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = FnInk) }
                 },
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = TxDark, contentColor = Color.White) {
                 listOf(
-                    Triple("Inicio", Icons.Default.Inventory2, 0),
+                    Triple("Resumen", Icons.Default.Inventory2, 0),
                     Triple("Cajas", Icons.Default.Router, 1),
                     Triple("Clientes", Icons.Default.People, 2),
                     Triple("Mapa", Icons.Default.Map, 3),
@@ -116,7 +128,7 @@ fun HomeScreen(onLogout: () -> Unit) {
                     NavigationBarItem(
                         selected = tab == index,
                         onClick = { tab = index },
-                        icon = { Icon(icon, contentDescription = label) },
+                        icon = { Icon(icon, label) },
                         label = { Text(label) },
                     )
                 }
@@ -127,16 +139,11 @@ fun HomeScreen(onLogout: () -> Unit) {
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(TxSoftBg),
+                .background(FnBg),
         ) {
-            Text(
-                onlineHint,
-                color = TxViolet,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Text(hint, color = FnViolet, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
             when (tab) {
-                0 -> DashboardTab()
+                0 -> FinnovaDashboard()
                 1 -> NatsTab()
                 2 -> ClientesTab()
                 3 -> MapTab()
@@ -147,154 +154,95 @@ fun HomeScreen(onLogout: () -> Unit) {
 }
 
 @Composable
-private fun DashboardTab() {
+private fun FinnovaDashboard() {
     val app = LocalContext.current.applicationContext as TonylexApp
     val nats by app.repository.nats().collectAsState(initial = emptyList())
     val clientes by app.repository.clientes().collectAsState(initial = emptyList())
     val potencias by app.repository.potencias().collectAsState(initial = emptyList())
+    var selected by remember { mutableIntStateOf(0) }
     val activos = clientes.count { it.activo }
+    val scope = rememberCoroutineScope()
+    var showAdd by remember { mutableStateOf(false) }
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text("Dashboard", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Text("Resumen offline de la red", color = TxMuted)
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                LightKpi("Cajas", nats.size.toString(), Modifier.weight(1f))
-                LightKpi("Activos", activos.toString(), Modifier.weight(1f))
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                LightKpi("Clientes", clientes.size.toString(), Modifier.weight(1f))
-                LightKpi("Potencias", potencias.size.toString(), Modifier.weight(1f))
-            }
-        }
-        item {
-            DarkPanel {
-                Text("Actividad reciente", color = Color.White, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(10.dp))
-                nats.take(6).forEachIndexed { idx, nat ->
-                    DarkRow(
-                        title = nat.nombre,
-                        subtitle = nat.region ?: "Sin región",
-                        trailing = "${nat.puertosTotal} p",
-                        active = idx == 0,
-                    )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0x14000000), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = FnInk)
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text("Resumen", fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = FnInk)
+                        Text("Administra tu red en un solo lugar.", color = TxMuted, fontSize = 13.sp)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(Icons.Default.Tune, null, tint = FnInk) }
+                    Button(
+                        onClick = { showAdd = true },
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = FnViolet),
+                    ) {
+                        Icon(Icons.Default.Add, null)
+                        Text(" Crear caja")
+                    }
                 }
             }
         }
-    }
-}
 
-@Composable
-private fun LightKpi(title: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.height(110.dp),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Box(Modifier.fillMaxSize().padding(16.dp)) {
-            Column {
-                Text(title, color = TxMuted, style = MaterialTheme.typography.labelLarge)
-                Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                KpiCard("Activos", activos.toString(), "En línea", Modifier.weight(1f))
+                KpiCard("Cajas", nats.size.toString(), "Red", Modifier.weight(1f))
             }
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.linearGradient(listOf(Color(0x337C3AED), Color(0x14A78BFA)))),
-            )
         }
-    }
-}
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                KpiCard("Clientes", clientes.size.toString(), "Total", Modifier.weight(1f))
+                KpiCard("Potencias", potencias.size.toString(), "Mediciones", Modifier.weight(1f))
+            }
+        }
 
-@Composable
-private fun DarkPanel(content: @Composable () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = TxDark),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            Modifier
-                .background(Brush.verticalGradient(listOf(TxDark, TxDark2)))
-                .padding(16.dp),
-        ) { content() }
-    }
-}
-
-@Composable
-private fun DarkRow(title: String, subtitle: String, trailing: String, active: Boolean) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (active) Brush.linearGradient(listOf(TxViolet, TxViolet2))
-                else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)),
-            )
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(
+        item {
+            Row(
                 Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White.copy(alpha = 0.85f))
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(title.take(1), color = Color.White, fontWeight = FontWeight.Bold)
-            }
-            Column {
-                Text(title, color = Color.White, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+                FilterChip("Todos")
+                FilterChip("Activos")
+                FilterChip("Alertas")
             }
         }
-        Text(trailing, color = Color.White, fontWeight = FontWeight.Bold)
-    }
-}
 
-@Composable
-fun NatsTab() {
-    val app = LocalContext.current.applicationContext as TonylexApp
-    val items by app.repository.nats().collectAsState(initial = emptyList())
-    var showAdd by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text("Cajas NAP", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Consulta y CRUD offline", color = TxMuted)
-            }
-            FloatingActionButton(
-                onClick = { showAdd = true },
-                shape = CircleShape,
-                containerColor = TxViolet,
-                contentColor = Color.White,
-            ) { Text("+", fontWeight = FontWeight.Bold) }
-        }
-        Spacer(Modifier.height(12.dp))
-        DarkPanel {
-            items.forEachIndexed { idx, nat ->
-                DarkRow(
-                    title = nat.nombre,
-                    subtitle = listOfNotNull(nat.region, if (nat.localOnly) "Pendiente sync" else null).joinToString(" · "),
-                    trailing = "${nat.puertosTotal}",
-                    active = idx == 0,
-                )
-            }
+        item {
+            DarkWorkspace(
+                nats = nats,
+                selected = selected,
+                onSelect = { selected = it },
+                clientesActivos = activos,
+                totalClientes = clientes.size,
+            )
         }
     }
 
@@ -305,17 +253,210 @@ fun NatsTab() {
             onDismiss = { showAdd = false },
             onSubmit = { values ->
                 scope.launch {
-                    app.repository.saveNatLocal(
-                        nombre = values[0],
-                        region = values[1].ifBlank { null },
-                        puertos = values[2].toIntOrNull() ?: 8,
-                        lat = null,
-                        lon = null,
-                    )
+                    app.repository.saveNatLocal(values[0], values[1].ifBlank { null }, values[2].toIntOrNull() ?: 8, null, null)
                     showAdd = false
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun FilterChip(text: String) {
+    Text(
+        text,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.White)
+            .border(1.dp, Color(0x14000000), RoundedCornerShape(999.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = FnInk,
+    )
+}
+
+@Composable
+private fun KpiCard(label: String, value: String, hint: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.height(120.dp),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+    ) {
+        Box(Modifier.fillMaxSize().padding(14.dp)) {
+            Column {
+                Text(label, color = TxMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = FnInk)
+                Text(hint, color = FnViolet, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+            Row(
+                Modifier.align(Alignment.BottomEnd),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                listOf(0.4f, 0.7f, 0.55f, 0.85f, 0.6f).forEach {
+                    Box(
+                        Modifier
+                            .width(8.dp)
+                            .height((36 * it).dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Brush.verticalGradient(listOf(Color(0xFFA78BFA), FnViolet))),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DarkWorkspace(
+    nats: List<NatEntity>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    clientesActivos: Int,
+    totalClientes: Int,
+) {
+    val current = nats.getOrNull(selected)
+    Card(
+        shape = RoundedCornerShape(30.dp),
+        colors = CardDefaults.cardColors(TxDark),
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier.fillMaxWidth().height(460.dp),
+    ) {
+        Row(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TxDark, TxDark2)))) {
+            Column(
+                Modifier
+                    .width(160.dp)
+                    .fillMaxHeight()
+                    .padding(12.dp),
+            ) {
+                Text("Cajas", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    itemsIndexed(nats.take(20)) { idx, nat ->
+                        val active = idx == selected
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .then(
+                                    if (active) Modifier.background(Brush.linearGradient(listOf(FnViolet, TxViolet2)))
+                                    else Modifier.background(Color.Transparent),
+                                )
+                                .clickable { onSelect(idx) }
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                Modifier.size(32.dp).clip(CircleShape).background(Color.White.copy(0.15f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(nat.nombre.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(nat.nombre, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                Text("${nat.puertosTotal} p", color = Color.White.copy(0.7f), fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Column(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    if (current != null) "# ${current.nombre}" else "Operación TONYLEX",
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp,
+                )
+                Text(
+                    current?.region ?: "Resumen general de la red",
+                    color = Color.White.copy(0.75f),
+                    fontSize = 12.sp,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SoftStat("Puertos", "${current?.puertosTotal ?: nats.sumOf { it.puertosTotal }}")
+                    SoftStat("Activos", "$clientesActivos")
+                    SoftStat("Total", "$totalClientes")
+                }
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .border(1.5.dp, Color.White.copy(0.22f), RoundedCornerShape(18.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("+ Agregar ítem", color = Color.White.copy(0.7f), fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.weight(1f))
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.Black.copy(0.22f))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text("Balance red", color = Color.White.copy(0.7f), fontSize = 11.sp)
+                        Text("${nats.size} cajas", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.White)
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    ) {
+                        Text("Ver detalle", color = TxDark, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SoftStat(label: String, value: String) {
+    Column(
+        Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(FnViolet.copy(alpha = 0.22f))
+            .padding(10.dp)
+            .width(72.dp),
+    ) {
+        Text(label, color = Color.White.copy(0.75f), fontSize = 10.sp)
+        Text(value, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+    }
+}
+
+@Composable
+fun NatsTab() {
+    val app = LocalContext.current.applicationContext as TonylexApp
+    val items by app.repository.nats().collectAsState(initial = emptyList())
+    var showAdd by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    Column(Modifier.padding(16.dp)) {
+        PageHead("Cajas", "Gestiona NAP y empalmes offline") {
+            showAdd = true
+        }
+        Spacer(Modifier.height(12.dp))
+        DarkWorkspace(items, 0, {}, 0, items.size)
+    }
+    if (showAdd) {
+        SimpleFormDialog("Nueva caja", listOf("Nombre", "Región", "Puertos"), { showAdd = false }) { v ->
+            scope.launch {
+                app.repository.saveNatLocal(v[0], v[1].ifBlank { null }, v[2].toIntOrNull() ?: 8, null, null)
+                showAdd = false
+            }
+        }
     }
 }
 
@@ -326,156 +467,90 @@ fun ClientesTab() {
     val nats by app.repository.nats().collectAsState(initial = emptyList())
     var showAdd by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text("Clientes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Listado con sync diferido", color = TxMuted)
-            }
-            FloatingActionButton(
-                onClick = { showAdd = true },
-                shape = CircleShape,
-                containerColor = TxViolet,
-                contentColor = Color.White,
-            ) { Text("+", fontWeight = FontWeight.Bold) }
-        }
+    Column(Modifier.padding(16.dp)) {
+        PageHead("Clientes", "Administra clientes con sync diferido") { showAdd = true }
         Spacer(Modifier.height(12.dp))
-        DarkPanel {
-            items.forEachIndexed { idx, c ->
-                DarkRow(
-                    title = c.nombre,
-                    subtitle = c.direccion,
-                    trailing = if (c.activo) "OK" else "Off",
-                    active = idx == 0,
-                )
+        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(TxDark), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items.take(30).forEachIndexed { idx, c ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (idx == 0) FnViolet else Color.Transparent)
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column {
+                            Text(c.nombre, color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text(c.direccion, color = Color.White.copy(0.7f), fontSize = 12.sp)
+                        }
+                        Text(if (c.activo) "OK" else "Off", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
-
     if (showAdd) {
-        SimpleFormDialog(
-            title = "Nuevo cliente",
-            fields = listOf("Nombre", "Dirección", "NAT id", "Plan", "Contacto"),
-            onDismiss = { showAdd = false },
-            onSubmit = { values ->
-                val natId = values[2].toIntOrNull() ?: nats.firstOrNull()?.id ?: return@SimpleFormDialog
-                scope.launch {
-                    app.repository.saveClienteLocal(
-                        nombre = values[0],
-                        direccion = values[1],
-                        natId = natId,
-                        plan = values[3].ifBlank { null },
-                        contacto = values[4].ifBlank { null },
-                    )
-                    showAdd = false
-                }
-            },
-        )
+        SimpleFormDialog("Nuevo cliente", listOf("Nombre", "Dirección", "NAT id", "Plan", "Contacto"), { showAdd = false }) { v ->
+            val natId = v[2].toIntOrNull() ?: nats.firstOrNull()?.id ?: return@SimpleFormDialog
+            scope.launch {
+                app.repository.saveClienteLocal(v[0], v[1], natId, v[3].ifBlank { null }, v[4].ifBlank { null })
+                showAdd = false
+            }
+        }
+    }
+}
+
+@Composable
+private fun PageHead(title: String, subtitle: String, onAdd: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column {
+            Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = FnInk)
+            Text(subtitle, color = TxMuted, fontSize = 13.sp)
+        }
+        FloatingActionButton(onClick = onAdd, shape = CircleShape, containerColor = FnViolet, contentColor = Color.White) {
+            Icon(Icons.Default.Add, null)
+        }
     }
 }
 
 @Composable
 fun MoreTab() {
+    val app = LocalContext.current.applicationContext as TonylexApp
+    val potencias by app.repository.potencias().collectAsState(initial = emptyList())
+    val asistencias by app.repository.asistencias().collectAsState(initial = emptyList())
+    val docs by app.repository.documentos().collectAsState(initial = emptyList())
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                PotenciasInline()
+                Column(Modifier.padding(16.dp)) {
+                    Text("Potencias", fontWeight = FontWeight.Bold)
+                    potencias.take(12).forEach {
+                        Text("#${it.id} ${it.potenciaEntrada}/${it.potenciaSalida} dBm", color = TxMuted, fontSize = 13.sp)
+                    }
+                }
             }
         }
         item {
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                AsistenciasInline()
+                Column(Modifier.padding(16.dp)) {
+                    Text("Asistencias", fontWeight = FontWeight.Bold)
+                    asistencias.take(12).forEach {
+                        Text("Trab ${it.trabajadorId}: ${it.tipo}", color = TxMuted, fontSize = 13.sp)
+                    }
+                }
             }
         }
         item {
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                DocumentosInline()
-            }
-        }
-    }
-}
-
-@Composable
-private fun PotenciasInline() {
-    val app = LocalContext.current.applicationContext as TonylexApp
-    val items by app.repository.potencias().collectAsState(initial = emptyList())
-    var showAdd by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    Column(Modifier.padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Potencias", fontWeight = FontWeight.Bold)
-            FloatingActionButton(onClick = { showAdd = true }, shape = CircleShape, containerColor = TxViolet, contentColor = Color.White, modifier = Modifier.size(40.dp)) {
-                Text("+")
-            }
-        }
-        items.take(20).forEach { p ->
-            Text("#${p.id} CLI ${p.clienteId}: ${p.potenciaEntrada}/${p.potenciaSalida} dBm", color = TxMuted)
-        }
-    }
-    if (showAdd) {
-        SimpleFormDialog(
-            title = "Nueva potencia",
-            fields = listOf("Cliente id", "NAP id", "Entrada", "Salida", "Técnico"),
-            onDismiss = { showAdd = false },
-            onSubmit = { v ->
-                scope.launch {
-                    app.repository.savePotenciaLocal(
-                        clienteId = v[0].toInt(),
-                        napId = v[1].toIntOrNull(),
-                        entrada = v[2].toDouble(),
-                        salida = v[3].toDouble(),
-                        tecnico = v[4].ifBlank { null },
-                    )
-                    showAdd = false
+                Column(Modifier.padding(16.dp)) {
+                    Text("Documentos", fontWeight = FontWeight.Bold)
+                    docs.take(12).forEach {
+                        Text(it.nombreOriginal ?: it.nombre, color = TxMuted, fontSize = 13.sp)
+                    }
                 }
-            },
-        )
-    }
-}
-
-@Composable
-private fun AsistenciasInline() {
-    val app = LocalContext.current.applicationContext as TonylexApp
-    val items by app.repository.asistencias().collectAsState(initial = emptyList())
-    val trabajadores by app.repository.trabajadores().collectAsState(initial = emptyList())
-    var showAdd by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    Column(Modifier.padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Asistencias", fontWeight = FontWeight.Bold)
-            FloatingActionButton(onClick = { showAdd = true }, shape = CircleShape, containerColor = TxViolet, contentColor = Color.White, modifier = Modifier.size(40.dp)) {
-                Text("+")
             }
-        }
-        items.take(20).forEach { a ->
-            Text("Trab ${a.trabajadorId}: ${a.tipo} ${a.fechaHora ?: ""}", color = TxMuted)
-        }
-    }
-    if (showAdd) {
-        SimpleFormDialog(
-            title = "Registrar asistencia",
-            fields = listOf("Trabajador id", "Tipo (entrada/salida)"),
-            onDismiss = { showAdd = false },
-            onSubmit = { v ->
-                scope.launch {
-                    val tid = v[0].toIntOrNull() ?: trabajadores.firstOrNull()?.id ?: return@launch
-                    app.repository.saveAsistenciaLocal(tid, v[1].ifBlank { "entrada" })
-                    showAdd = false
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun DocumentosInline() {
-    val app = LocalContext.current.applicationContext as TonylexApp
-    val items by app.repository.documentos().collectAsState(initial = emptyList())
-    Column(Modifier.padding(16.dp)) {
-        Text("Documentos", fontWeight = FontWeight.Bold)
-        items.take(30).forEach { d ->
-            Text("${d.nombreOriginal ?: d.nombre}", color = TxMuted)
         }
     }
 }

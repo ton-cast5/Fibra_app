@@ -742,103 +742,57 @@
 </head>
 <body class="tx-shell min-h-screen transition-colors duration-300">
 
+    {% set ep = request.endpoint or '' %}
     <div class="tx-topbar">
-    <nav class="tx-nav-shell">
+    <nav class="tx-nav-shell" aria-label="Principal">
         <a class="tx-brand" href="{{ url_for('dashboard') }}">
             <img src="{{ url_for('static', filename='brand/logo-tonylex.png') }}" alt="TONYLEX">
-            <span class="tx-brand-word">TONYLEX</span>
+            <span class="tx-brand-text">
+                <span class="tx-brand-word">TONYLEX</span>
+                <span class="tx-brand-tag">Red óptica, mejor operación</span>
+            </span>
         </a>
 
         <div class="tx-nav-pill tx-nav-pill-desktop hidden md:inline-flex">
-                        <a href="{{ url_for('dashboard') }}" class="nav-link-white">Dashboard</a>
-                        <a href="{{ url_for('mapa_nats') }}" class="nav-link-white">Mapa</a>
-
-                        <div class="dropdown-container">
-                            <a href="#" class="nav-link-white cursor-pointer">
-                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12h14m-8 6h-6m6 0h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 104 0"></path></svg>
-                                Inventario
-                            </a>
-                            <div class="dropdown-menu">
-                                <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                    <!-- AGREGADO: Listado de Clientes -->
-                                    <a href="{{ url_for('listar_clientes') }}" class="dropdown-item-base" role="menuitem">
-                                        <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2a3 3 0 00-5.356-1.857M9 10a3 3 0 11-6 0 3 3 0 016 0zm3 9a6 6 0 00-9-5.143v1.286A6 6 0 0015 21H9z"></path></svg>
-                                        👥 Listado de Clientes
-                                    </a>
-                                    <a href="{{ url_for('index') }}" class="dropdown-item-base" role="menuitem">
-                                        <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8-4v10m0 0l-8-4m8 4l8-4m-8 4v10l-8 4m0-10v6m16-6v6"></path></svg>
-                                        📡 Cajas NAP/Empalme
-                                    </a>
-                                    <!-- NUEVA OPCIÓN: Potencias -->
-                                    <a href="/potencias" class="dropdown-item-base" role="menuitem">
-                                        <svg class="w-5 h-5 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                        </svg>
-                                        ⚡ Potencias
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-container">
-                            <a href="#" class="nav-link-white">
-                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                Config
-                            </a>
-                            <div class="dropdown-menu">
-                                <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                                    <!-- NUEVO: Repositorio de Archivos -->
-                                    <a href="/repositorio" class="dropdown-item-base" role="menuitem">
-                                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                                        </svg>
-                                        📁 Repositorio
-                                    </a>
-                                    <!-- ACTUALIZADO: Ahora apunta al listado combinado -->
-                                    <a href="{{ url_for('listar_nap_models') }}" class="dropdown-item-base" role="menuitem">
-                                        <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a2 2 0 012 2v5a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zM7 7V5h5v2H7zM17 7h.01M17 3h5a2 2 0 012 2v5a2 2 0 01-2 2h-5a2 2 0 01-2-2V5a2 2 0 012-2zM17 7V5h5v2h-5zM7 17h.01M7 13h5a2 2 0 012 2v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5a2 2 0 012-2zM7 17v-2h5v2H7zM17 17h.01M17 13h5a2 2 0 012 2v5a2 2 0 01-2 2h-5a2 2 0 01-2-2v-5a2 2 0 012-2zM17 17v-2h5v2h-5z"></path></svg>
-                                        📦 Modelos de Cajas (Catálogo)
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- ⭐⭐⭐ NUEVO: Botón de Inventarios -->
-                        <div class="dropdown-container">
-                            <a href="#" class="nav-link-white btn-inventarios">
-                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
-                                Gestión
-                            </a>
-                            <div class="dropdown-menu">
-                                <div class="py-1" role="menu" aria-orientation="vertical">
-                                    <a href="{{ url_for('inventarios') }}" class="dropdown-item-base" role="menuitem">
-                                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        Gestión de Inventarios
-                                    </a>
-                                    <a href="{{ url_for('gestion_asistencias') }}" class="dropdown-item-base" role="menuitem">
-                                        <svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                        </svg>
-                                        Gestión de Asistencias
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
+            <a href="{{ url_for('dashboard') }}" class="nav-link-white {{ 'is-active' if ep == 'dashboard' else '' }}">Resumen</a>
+            <a href="{{ url_for('index') }}" class="nav-link-white {{ 'is-active' if ep in ('index','agregar_nat','ver_nat','editar_nat') else '' }}">Cajas</a>
+            <a href="{{ url_for('listar_clientes') }}" class="nav-link-white {{ 'is-active' if 'cliente' in ep else '' }}">Clientes</a>
+            <a href="/potencias" class="nav-link-white {{ 'is-active' if 'potencia' in ep else '' }}">Potencias</a>
+            <div class="dropdown-container">
+                <a href="#" class="nav-link-white {{ 'is-active' if ep in ('inventarios','gestion_asistencias','listar_nap_models','repositorio') else '' }}">Más</a>
+                <div class="dropdown-menu">
+                    <div class="py-1" role="menu">
+                        <a href="{{ url_for('inventarios') }}" class="dropdown-item-base" role="menuitem">Inventarios</a>
+                        <a href="{{ url_for('gestion_asistencias') }}" class="dropdown-item-base" role="menuitem">Asistencias</a>
+                        <a href="{{ url_for('listar_nap_models') }}" class="dropdown-item-base" role="menuitem">Modelos NAP</a>
+                        <a href="/repositorio" class="dropdown-item-base" role="menuitem">Repositorio</a>
+                        <a href="{{ url_for('mapa_nats') }}" class="dropdown-item-base" role="menuitem">Mapa geográfico</a>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="tx-nav-actions">
+            <a class="tx-icon-btn hidden sm:inline-flex" href="/repositorio" title="Documentos">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+            </a>
+            <a class="tx-icon-btn hidden sm:inline-flex" href="{{ url_for('gestion_asistencias') }}" title="Asistencias">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </a>
+            <a class="tx-icon-btn hidden md:inline-flex" href="{{ url_for('inventarios') }}" title="Reportes">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v14"/></svg>
+            </a>
+            <button type="button" class="tx-icon-btn hidden md:inline-flex" id="theme-toggle-nav" title="Tema" aria-label="Cambiar tema">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                <span class="dot" aria-hidden="true"></span>
+            </button>
             {% if usuario_actual %}
             <div class="dropdown-container hidden md:block">
                 <a href="{{ url_for('auth.usuarios') }}" class="tx-avatar" title="{{ usuario_actual.nombre }}">
                     {{ usuario_actual.username[:2]|upper }}
                 </a>
                 <div class="dropdown-menu">
-                    <div class="py-1" role="menu" aria-orientation="vertical">
+                    <div class="py-1" role="menu">
                         <a href="{{ url_for('auth.usuarios') }}" class="dropdown-item-base" role="menuitem">Usuarios y contraseña</a>
                         <form method="POST" action="{{ url_for('auth.logout') }}">
                             <button type="submit" class="dropdown-item-base w-full text-left" role="menuitem">Cerrar sesión</button>
@@ -847,14 +801,10 @@
                 </div>
             </div>
             {% endif %}
-            <button id="mobile-menu-button" type="button" class="md:hidden inline-flex items-center justify-center p-2.5 rounded-full text-violet-700 hover:bg-violet-100 focus:outline-none" aria-controls="mobile-menu" aria-expanded="false">
+            <button id="mobile-menu-button" type="button" class="md:hidden tx-icon-btn" aria-controls="mobile-menu" aria-expanded="false">
                 <span class="sr-only">Abrir menú principal</span>
-                <svg class="icon-menu h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                <svg class="icon-close h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <svg class="icon-menu h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                <svg class="icon-close h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
     </nav>
@@ -996,15 +946,18 @@
         (function () {
             var STORAGE_KEY = 'fibra-theme';
             var btn = document.getElementById('theme-toggle');
+            var btnNav = document.getElementById('theme-toggle-nav');
             var iconSun = document.getElementById('theme-icon-sun');
             var iconMoon = document.getElementById('theme-icon-moon');
             var metaTheme = document.querySelector('meta[name="theme-color"]');
 
             function syncIcons() {
                 var isDark = document.documentElement.classList.contains('dark');
-                iconSun.classList.toggle('theme-icon-hidden', !isDark);
-                iconMoon.classList.toggle('theme-icon-hidden', isDark);
-                if (metaTheme) metaTheme.setAttribute('content', isDark ? '#0c1222' : '#7C3AED');
+                if (iconSun && iconMoon) {
+                    iconSun.classList.toggle('theme-icon-hidden', !isDark);
+                    iconMoon.classList.toggle('theme-icon-hidden', isDark);
+                }
+                if (metaTheme) metaTheme.setAttribute('content', isDark ? '#0c1222' : '#6C5CEF');
             }
 
             function applyTheme(mode) {
@@ -1014,9 +967,12 @@
                 syncIcons();
             }
 
-            btn.addEventListener('click', function () {
+            function toggleTheme() {
                 applyTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark');
-            });
+            }
+
+            if (btn) btn.addEventListener('click', toggleTheme);
+            if (btnNav) btnNav.addEventListener('click', toggleTheme);
 
             syncIcons();
         })();

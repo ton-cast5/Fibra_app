@@ -7,9 +7,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-val TxViolet = Color(0xFF7C3AED)
-val TxViolet2 = Color(0xFF6D28D9)
-val TxSoftBg = Color(0xFFEEEDF5)
+val TxViolet = Color(0xFF6C5CEF)
+val TxViolet2 = Color(0xFF5B4BDB)
+val TxSoftBg = Color(0xFFECEAF3)
 val TxInk = Color(0xFF1A1630)
 val TxMuted = Color(0xFF6B6685)
 val TxDark = Color(0xFF1B1629)
