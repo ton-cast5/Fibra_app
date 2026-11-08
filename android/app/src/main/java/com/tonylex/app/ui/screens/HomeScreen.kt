@@ -123,7 +123,7 @@ fun HomeScreen(onLogout: () -> Unit) {
                     Triple("Cajas", Icons.Default.Router, 1),
                     Triple("Clientes", Icons.Default.People, 2),
                     Triple("Mapa", Icons.Default.Map, 3),
-                    Triple("Más", Icons.Default.Folder, 4),
+                    Triple("Módulos", Icons.Default.Folder, 4),
                 ).forEach { (label, icon, index) ->
                     NavigationBarItem(
                         selected = tab == index,
@@ -147,7 +147,7 @@ fun HomeScreen(onLogout: () -> Unit) {
                 1 -> NatsTab()
                 2 -> ClientesTab()
                 3 -> MapTab()
-                else -> MoreTab()
+                else -> ModulesHub(onOpen = { tab = it })
             }
         }
     }
@@ -515,42 +515,82 @@ private fun PageHead(title: String, subtitle: String, onAdd: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoreTab() {
+fun ModulesHub(onOpen: (Int) -> Unit) {
     val app = LocalContext.current.applicationContext as TonylexApp
     val potencias by app.repository.potencias().collectAsState(initial = emptyList())
     val asistencias by app.repository.asistencias().collectAsState(initial = emptyList())
     val docs by app.repository.documentos().collectAsState(initial = emptyList())
+    val nats by app.repository.nats().collectAsState(initial = emptyList())
+    val clientes by app.repository.clientes().collectAsState(initial = emptyList())
+
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
+            Text("Todos los módulos", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = FnInk)
+            Text("Acceso rápido a toda la app", color = TxMuted, fontSize = 13.sp)
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ModuleTile("Resumen", "Inicio", Modifier.weight(1f)) { onOpen(0) }
+                ModuleTile("Cajas", "${nats.size}", Modifier.weight(1f)) { onOpen(1) }
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ModuleTile("Clientes", "${clientes.size}", Modifier.weight(1f)) { onOpen(2) }
+                ModuleTile("Mapa", "OSM", Modifier.weight(1f)) { onOpen(3) }
+            }
+        }
+        item {
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Potencias", fontWeight = FontWeight.Bold)
-                    potencias.take(12).forEach {
-                        Text("#${it.id} ${it.potenciaEntrada}/${it.potenciaSalida} dBm", color = TxMuted, fontSize = 13.sp)
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Potencias", fontWeight = FontWeight.Bold, color = FnInk)
+                    Text("${potencias.size} mediciones locales", color = TxMuted, fontSize = 13.sp)
+                    potencias.take(8).forEach {
+                        Text("#${it.id}  ${it.potenciaEntrada}/${it.potenciaSalida} dBm", color = TxMuted, fontSize = 12.sp)
                     }
                 }
             }
         }
         item {
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Asistencias", fontWeight = FontWeight.Bold)
-                    asistencias.take(12).forEach {
-                        Text("Trab ${it.trabajadorId}: ${it.tipo}", color = TxMuted, fontSize = 13.sp)
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Asistencias", fontWeight = FontWeight.Bold, color = FnInk)
+                    Text("${asistencias.size} registros", color = TxMuted, fontSize = 13.sp)
+                    asistencias.take(8).forEach {
+                        Text("Trab ${it.trabajadorId}: ${it.tipo}", color = TxMuted, fontSize = 12.sp)
                     }
                 }
             }
         }
         item {
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Documentos", fontWeight = FontWeight.Bold)
-                    docs.take(12).forEach {
-                        Text(it.nombreOriginal ?: it.nombre, color = TxMuted, fontSize = 13.sp)
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Documentos", fontWeight = FontWeight.Bold, color = FnInk)
+                    Text("${docs.size} archivos", color = TxMuted, fontSize = 13.sp)
+                    docs.take(8).forEach {
+                        Text(it.nombreOriginal ?: it.nombre, color = TxMuted, fontSize = 12.sp)
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModuleTile(title: String, subtitle: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.height(96.dp),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(title, fontWeight = FontWeight.ExtraBold, color = FnInk)
+            Text(subtitle, color = FnViolet, fontWeight = FontWeight.Bold, fontSize = 13.sp)
         }
     }
 }

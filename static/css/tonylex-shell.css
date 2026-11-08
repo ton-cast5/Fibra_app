@@ -87,18 +87,19 @@ html.dark body.tx-shell {
 }
 html.dark .tx-brand-word { color: #F5F3FF; }
 
-/* Dark centered pill nav (FINNOVA) */
+/* Dark centered pill nav (FINNOVA) — todas las opciones visibles */
 .tx-nav-pill {
   justify-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.28rem;
+  gap: 0.08rem;
+  padding: 0.22rem;
   border-radius: 999px;
   background: var(--fn-dark);
   border: 1px solid rgba(255,255,255,0.06);
   box-shadow: 0 16px 36px -20px rgba(10, 8, 24, 0.7);
-  max-width: 100%;
+  max-width: min(100%, 920px);
+  flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -109,12 +110,13 @@ html.dark .tx-brand-word { color: #F5F3FF; }
   color: rgba(255,255,255,0.72) !important;
   background: transparent !important;
   border-radius: 999px !important;
-  padding: 0.58rem 1rem !important;
-  font-size: 0.82rem !important;
+  padding: 0.45rem 0.58rem !important;
+  font-size: 0.72rem !important;
   font-weight: 650 !important;
   white-space: nowrap;
   text-decoration: none !important;
   transition: background .15s ease, color .15s ease;
+  flex: 0 0 auto;
 }
 .tx-nav-pill a.nav-link-white:hover,
 .tx-nav-pill .dropdown-container:hover > .nav-link-white {
@@ -236,16 +238,19 @@ main.tx-main > * {
   gap: 0.55rem;
 }
 .fn-btn-ghost {
-  width: 42px;
+  min-width: 42px;
   height: 42px;
+  padding: 0 0.85rem;
   border-radius: 14px;
   border: 1px solid var(--fn-border);
   background: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--fn-ink);
-  text-decoration: none;
+  color: var(--fn-ink) !important;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none !important;
   box-shadow: var(--fn-shadow);
 }
 .fn-btn-primary {
@@ -267,6 +272,31 @@ main.tx-main > * {
   filter: brightness(1.06);
   transform: translateY(-1px);
   color: #fff !important;
+}
+.fn-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+  border: 1px solid var(--fn-border);
+  background: #fff;
+  color: var(--fn-ink);
+}
+.fn-status-pill.is-ok { color: #0F7A45; background: #E9F9F0; border-color: #C6EED8; }
+.fn-status-pill.is-warn { color: #9A6700; background: #FFF6DF; border-color: #F5E2A8; }
+.fn-status-pill.is-danger { color: #B42318; background: #FEECEC; border-color: #F5C2C0; }
+
+/* Cabeceras de formularios (gradientes legacy → barra fina violeta) */
+main.tx-main .glass-effect > .bg-gradient-to-r,
+main.tx-main .rounded-2xl > .bg-gradient-to-r.from-blue-600,
+main.tx-main .rounded-2xl > .bg-gradient-to-r.from-emerald-600,
+main.tx-main .rounded-2xl > .bg-gradient-to-r.from-indigo-600,
+main.tx-main .rounded-2xl > .bg-gradient-to-r.from-purple-600 {
+  background: #1A1825 !important;
+  background-image: none !important;
+  border-bottom: 3px solid var(--fn-violet);
 }
 
 /* KPI cards */
@@ -558,13 +588,18 @@ main.tx-main > * {
 
 /* Global polish for non-map pages */
 main.tx-main .fm-card,
+main.tx-main .fm-panel,
+main.tx-main .glass-effect,
 main.tx-main .rounded-xl.shadow-lg,
 main.tx-main .rounded-xl.shadow-2xl,
+main.tx-main .rounded-2xl.shadow-xl,
 main.tx-main .bg-white.rounded-xl,
-main.tx-main .bg-white.rounded-2xl {
+main.tx-main .bg-white.rounded-2xl,
+main.tx-main section.bg-white {
   border-radius: var(--fn-radius) !important;
   border: 1px solid var(--fn-border) !important;
   box-shadow: var(--fn-shadow) !important;
+  background: #fff !important;
 }
 main.tx-main input[type="text"],
 main.tx-main input[type="search"],
@@ -574,6 +609,72 @@ main.tx-main input[type="password"],
 main.tx-main select,
 main.tx-main textarea {
   border-radius: 14px !important;
+  border-color: var(--fn-border) !important;
+  background: #F7F6FB !important;
+}
+main.tx-main input:focus,
+main.tx-main select:focus,
+main.tx-main textarea:focus {
+  border-color: var(--fn-violet) !important;
+  box-shadow: 0 0 0 3px rgba(108, 92, 239, 0.18) !important;
+  background: #fff !important;
+}
+
+/* Botones primarios comunes → pastilla violeta */
+main.tx-main a.bg-gradient-to-r.from-emerald-500,
+main.tx-main a.bg-gradient-to-r.from-green-500,
+main.tx-main a.bg-gradient-to-r.from-blue-500,
+main.tx-main a.bg-gradient-to-r.from-indigo-500,
+main.tx-main a.bg-gradient-to-r.from-purple-500,
+main.tx-main a.bg-gradient-to-r.from-yellow-500,
+main.tx-main button.bg-gradient-to-r.from-emerald-500,
+main.tx-main button.bg-gradient-to-r.from-green-500,
+main.tx-main button.bg-gradient-to-r.from-purple-500,
+main.tx-main button.bg-indigo-600,
+main.tx-main button.bg-emerald-600,
+main.tx-main a.bg-indigo-600,
+main.tx-main a.bg-emerald-600 {
+  background: var(--fn-violet) !important;
+  background-image: none !important;
+  border-radius: 999px !important;
+  box-shadow: 0 12px 24px -12px rgba(108, 92, 239, 0.85) !important;
+  border: none !important;
+  transform: none !important;
+}
+main.tx-main a.bg-gradient-to-r:hover,
+main.tx-main button.bg-gradient-to-r:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px) !important;
+}
+
+/* Tablas minimalistas */
+main.tx-main .overflow-x-auto,
+main.tx-main .fm-table-wrap {
+  background: #fff;
+  border: 1px solid var(--fn-border);
+  border-radius: var(--fn-radius-lg);
+  box-shadow: var(--fn-shadow);
+  overflow: hidden;
+}
+main.tx-main table thead {
+  background: #F7F6FB !important;
+}
+main.tx-main table thead th {
+  color: var(--fn-muted) !important;
+  font-weight: 750 !important;
+  border-bottom: 1px solid var(--fn-border) !important;
+}
+main.tx-main table tbody tr:hover {
+  background: rgba(108, 92, 239, 0.04) !important;
+}
+
+/* KPI / stats strips en listados */
+main.tx-main .grid > .fm-panel,
+main.tx-main .grid > .stats-card,
+main.tx-main .grid > [class*="rounded-xl"].p-4,
+main.tx-main .grid > [class*="rounded-xl"].p-5,
+main.tx-main .grid > [class*="rounded-xl"].p-6 {
+  border-radius: var(--fn-radius) !important;
 }
 
 .dropdown-menu {
@@ -583,7 +684,30 @@ main.tx-main textarea {
   box-shadow: 0 22px 44px -20px rgba(40,30,80,.4) !important;
 }
 
-@media (max-width: 900px) {
+/* Mobile flat menu */
+.mobile-nav-flat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  padding: 0.25rem;
+}
+.mobile-nav-flat a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.85rem 0.5rem;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none !important;
+}
+.mobile-nav-flat a:hover { background: rgba(108, 92, 239, 0.35); }
+
+@media (max-width: 1100px) {
   .tx-nav-shell { grid-template-columns: 1fr auto; }
   .tx-nav-pill-desktop { display: none !important; }
   .tx-brand-tag { display: none; }
@@ -592,4 +716,8 @@ main.tx-main textarea {
 /* Never restyle Leaflet map internals */
 .leaflet-container, .leaflet-pane, .leaflet-control, .leaflet-marker-icon {
   font-family: inherit;
+}
+body.tx-shell main.tx-main .leaflet-container {
+  border-radius: 18px;
+  overflow: hidden;
 }

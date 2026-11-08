@@ -185,32 +185,19 @@
 
 {% block content %}
 <div class="fade-in">
-    <!-- Header Premium (igual que agregar_cliente.html) -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
-                <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-3 rounded-xl mr-4">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
-                </div>
-                <div>
-                    <span class="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                        📦 Inventario
-                    </span>
-                    <p class="text-lg text-gray-600 font-normal mt-1">
-                        Reportes ejecutivos y análisis detallados de tu infraestructura
-                    </p>
-                </div>
-            </h1>
+    <div class="fn-page-head">
+        <div class="fn-page-head-left">
+            <a class="fn-back" href="{{ url_for('dashboard') }}" aria-label="Volver"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></a>
+            <div>
+                <h1>Inventario</h1>
+                <p>Reportes y análisis de tu infraestructura.</p>
+            </div>
         </div>
-        
-        <!-- Reloj en tiempo real -->
-        <div class="flex space-x-3 mt-4 lg:mt-0">
-            <div class="glass-effect fm-panel rounded-xl px-4 py-3 text-center min-w-[11rem]">
-                <p class="text-xs text-gray-500 uppercase tracking-wide">Hora del sistema</p>
-                <p id="reloj-inventario-fecha" class="text-sm font-medium text-gray-600 mt-1">{{ fecha_actual.split(' ')[0] if ' ' in fecha_actual else fecha_actual }}</p>
-                <p id="reloj-inventario-hora" class="text-2xl font-bold text-gray-900 font-mono tabular-nums tracking-tight" aria-live="polite">{{ fecha_actual.split(' ')[1] if ' ' in fecha_actual else '' }}</p>
+        <div class="fn-page-actions">
+            <div class="glass-effect fm-panel rounded-2xl px-4 py-2 text-center min-w-[10rem]">
+                <p class="text-xs text-gray-500 uppercase tracking-wide m-0">Hora</p>
+                <p id="reloj-inventario-fecha" class="text-xs font-medium text-gray-600 m-0">{{ fecha_actual.split(' ')[0] if ' ' in fecha_actual else fecha_actual }}</p>
+                <p id="reloj-inventario-hora" class="text-lg font-bold text-gray-900 font-mono m-0" aria-live="polite">{{ fecha_actual.split(' ')[1] if ' ' in fecha_actual else '' }}</p>
             </div>
         </div>
     </div>

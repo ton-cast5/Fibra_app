@@ -758,18 +758,14 @@
             <a href="{{ url_for('index') }}" class="nav-link-white {{ 'is-active' if ep in ('index','agregar_nat','ver_nat','editar_nat') else '' }}">Cajas</a>
             <a href="{{ url_for('listar_clientes') }}" class="nav-link-white {{ 'is-active' if 'cliente' in ep else '' }}">Clientes</a>
             <a href="/potencias" class="nav-link-white {{ 'is-active' if 'potencia' in ep else '' }}">Potencias</a>
-            <div class="dropdown-container">
-                <a href="#" class="nav-link-white {{ 'is-active' if ep in ('inventarios','gestion_asistencias','listar_nap_models','repositorio') else '' }}">Más</a>
-                <div class="dropdown-menu">
-                    <div class="py-1" role="menu">
-                        <a href="{{ url_for('inventarios') }}" class="dropdown-item-base" role="menuitem">Inventarios</a>
-                        <a href="{{ url_for('gestion_asistencias') }}" class="dropdown-item-base" role="menuitem">Asistencias</a>
-                        <a href="{{ url_for('listar_nap_models') }}" class="dropdown-item-base" role="menuitem">Modelos NAP</a>
-                        <a href="/repositorio" class="dropdown-item-base" role="menuitem">Repositorio</a>
-                        <a href="{{ url_for('mapa_nats') }}" class="dropdown-item-base" role="menuitem">Mapa geográfico</a>
-                    </div>
-                </div>
-            </div>
+            <a href="{{ url_for('inventarios') }}" class="nav-link-white {{ 'is-active' if ep == 'inventarios' else '' }}">Inventario</a>
+            <a href="{{ url_for('gestion_asistencias') }}" class="nav-link-white {{ 'is-active' if 'asistencia' in ep else '' }}">Asistencias</a>
+            <a href="{{ url_for('listar_nap_models') }}" class="nav-link-white {{ 'is-active' if 'nap_model' in ep else '' }}">Modelos</a>
+            <a href="/repositorio" class="nav-link-white {{ 'is-active' if 'repositorio' in ep or 'archivo' in ep else '' }}">Docs</a>
+            <a href="{{ url_for('mapa_nats') }}" class="nav-link-white {{ 'is-active' if ep == 'mapa_nats' else '' }}">Mapa</a>
+            {% if usuario_actual %}
+            <a href="{{ url_for('auth.usuarios') }}" class="nav-link-white {{ 'is-active' if ep and ep.startswith('auth.usuarios') else '' }}">Usuarios</a>
+            {% endif %}
         </div>
 
         <div class="tx-nav-actions">
@@ -811,102 +807,27 @@
 
         <div class="md:hidden hidden mobile-nav-panel mt-2 rounded-3xl overflow-hidden" id="mobile-menu">
             <div class="px-4 py-4 space-y-3">
-                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 px-1">Principal</p>
-                <div class="grid grid-cols-1 gap-2">
-                    <a href="{{ url_for('dashboard') }}" class="mobile-nav-primary">
-                        <span class="mobile-nav-primary-icon">
-                            <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                        </span>
-                        Dashboard
-                    </a>
-                    <a href="{{ url_for('mapa_nats') }}" class="mobile-nav-primary">
-                        <span class="mobile-nav-primary-icon">
-                            <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        </span>
-                        Mapa Geográfico
-                    </a>
-                </div>
-
-                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 px-1 pt-1">Módulos</p>
-
-                <div class="mobile-nav-section open" data-mobile-section>
-                    <button type="button" class="mobile-nav-section-btn" aria-expanded="true">
-                        <span class="mobile-nav-section-label">
-                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12h14m-8 6h-6m6 0h6m-6 0a2 2 0 11-4 0m4 0a2 2 0 104 0"></path></svg>
-                            Inventario Lógico
-                        </span>
-                        <svg class="mobile-nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div class="mobile-nav-section-body">
-                        <a href="{{ url_for('listar_clientes') }}" class="mobile-nav-item">
-                            <span class="mobile-nav-item-icon emerald">👥</span>
-                            <span class="mobile-nav-item-text">Listado de Clientes</span>
-                        </a>
-                        <a href="{{ url_for('index') }}" class="mobile-nav-item">
-                            <span class="mobile-nav-item-icon indigo">📡</span>
-                            <span class="mobile-nav-item-text">Cajas NAP / Empalme</span>
-                        </a>
-                        <a href="/potencias" class="mobile-nav-item">
-                            <span class="mobile-nav-item-icon yellow">⚡</span>
-                            <span class="mobile-nav-item-text">Potencias</span>
-                        </a>
-                    </div>
-                </div>
-
-                <div class="mobile-nav-section" data-mobile-section>
-                    <button type="button" class="mobile-nav-section-btn" aria-expanded="false">
-                        <span class="mobile-nav-section-label">
-                            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            Configuración / Física
-                        </span>
-                        <svg class="mobile-nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div class="mobile-nav-section-body">
-                        <a href="/repositorio" class="mobile-nav-item">
-                            <span class="mobile-nav-item-icon blue">📁</span>
-                            <span class="mobile-nav-item-text">Repositorio</span>
-                        </a>
-                        <a href="{{ url_for('listar_nap_models') }}" class="mobile-nav-item">
-                            <span class="mobile-nav-item-icon indigo">📦</span>
-                            <span class="mobile-nav-item-text">Modelos de Cajas</span>
-                        </a>
-                    </div>
-                </div>
-
-                <div class="mobile-nav-section" data-mobile-section>
-                    <button type="button" class="mobile-nav-section-btn" aria-expanded="false">
-                        <span class="mobile-nav-section-label">
-                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                            Gestión
-                        </span>
-                        <svg class="mobile-nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div class="mobile-nav-section-body">
-                        <a href="{{ url_for('inventarios') }}" class="mobile-nav-item">
-                            <span class="mobile-nav-item-icon green">📊</span>
-                            <span class="mobile-nav-item-text">Gestión de Inventarios</span>
-                        </a>
-                        <a href="{{ url_for('gestion_asistencias') }}" class="mobile-nav-item">
-                            <span class="mobile-nav-item-icon indigo">📅</span>
-                            <span class="mobile-nav-item-text">Gestión de Asistencias</span>
-                        </a>
-                    </div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 px-1">Navegación</p>
+                <div class="mobile-nav-flat">
+                    <a href="{{ url_for('dashboard') }}">Resumen</a>
+                    <a href="{{ url_for('index') }}">Cajas</a>
+                    <a href="{{ url_for('listar_clientes') }}">Clientes</a>
+                    <a href="/potencias">Potencias</a>
+                    <a href="{{ url_for('inventarios') }}">Inventario</a>
+                    <a href="{{ url_for('gestion_asistencias') }}">Asistencias</a>
+                    <a href="{{ url_for('listar_nap_models') }}">Modelos</a>
+                    <a href="/repositorio">Docs</a>
+                    <a href="{{ url_for('mapa_nats') }}">Mapa</a>
+                    {% if usuario_actual %}<a href="{{ url_for('auth.usuarios') }}">Usuarios</a>{% endif %}
                 </div>
 
                 {% if usuario_actual %}
                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 px-1 pt-1">Sesión: {{ usuario_actual.username }}</p>
-                <div class="grid grid-cols-1 gap-2">
-                    <a href="{{ url_for('auth.usuarios') }}" class="mobile-nav-item">
-                        <span class="mobile-nav-item-icon indigo">👤</span>
-                        <span class="mobile-nav-item-text">Usuarios y contraseña</span>
-                    </a>
-                    <form method="POST" action="{{ url_for('auth.logout') }}">
-                        <button type="submit" class="mobile-nav-item w-full text-left">
-                            <span class="mobile-nav-item-icon">🚪</span>
-                            <span class="mobile-nav-item-text">Cerrar sesión</span>
-                        </button>
-                    </form>
-                </div>
+                <form method="POST" action="{{ url_for('auth.logout') }}">
+                    <button type="submit" class="mobile-nav-item w-full text-left">
+                        <span class="mobile-nav-item-text">Cerrar sesión</span>
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </div>

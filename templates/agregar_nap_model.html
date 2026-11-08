@@ -108,33 +108,18 @@
 
 {% block content %}
 <div class="fade-in">
-    <!-- Header Mejorado -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
-                <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-3 rounded-xl mr-4">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6M9 9h6m-6 4h6m-6 4h6M9 5h6a2 2 0 012 2v10a2 2 0 01-2 2H9a2 2 0 01-2-2V7a2 2 0 012-2z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <span class="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                        Registrar Nuevo Modelo de Caja
-                    </span>
-                    <p class="text-lg text-gray-600 font-normal mt-1">Define un nuevo tipo de caja para tu red (Distribución o Empalme)</p>
-                </div>
-            </h1>
-        </div>
-        
-        <!-- Botón de Volver Mejorado -->
-        <div class="flex space-x-3 mt-4 lg:mt-0">
-            <a href="{{ url_for('listar_nap_models') }}" 
-               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-5 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Volver al Listado
+    <div class="fn-page-head">
+        <div class="fn-page-head-left">
+            <a class="fn-back" href="{{ url_for('listar_nap_models') }}" aria-label="Volver">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </a>
+            <div>
+                <h1>Nuevo modelo</h1>
+                <p>Define un tipo de caja (distribución o empalme)</p>
+            </div>
+        </div>
+        <div class="fn-page-actions">
+            <a class="fn-btn-ghost" href="{{ url_for('listar_nap_models') }}">Volver</a>
         </div>
     </div>
 
