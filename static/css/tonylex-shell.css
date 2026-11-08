@@ -1216,11 +1216,5 @@ html.dark .fn-suggest-label { color: #F3F0FF; }
 html.dark .fn-catalog-preview,
 html.dark .fn-lightbox-media { background: #221F30; }
 
-/* Never restyle Leaflet map internals */
-.leaflet-container, .leaflet-pane, .leaflet-control, .leaflet-marker-icon {
-  font-family: inherit;
-}
-body.tx-shell main.tx-main .leaflet-container {
-  border-radius: 18px;
-  overflow: hidden;
-}
+/* Mapa: no tocar Leaflet ni controles. Sin reglas aquí. */
+
