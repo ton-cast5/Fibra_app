@@ -150,19 +150,19 @@
 
         <div class="fn-cards-grid">
             <div class="fn-soft-card">
+                <div class="t">Clientes activos</div>
+                <div class="v">{{ clientes_activos }}</div>
+                <div class="h">de {{ total_clientes }} registrados</div>
+            </div>
+            <div class="fn-soft-card">
                 <div class="t">Puertos en uso</div>
-                <div class="v">{% if selected %}{{ selected.puertos_usados }}/{{ selected.puertos_total }}{% else %}{{ (capacidad_total - capacidad_libre) }}/{{ capacidad_total }}{% endif %}</div>
-                <div class="h">Capacidad ocupada ahora</div>
+                <div class="v">{% if selected %}{{ [selected.puertos_usados, selected.puertos_total]|min }}/{{ selected.puertos_total }}{% else %}{{ puertos_en_uso }}/{{ capacidad_total }}{% endif %}</div>
+                <div class="h">Capacidad física de la red</div>
             </div>
             <div class="fn-soft-card">
-                <div class="t">Capacidad libre</div>
-                <div class="v">{% if selected %}{{ selected.puertos_total - selected.puertos_usados }}{% else %}{{ capacidad_libre }}{% endif %}</div>
-                <div class="h">Puertos disponibles</div>
-            </div>
-            <div class="fn-soft-card">
-                <div class="t">Ocupación</div>
-                <div class="v">{% if selected and selected.puertos_total %}{{ ((selected.puertos_usados / selected.puertos_total) * 100)|round|int }}%{% else %}{{ porcentaje_ocupacion }}%{% endif %}</div>
-                <div class="h">Salud de la red</div>
+                <div class="t">Puertos libres</div>
+                <div class="v">{% if selected %}{{ [selected.puertos_total - selected.puertos_usados, 0]|max }}{% else %}{{ capacidad_libre }}{% endif %}</div>
+                <div class="h">Disponibles para altas</div>
             </div>
         </div>
 
@@ -173,10 +173,19 @@
         </div>
 
         <div class="fn-detail-foot">
-            <div class="sums">
-                <div>Total cajas<strong>{{ total_nats }}</strong></div>
-                <div>Clientes<strong>{{ total_clientes }}</strong></div>
-                <div>Balance red<strong>{{ porcentaje_ocupacion }}%</strong></div>
+            <div class="fn-foot-grid">
+                <div class="fn-foot-stat">
+                    <span>Total cajas</span>
+                    <strong>{{ total_nats }}</strong>
+                </div>
+                <div class="fn-foot-stat">
+                    <span>Clientes</span>
+                    <strong>{{ total_clientes }}</strong>
+                </div>
+                <div class="fn-foot-stat">
+                    <span>Ocupación</span>
+                    <strong>{% if selected and selected.puertos_total %}{{ (([selected.puertos_usados, selected.puertos_total]|min / selected.puertos_total) * 100)|round|int }}%{% else %}{{ porcentaje_ocupacion }}%{% endif %}</strong>
+                </div>
             </div>
             <a class="fn-pay-btn" href="{{ url_for('ver_nat', nat_id=selected.id) if selected else url_for('mapa_nats') }}">
                 {{ 'Ver detalle' if selected else 'Abrir mapa' }}

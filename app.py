@@ -1426,9 +1426,6 @@ def dashboard():
         
         capacidad_total_resultado = db.session.query(func.sum(Nat.puertos_total)).scalar()
         capacidad_total = capacidad_total_resultado if capacidad_total_resultado is not None else 0
-        puertos_ocupados = _puertos_ocupados_red()
-        capacidad_libre = max(capacidad_total - puertos_ocupados, 0)
-        porcentaje_ocupacion = round((puertos_ocupados / capacidad_total) * 100) if capacidad_total > 0 else 0
         total_nats = Nat.query.count()
         total_clientes = Cliente.query.count()
         total_empalmes = Nat.query.join(NapModel).filter(NapModel.tipo_caja == 'empalme').count()
@@ -1466,10 +1463,20 @@ def dashboard():
             elif estado == 'critico':
                 nats_criticas.append(nat)
 
+        # Puertos reales: no confundir con total de clientes (muchos pueden estar sin NAP/puerto).
+        puertos_en_uso = 0
+        for nat in todas_nats:
+            if not nat.puertos_total or nat.tipo_caja == 'empalme':
+                continue
+            puertos_en_uso += min(int(nat.puertos_usados or 0), int(nat.puertos_total))
+        capacidad_libre = max(capacidad_total - puertos_en_uso, 0)
+        porcentaje_ocupacion = round((puertos_en_uso / capacidad_total) * 100) if capacidad_total > 0 else 0
+
         return render_template('dashboard.html', 
             clientes_activos=clientes_activos,
             capacidad_total=capacidad_total,
             capacidad_libre=capacidad_libre,
+            puertos_en_uso=puertos_en_uso,
             porcentaje_ocupacion=porcentaje_ocupacion,
             total_nats=total_nats,
             total_clientes=total_clientes,
