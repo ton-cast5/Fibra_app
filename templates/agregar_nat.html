@@ -202,26 +202,15 @@
                             <p class="text-xs text-gray-500 mt-1">Identificador del hilo o par de conexión</p>
                         </div>
 
-                        <!-- Botones de Acción -->
-                        <div class="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-                            <a href="{% if nat %}{{ url_for('ver_nat', nat_id=nat.id) }}{% else %}{{ url_for('index') }}{% endif %}" 
-                               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-2 sm:order-1">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                                </svg>
-                                Cancelar
-                            </a>
-                            
-                            <button type="submit" 
-                                    class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-1 sm:order-2">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                {% if nat %}Actualizar NAT{% else %}Registrar NAT{% endif %}
-                            </button>
+                        <div class="fn-form-foot">
+                            <p class="fn-form-hint">* Campos obligatorios</p>
+                            <div class="fn-form-actions">
+                                <a href="{% if nat %}{{ url_for('ver_nat', nat_id=nat.id) }}{% else %}{{ url_for('index') }}{% endif %}" class="fn-btn-ghost">Cancelar</a>
+                                <button type="submit" class="fn-btn-primary">
+                                    {% if nat %}Guardar{% else %}Registrar{% endif %}
+                                </button>
+                            </div>
                         </div>
-
-                        <p class="text-gray-500 text-xs text-right italic mt-4">* Campos obligatorios</p>
                     </form>
                 </div>
             </div>
@@ -229,15 +218,6 @@
 
         <!-- Columna de Información -->
         <div class="space-y-6">
-            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift info-panel">
-                <h3 class="text-lg font-bold text-blue-800 mb-4">Tipos de caja</h3>
-                <ul class="text-sm text-blue-700 space-y-2">
-                    <li><strong>Distribución (NAP):</strong> conecta clientes; define puertos según el modelo.</li>
-                    <li><strong>Empalme:</strong> punto de unión de fibras; sin puertos de cliente.</li>
-                    <li>Agrega coordenadas para ver la caja en el mapa.</li>
-                </ul>
-            </div>
-
             <!-- Modelos de NAP -->
             <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
                 <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -259,29 +239,6 @@
                     </div>
                     {% endfor %}
                 </div>
-            </div>
-
-            <!-- Consejos Rápidos -->
-            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
-                <h3 class="text-lg font-bold text-amber-800 mb-3">💡 Consejos Rápidos</h3>
-                <ul class="text-sm text-amber-700 space-y-2">
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Usa nombres descriptivos para identificar fácilmente</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Verifica las coordenadas en un mapa antes de guardar</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Planifica el orden de conexión antes de asignarlo</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Selecciona el modelo adecuado según la capacidad necesaria</span>
-                    </li>
-                </ul>
             </div>
         </div>
     </div>
