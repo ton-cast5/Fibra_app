@@ -82,19 +82,6 @@
         </div>
     </section>
 
-    <nav class="fn-nat-dock" aria-label="Acciones rápidas">
-        <a class="fn-nat-dock-btn primary" href="{{ url_for('agregar_cliente', nat_id=nat.id) }}"
-           {% if uso_porcentaje >= 100 %}aria-disabled="true" tabindex="-1"{% endif %}>
-            + Cliente
-        </a>
-        <a class="fn-nat-dock-btn" href="{{ url_for('editar_nat', nat_id=nat.id) }}">Editar</a>
-        <a class="fn-nat-dock-btn" href="{{ url_for('mapa_nats') }}?highlight={{ nat.id }}">Mapa</a>
-        <form method="POST" action="{{ url_for('eliminar_nat', nat_id=nat.id) }}"
-              onsubmit="return confirm('¿Eliminar la NAP {{ nat.nombre }}? También se eliminarán {{ clientes|length }} cliente(s).');">
-            <button type="submit" class="fn-nat-dock-btn danger">Eliminar</button>
-        </form>
-    </nav>
-
     {% if uso_porcentaje >= 80 and nat.tipo_caja != 'empalme' %}
     <div class="fn-nat-alert tone-{{ tone }}" role="status">
         <strong>{% if uso_porcentaje >= 100 %}Sin capacidad libre{% else %}Ocupación alta{% endif %}</strong>
@@ -168,6 +155,16 @@
                     <p><span id="fn-nat-visible-count">{{ clientes|length }}</span> visibles · {{ activos }} activos</p>
                 </div>
                 <div class="fn-nat-tools">
+                    <div class="fn-nat-actions">
+                        <a class="fn-nat-action primary" href="{{ url_for('agregar_cliente', nat_id=nat.id) }}"
+                           {% if uso_porcentaje >= 100 %}aria-disabled="true" tabindex="-1"{% endif %}>+ Cliente</a>
+                        <a class="fn-nat-action" href="{{ url_for('editar_nat', nat_id=nat.id) }}">Editar caja</a>
+                        <a class="fn-nat-action" href="{{ url_for('mapa_nats') }}?highlight={{ nat.id }}">Mapa</a>
+                        <form method="POST" action="{{ url_for('eliminar_nat', nat_id=nat.id) }}"
+                              onsubmit="return confirm('¿Eliminar la NAP {{ nat.nombre }}? También se eliminarán {{ clientes|length }} cliente(s).');">
+                            <button type="submit" class="fn-nat-action danger">Eliminar</button>
+                        </form>
+                    </div>
                     <label class="fn-nat-search">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
                         <input type="search" id="fn-nat-q" placeholder="Buscar nombre, IP, plan…" autocomplete="off">
