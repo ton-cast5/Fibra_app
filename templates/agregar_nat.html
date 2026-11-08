@@ -205,8 +205,9 @@
                         <div class="fn-form-foot">
                             <p class="fn-form-hint">* Campos obligatorios</p>
                             <div class="fn-form-actions">
-                                <a href="{% if nat %}{{ url_for('ver_nat', nat_id=nat.id) }}{% else %}{{ url_for('index') }}{% endif %}" class="fn-btn-ghost">Cancelar</a>
-                                <button type="submit" class="fn-btn-primary">
+                                <a href="{% if nat %}{{ url_for('ver_nat', nat_id=nat.id) }}{% else %}{{ url_for('index') }}{% endif %}"
+                                   class="fn-btn-ghost fn-form-cancel">Cancelar</a>
+                                <button type="submit" class="fn-btn-primary fn-form-save">
                                     {% if nat %}Guardar{% else %}Registrar{% endif %}
                                 </button>
                             </div>

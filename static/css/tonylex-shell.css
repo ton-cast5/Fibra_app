@@ -1460,20 +1460,61 @@ html.dark .fn-lightbox-media { background: #221F30; }
   margin-left: auto;
 }
 .fn-form-actions .fn-btn-ghost,
-.fn-form-actions .fn-btn-primary {
+.fn-form-actions .fn-btn-primary,
+.fn-form-actions .fn-form-cancel,
+.fn-form-actions .fn-form-save {
   min-height: 42px;
   padding: 0 1.15rem;
+  font-weight: 750;
+  line-height: 1;
 }
-.fn-form-actions .fn-btn-primary {
+.fn-form-actions .fn-btn-primary,
+.fn-form-actions .fn-form-save {
   border-radius: 14px;
   font-size: 0.88rem;
+  color: #fff !important;
+  background: var(--fn-violet) !important;
+  background-image: none !important;
   box-shadow: 0 10px 22px -12px rgba(108, 92, 239, 0.75);
+}
+.fn-form-actions .fn-btn-ghost,
+.fn-form-actions .fn-form-cancel {
+  color: var(--fn-ink) !important;
+  background: #fff !important;
+  background-image: none !important;
+  border: 1px solid var(--fn-border) !important;
 }
 .fn-form-hint {
   margin: 0;
   font-size: 0.72rem;
   color: var(--fn-muted);
   font-style: italic;
+}
+
+/* Fallback: botones viejos de formularios (si el HTML cacheado aún los trae) */
+main.tx-main form a.bg-gradient-to-r.from-gray-500,
+main.tx-main form a.from-gray-500 {
+  background: #fff !important;
+  background-image: none !important;
+  color: var(--fn-ink) !important;
+  border: 1px solid var(--fn-border) !important;
+  box-shadow: var(--fn-shadow) !important;
+  transform: none !important;
+}
+main.tx-main form button.bg-gradient-to-r.from-indigo-500,
+main.tx-main form button.from-indigo-500,
+main.tx-main form button.from-emerald-500,
+main.tx-main form button.from-green-500 {
+  background: var(--fn-violet) !important;
+  background-image: none !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 10px 22px -12px rgba(108, 92, 239, 0.75) !important;
+  transform: none !important;
+}
+main.tx-main form .flex.justify-between.pt-6.border-t {
+  justify-content: flex-end !important;
+  gap: 0.55rem !important;
 }
 .fn-cap-note {
   grid-column: 1 / -1;
