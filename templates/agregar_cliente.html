@@ -294,17 +294,15 @@
                             <span class="text-sm font-semibold text-gray-700">Cliente activo</span>
                         </label>
 
-                        <!-- Botones de Acción -->
-                        <div class="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-                            <a href="{{ url_volver }}" class="fn-btn-ghost order-2 sm:order-1" style="min-height:44px;padding:0 1.15rem;">
-                                Cancelar
-                            </a>
-                            <button type="submit" class="fn-btn-primary order-1 sm:order-2" style="border-radius:14px;min-height:44px;padding:0 1.25rem;">
-                                {{ 'Guardar Cambios' if es_edicion else 'Guardar Nuevo Cliente' }}
-                            </button>
+                        <div class="fn-form-foot">
+                            <p class="fn-form-hint">* Campos obligatorios</p>
+                            <div class="fn-form-actions">
+                                <a href="{{ url_volver }}" class="fn-btn-ghost">Cancelar</a>
+                                <button type="submit" class="fn-btn-primary">
+                                    {{ 'Guardar cambios' if es_edicion else 'Guardar' }}
+                                </button>
+                            </div>
                         </div>
-
-                        <p class="text-gray-500 text-xs text-right italic mt-4">* Campos obligatorios</p>
                     </form>
                 </div>
             </div>
