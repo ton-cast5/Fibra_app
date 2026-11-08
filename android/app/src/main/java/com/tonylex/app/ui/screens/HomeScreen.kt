@@ -189,8 +189,8 @@ private fun FinnovaDashboard() {
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Column {
-                    Text("Resumen", fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = FnInk)
-                    Text("Tu red, clara y a simple vista.", color = TxMuted, fontSize = 13.sp)
+                        Text("Resumen", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = FnInk)
+                        Text("Vista clara del estado de tu red.", color = TxMuted, fontSize = 13.sp)
                 }
                 Button(
                     onClick = { showAdd = true },
