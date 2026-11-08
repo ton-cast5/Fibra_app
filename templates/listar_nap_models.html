@@ -17,10 +17,12 @@
         </div>
     </div>
 
+    {% set total_dist = modelos|selectattr('tipo_caja', 'equalto', 'distribucion')|list|length %}
+    {% set total_emp = modelos|selectattr('tipo_caja', 'equalto', 'empalme')|list|length %}
     <div class="fn-filters" style="margin-bottom:1rem;">
         <span class="fn-chip">{{ modelos|length }} modelos</span>
-        <span class="fn-chip">{{ modelos|selectattr('tipo_caja','equalto','distribucion')|list|length }} distribución</span>
-        <span class="fn-chip">{{ modelos|selectattr('tipo_caja','equalto','empalme')|list|length }} empalme</span>
+        <span class="fn-chip">{{ total_dist }} distribución</span>
+        <span class="fn-chip">{{ total_emp }} empalme</span>
         <div class="fn-search" style="position:relative;">
             <svg width="16" height="16" fill="none" stroke="#A09BB3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
             <input type="search" id="catalogo-buscador" placeholder="Filtrar modelos…" aria-label="Filtrar modelos" style="background:transparent;border:0;outline:none;width:100%;">
@@ -29,7 +31,7 @@
 
     <div class="fn-catalog" id="catalogo-modelos">
         {% for modelo in modelos %}
-        {% set usos = modelo.naps.count() %}
+        {% set usos = modelo.nats.count() %}
         <article class="fn-catalog-card"
                  data-nombre="{{ modelo.nombre|lower }}"
                  data-capacidad="{{ modelo.capacidad_max if modelo.capacidad_max is not none else 'empalme' }}"
@@ -43,7 +45,7 @@
                     data-img="{{ modelo.imagen_url or '' }}">
                 {% if modelo.imagen_url %}
                 <img src="{{ modelo.imagen_url }}" alt="{{ modelo.nombre }}" loading="lazy"
-                     onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'fn-catalog-placeholder',textContent:'Sin imagen'}));">
+                     onerror="this.onerror=null;this.style.display='none';this.parentNode.insertAdjacentHTML('beforeend','<div class=&quot;fn-catalog-placeholder&quot;>Sin imagen</div>');">
                 {% else %}
                 <div class="fn-catalog-placeholder">Sin imagen</div>
                 {% endif %}
