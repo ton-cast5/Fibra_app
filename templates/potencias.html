@@ -3,328 +3,128 @@
 {% block title %}Potencias - TONYLEX{% endblock %}
 
 {% block head %}
-<!-- Chart.js para gráficos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-    .glass-effect {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .hover-lift {
-        transition: all 0.3s ease;
-    }
-    .hover-lift:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .fade-in {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .input-glow:focus {
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-        border-color: #10b981;
-    }
-    .badge-excelente { 
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white; 
-    }
-    .badge-normal { 
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white; 
-    }
-    .badge-bajo { 
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: white; 
-    }
-    .badge-critico { 
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        color: white; 
-    }
-    
-    .potencia-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-    }
-    
-    /* Estilos para la paginación */
-    .btn-pagina-activa {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-        border-color: #3b82f6;
-    }
-    
-    .btn-pagina-desactivada {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    
-    /* Tarjetas estadísticas con gradientes */
-    .stat-card-excelente {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        border: 1px solid #a7f3d0;
-    }
-    .stat-card-normal {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        border: 1px solid #bfdbfe;
-    }
-    .stat-card-bajo {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        border: 1px solid #fde68a;
-    }
-    .stat-card-critico {
-        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        border: 1px solid #fecaca;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="fade-in">
+<div class="fade-in fn-pot">
     <div class="fn-page-head">
         <div class="fn-page-head-left">
-            <a class="fn-back" href="{{ url_for('dashboard') }}" aria-label="Volver"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></a>
+            <a class="fn-back" href="{{ url_for('dashboard') }}" aria-label="Volver">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </a>
             <div>
                 <h1>Potencias</h1>
-                <p>Monitorea mediciones de potencia en un solo lugar.</p>
+                <p>Mediciones de enlace óptico, claras y al día.</p>
             </div>
         </div>
         <div class="fn-page-actions">
-            <button type="button" onclick="exportarCSV()" class="fn-btn-ghost" title="Exportar">CSV</button>
+            <button type="button" onclick="exportarCSV()" class="fn-btn-ghost">CSV</button>
             <a class="fn-btn-primary" href="/potencias/nueva">+ Nueva medición</a>
         </div>
     </div>
 
-    <!-- TARJETAS DE ESTADÍSTICAS -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-excelente">
-            <div class="flex items-center">
-                <div class="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white mr-4">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-emerald-700">Excelente</p>
-                    <p class="text-3xl font-bold text-emerald-800" id="count-excelente">0</p>
-                </div>
-            </div>
-            <p class="text-xs text-emerald-600 mt-2">Pérdida ≤ 1.0 dB</p>
-        </div>
-        
-        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-normal">
-            <div class="flex items-center">
-                <div class="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white mr-4">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-blue-700">Normal</p>
-                    <p class="text-3xl font-bold text-blue-800" id="count-normal">0</p>
-                </div>
-            </div>
-            <p class="text-xs text-blue-600 mt-2">Pérdida 1.1 - 2.5 dB</p>
-        </div>
-        
-        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-bajo">
-            <div class="flex items-center">
-                <div class="p-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white mr-4">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.288 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-amber-700">Bajo</p>
-                    <p class="text-3xl font-bold text-amber-800" id="count-bajo">0</p>
-                </div>
-            </div>
-            <p class="text-xs text-amber-600 mt-2">Pérdida 2.6 - 3.5 dB</p>
-        </div>
-        
-        <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift stat-card-critico">
-            <div class="flex items-center">
-                <div class="p-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 text-white mr-4">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-red-700">Crítico</p>
-                    <p class="text-3xl font-bold text-red-800" id="count-critico">0</p>
-                </div>
-            </div>
-            <p class="text-xs text-red-600 mt-2">Pérdida > 3.5 dB</p>
+    <div class="fn-pot-kpis" role="group" aria-label="Resumen por estado">
+        <button type="button" class="fn-pot-kpi tone-ok" data-estado="excelente">
+            <span class="lbl">Excelente</span>
+            <span class="val" id="count-excelente">0</span>
+            <span class="hint">≤ 1.0 dB · toca para filtrar</span>
+        </button>
+        <button type="button" class="fn-pot-kpi tone-info" data-estado="normal">
+            <span class="lbl">Normal</span>
+            <span class="val" id="count-normal">0</span>
+            <span class="hint">1.1 – 2.5 dB</span>
+        </button>
+        <button type="button" class="fn-pot-kpi tone-warn" data-estado="bajo">
+            <span class="lbl">Bajo</span>
+            <span class="val" id="count-bajo">0</span>
+            <span class="hint">2.6 – 3.5 dB</span>
+        </button>
+        <button type="button" class="fn-pot-kpi tone-bad" data-estado="critico">
+            <span class="lbl">Crítico</span>
+            <span class="val" id="count-critico">0</span>
+            <span class="hint">> 3.5 dB</span>
+        </button>
+    </div>
+
+    <div class="fn-pot-filters">
+        <label class="fn-field">
+            <span>Cliente</span>
+            <select id="filtro-cliente">
+                <option value="">Todos los clientes</option>
+            </select>
+        </label>
+        <label class="fn-field">
+            <span>Estado</span>
+            <select id="filtro-estado">
+                <option value="">Todos los estados</option>
+                <option value="excelente">Excelente</option>
+                <option value="normal">Normal</option>
+                <option value="bajo">Bajo</option>
+                <option value="critico">Crítico</option>
+            </select>
+        </label>
+        <label class="fn-field">
+            <span>Desde</span>
+            <input type="date" id="filtro-desde">
+        </label>
+        <label class="fn-field">
+            <span>Hasta</span>
+            <input type="date" id="filtro-hasta">
+        </label>
+        <div class="fn-pot-search">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
+            <input type="search" id="buscar-potencias" placeholder="Buscar por cliente, NAP u observaciones…" autocomplete="off" data-tx-local="1">
         </div>
     </div>
 
-    <!-- FILTROS Y BÚSQUEDA -->
-    <div class="glass-effect rounded-2xl shadow-xl p-6 mb-8 hover-lift">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <span class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-1 rounded-lg mr-2">
-                        👤
-                    </span>
-                    Cliente
-                </label>
-                <select id="filtro-cliente" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
-                    <option value="">Todos los clientes</option>
-                </select>
+    <div class="fn-pot-layout">
+        <aside class="fn-pot-card">
+            <div class="fn-pot-card-head">
+                <h2>Distribución</h2>
+                <p>Estados de pérdida en el filtro actual</p>
             </div>
-            
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <span class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-1 rounded-lg mr-2">
-                        📊
-                    </span>
-                    Estado
-                </label>
-                <select id="filtro-estado" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
-                    <option value="">Todos los estados</option>
-                    <option value="excelente">Excelente</option>
-                    <option value="normal">Normal</option>
-                    <option value="bajo">Bajo</option>
-                    <option value="critico">Crítico</option>
-                </select>
+            <div class="fn-pot-chart">
+                <canvas id="chart-estados"></canvas>
             </div>
-            
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <span class="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-1 rounded-lg mr-2">
-                        📅
-                    </span>
-                    Desde
-                </label>
-                <input type="date" id="filtro-desde" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <span class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-1 rounded-lg mr-2">
-                        📅
-                    </span>
-                    Hasta
-                </label>
-                <input type="date" id="filtro-hasta" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
-            </div>
-        </div>
-        
-        <div class="mt-6">
-            <label class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                <span class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-1 rounded-lg mr-2">
-                    🔍
-                </span>
-                Búsqueda
-            </label>
-            <div class="relative">
-                <input type="text" id="buscar-potencias" placeholder="Buscar por cliente, NAP, observaciones..." 
-                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300">
-                <svg class="w-5 h-5 absolute left-4 top-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-            </div>
-        </div>
-    </div>
+        </aside>
 
-    <!-- GRÁFICO Y TABLA -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- GRÁFICO -->
-        <div class="lg:col-span-1">
-            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift h-full">
-                <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
-                    </svg>
-                    Distribución por Estado
-                </h2>
-                <div class="h-64">
-                    <canvas id="chart-estados"></canvas>
-                </div>
-                <p class="text-xs text-gray-500 text-center mt-4">Gráfico de distribución de estados de pérdida</p>
+        <section class="fn-pot-card">
+            <div class="fn-pot-card-head">
+                <h2>Mediciones</h2>
+                <p>Historial paginado según tus filtros</p>
             </div>
-        </div>
-        
-        <!-- TABLA -->
-        <div class="lg:col-span-2">
-            <div class="glass-effect rounded-2xl shadow-xl overflow-hidden fade-in">
-                <!-- Header de la tabla -->
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
-                    <h2 class="text-white text-xl font-bold flex items-center">
-                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        </svg>
-                        Registros de Mediciones
-                    </h2>
-                    <p class="text-blue-100 mt-2">Lista completa de mediciones registradas</p>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cliente</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Entrada</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Salida</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Pérdida</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-potencias-body" class="bg-white divide-y divide-gray-200">
-                            <!-- Se llena con JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- PAGINACIÓN -->
-                <div class="bg-white px-6 py-4 flex items-center justify-between border-t border-gray-200">
-                    <div>
-                        <p class="text-sm text-gray-700" id="info-paginacion">
-                            Mostrando <span id="desde">0</span> a <span id="hasta">0</span> de <span id="total">0</span> resultados
-                        </p>
-                    </div>
-                    <div>
-                        <nav class="relative z-0 inline-flex rounded-xl shadow-sm -space-x-px">
-                            <button id="btn-pagina-anterior" class="relative inline-flex items-center px-3 py-2 rounded-l-xl border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-300">
-                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            
-                            <div id="numeros-pagina" class="flex">
-                                <!-- Números de página -->
-                            </div>
-                            
-                            <button id="btn-pagina-siguiente" class="relative inline-flex items-center px-3 py-2 rounded-r-xl border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-300">
-                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </nav>
-                    </div>
+            <div class="fn-pot-table-wrap">
+                <table class="fn-pot-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>NAP</th>
+                            <th>Modem</th>
+                            <th>Pérdida</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-potencias-body"></tbody>
+                </table>
+            </div>
+            <div class="fn-pot-pager">
+                <p id="info-paginacion">
+                    Mostrando <span id="desde">0</span>–<span id="hasta">0</span> de <span id="total">0</span>
+                </p>
+                <div class="fn-pot-pager-nav">
+                    <button type="button" id="btn-pagina-anterior" aria-label="Anterior">‹</button>
+                    <div id="numeros-pagina" class="fn-pot-pager-nav"></div>
+                    <button type="button" id="btn-pagina-siguiente" aria-label="Siguiente">›</button>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 </div>
 
-<!-- JavaScript para la página de listado (MANTENIENDO TODO TU CÓDIGO ORIGINAL) -->
 <script>
-// Variables globales — paginación y filtros en servidor
 let potenciasPagina = [];
 let paginaActual = 1;
 let metaPaginacion = { total: 0, pages: 1, per_page: 10 };
@@ -337,7 +137,6 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarClientesParaFiltro();
     inicializarEventos();
     inicializarGrafico();
-    agregarEfectosVisuales();
     cargarPotencias(1);
 });
 
@@ -372,13 +171,13 @@ function mapearPotencia(p) {
         id: p.id,
         fecha: p.fecha_medicion,
         cliente_id: p.cliente_id,
-        cliente_nombre: p.cliente_nombre || 'Cliente Desconocido',
+        cliente_nombre: p.cliente_nombre || 'Cliente desconocido',
         nap_nombre: p.nap_nombre || 'Sin NAP',
         potencia_entrada: parseFloat(p.potencia_entrada) || 0,
         potencia_salida: parseFloat(p.potencia_salida) || 0,
         perdida: parseFloat(p.perdida) || 0,
         estado: p.estado || 'normal',
-        tecnico: p.tecnico || 'Técnico Desconocido',
+        tecnico: p.tecnico || '',
         observaciones: p.observaciones || '',
     };
 }
@@ -391,9 +190,7 @@ async function cargarPotencias(page) {
         if (!response.ok) throw new Error('Error HTTP: ' + response.status);
 
         const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.message || 'Error desconocido');
-        }
+        if (!data.success) throw new Error(data.message || 'Error desconocido');
 
         potenciasPagina = (data.potencias || []).map(mapearPotencia);
         metaPaginacion = data.pagination || metaPaginacion;
@@ -403,59 +200,34 @@ async function cargarPotencias(page) {
         actualizarTabla();
         actualizarEstadisticas();
         actualizarGrafico();
+        sincronizarKpisActivos();
     } catch (error) {
         console.error('Error cargando potencias:', error);
         potenciasPagina = [];
-        mostrarError('Error al cargar mediciones. ' + error.message);
+        mostrarError('No se pudieron cargar las mediciones. ' + error.message);
     }
 }
 
-// Mostrar estado de carga
 function mostrarCargando() {
-    const cuerpo = document.getElementById('tabla-potencias-body');
-    cuerpo.innerHTML = `
-        <tr>
-            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p class="mt-2">Cargando datos...</p>
-            </td>
-        </tr>
-    `;
+    document.getElementById('tabla-potencias-body').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--fn-muted)">Cargando mediciones…</td></tr>';
 }
 
-// Mostrar error
 function mostrarError(mensaje) {
-    const cuerpo = document.getElementById('tabla-potencias-body');
-    cuerpo.innerHTML = `
-        <tr>
-            <td colspan="7" class="px-6 py-12 text-center text-red-600">
-                <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p>${mensaje}</p>
-                <button onclick="cargarPotencias(1)" class="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300">
-                    Reintentar
-                </button>
-            </td>
-        </tr>
-    `;
+    document.getElementById('tabla-potencias-body').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:#B42318">' +
+        '<p>' + mensaje + '</p>' +
+        '<button type="button" class="fn-btn-primary" style="margin-top:1rem" onclick="cargarPotencias(1)">Reintentar</button>' +
+        '</td></tr>';
 }
 
-// Ocultar estado de carga
-function ocultarCargando() {
-    // Eliminar cualquier indicador de carga si existe
-}
-
-// Cargar clientes para el filtro desde la base de datos
 async function cargarClientesParaFiltro() {
     try {
         const response = await fetch('/api/clientes/opciones');
         if (!response.ok) throw new Error('Error HTTP: ' + response.status);
-
         const clientes = await response.json();
         const filtro = document.getElementById('filtro-cliente');
         while (filtro.options.length > 1) filtro.remove(1);
-
         (clientes || []).forEach(function (cliente) {
             const option = document.createElement('option');
             option.value = cliente.id;
@@ -467,141 +239,101 @@ async function cargarClientesParaFiltro() {
     }
 }
 
-// Inicializar eventos
-function inicializarEventos() {
-    // Eventos de filtros
-    const filtros = ['filtro-cliente', 'filtro-estado', 'filtro-desde', 'filtro-hasta'];
-    filtros.forEach(id => {
-        const elemento = document.getElementById(id);
-        if (elemento) {
-            elemento.addEventListener('change', function () { cargarPotencias(1); });
-        }
+function sincronizarKpisActivos() {
+    const estado = document.getElementById('filtro-estado').value;
+    document.querySelectorAll('.fn-pot-kpi[data-estado]').forEach(function (btn) {
+        btn.classList.toggle('is-on', btn.dataset.estado === estado);
     });
-    
-    // Evento de búsqueda
+}
+
+function inicializarEventos() {
+    ['filtro-cliente', 'filtro-estado', 'filtro-desde', 'filtro-hasta'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', function () {
+            sincronizarKpisActivos();
+            cargarPotencias(1);
+        });
+    });
+
     const buscarInput = document.getElementById('buscar-potencias');
     if (buscarInput) {
-        buscarInput.addEventListener('keyup', function () {
+        buscarInput.addEventListener('input', function () {
             clearTimeout(debounceBusqueda);
             debounceBusqueda = setTimeout(function () { cargarPotencias(1); }, 400);
         });
     }
-    
-    // Eventos de paginación
-    document.getElementById('btn-pagina-anterior').addEventListener('click', function() {
+
+    document.querySelectorAll('.fn-pot-kpi[data-estado]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const sel = document.getElementById('filtro-estado');
+            const next = btn.dataset.estado;
+            sel.value = sel.value === next ? '' : next;
+            sincronizarKpisActivos();
+            cargarPotencias(1);
+        });
+    });
+
+    document.getElementById('btn-pagina-anterior').addEventListener('click', function () {
         cambiarPagina(paginaActual - 1);
     });
-    
-    document.getElementById('btn-pagina-siguiente').addEventListener('click', function() {
+    document.getElementById('btn-pagina-siguiente').addEventListener('click', function () {
         cambiarPagina(paginaActual + 1);
     });
 }
 
-// Actualizar tabla (datos ya vienen paginados del servidor)
 function actualizarTabla() {
     const cuerpo = document.getElementById('tabla-potencias-body');
 
-    if (potenciasPagina.length === 0) {
-        cuerpo.innerHTML = `
-            <tr>
-                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                    <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    No se encontraron mediciones de potencia
-                </td>
-            </tr>
-        `;
-    } else {
-        cuerpo.innerHTML = '';
-        
-        potenciasPagina.forEach(potencia => {
-            const fila = document.createElement('tr');
-            const claseEstado = `badge-${potencia.estado}`;
-            const perdida = parseFloat(potencia.perdida) || 0;
-            
-            // Determinar color para las potencias
-            const colorEntrada = potencia.potencia_entrada > -15 ? 'text-red-600' : 'text-gray-900';
-            const colorSalida = potencia.potencia_salida > -15 ? 'text-red-600' : 'text-gray-900';
-            const colorPerdida = perdida > 3 ? 'text-red-600' : perdida > 2 ? 'text-yellow-600' : 'text-green-600';
-            
-            fila.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900 font-medium">${formatearFecha(potencia.fecha)}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-semibold text-gray-900">${potencia.cliente_nombre}</div>
-                    <div class="text-xs text-gray-500">${potencia.nap_nombre}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-bold ${colorEntrada}">
-                        ${potencia.potencia_entrada.toFixed(1)} dBm
-                    </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-bold ${colorSalida}">
-                        ${potencia.potencia_salida.toFixed(1)} dBm
-                    </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-bold ${colorPerdida}">
-                        ${perdida.toFixed(1)} dB
-                    </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full ${claseEstado}">
-                        ${potencia.estado ? potencia.estado.toUpperCase() : 'N/A'}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <a href="/potencias/editar/${potencia.id}" class="text-blue-600 hover:text-blue-900 mr-4 transition-colors duration-300">
-                        <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                        Editar
-                    </a>
-                    <button onclick="eliminarPotencia(${potencia.id})" class="text-red-600 hover:text-red-900 transition-colors duration-300">
-                        <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        Eliminar
-                    </button>
-                </td>
-            `;
-            cuerpo.appendChild(fila);
-        });
+    if (!potenciasPagina.length) {
+        cuerpo.innerHTML =
+            '<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--fn-muted)">No hay mediciones con estos filtros.</td></tr>';
+        actualizarPaginacion();
+        return;
     }
-    
+
+    cuerpo.innerHTML = '';
+    potenciasPagina.forEach(function (potencia) {
+        const fila = document.createElement('tr');
+        const perdida = parseFloat(potencia.perdida) || 0;
+        const claseEstado = 'badge-' + (potencia.estado || 'normal');
+        fila.innerHTML =
+            '<td><span class="fn-pot-mono">' + formatearFecha(potencia.fecha) + '</span></td>' +
+            '<td><div class="fn-pot-client"><strong>' + escapeHtml(potencia.cliente_nombre) + '</strong><span>' + escapeHtml(potencia.nap_nombre) + '</span></div></td>' +
+            '<td class="fn-pot-mono">' + potencia.potencia_entrada.toFixed(1) + ' dBm</td>' +
+            '<td class="fn-pot-mono">' + potencia.potencia_salida.toFixed(1) + ' dBm</td>' +
+            '<td class="fn-pot-mono">' + perdida.toFixed(1) + ' dB</td>' +
+            '<td><span class="' + claseEstado + '">' + (potencia.estado || 'n/a') + '</span></td>' +
+            '<td><div class="fn-pot-actions">' +
+                '<a href="/potencias/editar/' + potencia.id + '">Editar</a>' +
+                '<button type="button" class="danger" onclick="eliminarPotencia(' + potencia.id + ')">Eliminar</button>' +
+            '</div></td>';
+        cuerpo.appendChild(fila);
+    });
+
     actualizarPaginacion();
 }
 
-// Eliminar potencia (FIXED)
+function escapeHtml(texto) {
+    return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 async function eliminarPotencia(id) {
-    if (!confirm('¿Estás seguro de eliminar esta medición? Esta acción no se puede deshacer.')) return;
-
-    const idNum = Number(id);
-
+    if (!confirm('¿Eliminar esta medición? No se puede deshacer.')) return;
     try {
-        const response = await fetch(`/api/potencias/${idNum}`, { 
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error HTTP ${response.status}`);
-        }
-
+        const response = await fetch('/api/potencias/' + Number(id), { method: 'DELETE' });
+        if (!response.ok) throw new Error('Error HTTP ' + response.status);
         const data = await response.json();
-
-        if (data.success) {
-            await cargarPotencias(paginaActual);
-            mostrarNotificacion('✅ Medición eliminada correctamente', 'success');
-        } else {
-            throw new Error(data.message || 'Error al eliminar');
-        }
-
+        if (!data.success) throw new Error(data.message || 'Error al eliminar');
+        await cargarPotencias(paginaActual);
+        mostrarNotificacion('Medición eliminada', 'success');
     } catch (error) {
         console.error('Error al eliminar medición:', error);
-        mostrarNotificacion('❌ Error al eliminar la medición: ' + error.message, 'error');
+        mostrarNotificacion('No se pudo eliminar: ' + error.message, 'error');
     }
 }
 
@@ -612,7 +344,6 @@ function actualizarEstadisticas() {
     document.getElementById('count-critico').textContent = resumenEstados.critico || 0;
 }
 
-// Inicializar gráfico
 function inicializarGrafico() {
     const ctx = document.getElementById('chart-estados').getContext('2d');
     chartEstados = new Chart(ctx, {
@@ -621,38 +352,30 @@ function inicializarGrafico() {
             labels: ['Excelente', 'Normal', 'Bajo', 'Crítico'],
             datasets: [{
                 data: [0, 0, 0, 0],
-                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
-                borderWidth: 1,
-                borderColor: '#fff'
+                backgroundColor: ['#059669', '#2563EB', '#D97706', '#DC2626'],
+                borderWidth: 0,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { 
-                legend: { 
+            plugins: {
+                legend: {
                     position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        usePointStyle: true,
-                        font: {
-                            size: 11
-                        }
-                    }
+                    labels: { padding: 14, usePointStyle: true, font: { size: 11, family: 'Manrope, sans-serif' } }
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
+                        label: function (context) {
                             const value = context.parsed || 0;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const total = context.dataset.data.reduce(function (a, b) { return a + b; }, 0);
                             const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                            return `${label}: ${value} (${percentage}%)`;
+                            return (context.label || '') + ': ' + value + ' (' + percentage + '%)';
                         }
                     }
                 }
             },
-            cutout: '65%'
+            cutout: '68%'
         }
     });
 }
@@ -679,83 +402,53 @@ function actualizarPaginacion() {
     const inicio = total ? Math.min((paginaActual - 1) * perPage + 1, total) : 0;
     const fin = total ? Math.min(paginaActual * perPage, total) : 0;
     const totalPaginas = metaPaginacion.pages || 1;
-    
+
     document.getElementById('desde').textContent = inicio;
     document.getElementById('hasta').textContent = fin;
     document.getElementById('total').textContent = total;
-    
+
     const numerosPagina = document.getElementById('numeros-pagina');
     numerosPagina.innerHTML = '';
-    
-    // Mostrar números de página (máximo 5)
+
     let inicioPagina = Math.max(1, paginaActual - 2);
     let finPagina = Math.min(totalPaginas, inicioPagina + 4);
-    
-    if (finPagina - inicioPagina < 4) {
-        inicioPagina = Math.max(1, finPagina - 4);
-    }
-    
+    if (finPagina - inicioPagina < 4) inicioPagina = Math.max(1, finPagina - 4);
+
     for (let i = inicioPagina; i <= finPagina; i++) {
         const button = document.createElement('button');
-        button.className = `relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-all duration-300 ${
-            i === paginaActual 
-            ? 'z-10 bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-600 text-white' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-        }`;
+        button.type = 'button';
         button.textContent = i;
-        button.onclick = () => cambiarPagina(i);
+        if (i === paginaActual) button.className = 'is-on';
+        button.onclick = function () { cambiarPagina(i); };
         numerosPagina.appendChild(button);
     }
-    
-    // Habilitar/deshabilitar botones de navegación
+
     const btnAnterior = document.getElementById('btn-pagina-anterior');
     const btnSiguiente = document.getElementById('btn-pagina-siguiente');
-    
-    if (paginaActual === 1) {
-        btnAnterior.classList.add('btn-pagina-desactivada');
-        btnAnterior.disabled = true;
-    } else {
-        btnAnterior.classList.remove('btn-pagina-desactivada');
-        btnAnterior.disabled = false;
-    }
-    
-    if (paginaActual === totalPaginas) {
-        btnSiguiente.classList.add('btn-pagina-desactivada');
-        btnSiguiente.disabled = true;
-    } else {
-        btnSiguiente.classList.remove('btn-pagina-desactivada');
-        btnSiguiente.disabled = false;
-    }
+    btnAnterior.disabled = paginaActual === 1;
+    btnSiguiente.disabled = paginaActual === totalPaginas;
 }
 
 function formatearFecha(fechaString) {
     try {
         const fecha = new Date(fechaString);
-        if (isNaN(fecha.getTime())) {
-            return fechaString;
-        }
-        
+        if (isNaN(fecha.getTime())) return fechaString;
         return fecha.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
         });
     } catch (e) {
-        console.error('Error formateando fecha:', e);
         return fechaString;
     }
 }
 
 async function exportarCSV() {
     try {
-        mostrarNotificacion('Preparando exportación...', 'info');
+        mostrarNotificacion('Preparando exportación…', 'info');
         const response = await fetch(construirUrlPotencias(1, true));
         if (!response.ok) throw new Error('Error HTTP: ' + response.status);
         const data = await response.json();
         const filas = (data.potencias || []).map(mapearPotencia);
-
         if (!filas.length) {
             mostrarNotificacion('No hay datos para exportar', 'warning');
             return;
@@ -775,110 +468,29 @@ async function exportarCSV() {
         link.href = URL.createObjectURL(blob);
         link.download = 'potencias_' + new Date().toISOString().split('T')[0] + '.csv';
         link.click();
-        mostrarNotificacion('✅ CSV exportado correctamente', 'success');
+        mostrarNotificacion('CSV exportado', 'success');
     } catch (error) {
         mostrarNotificacion('Error al exportar: ' + error.message, 'error');
     }
 }
 
-// Mostrar notificación premium
 function mostrarNotificacion(mensaje, tipo) {
-    // Eliminar notificaciones existentes
-    const notificacionesExistentes = document.querySelectorAll('.notificacion-premium');
-    notificacionesExistentes.forEach(n => n.remove());
-
-    // Crear notificación
-    const notificacion = document.createElement('div');
-    notificacion.className = `notificacion-premium fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-xl text-white font-semibold transform transition-all duration-300 ${
-        tipo === 'success' ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
-        tipo === 'error' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
-        tipo === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
-        'bg-gradient-to-r from-blue-500 to-indigo-600'
-    }`;
-    
-    notificacion.innerHTML = `
-        <div class="flex items-center">
-            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${
-                    tipo === 'success' ? 'M5 13l4 4L19 7' : 
-                    tipo === 'error' ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' :
-                    'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                }"></path>
-            </svg>
-            ${mensaje}
-        </div>
-    `;
-    
-    document.body.appendChild(notificacion);
-    
-    // Animación de entrada
-    setTimeout(() => {
-        notificacion.classList.add('translate-y-0', 'opacity-100');
-        notificacion.classList.remove('-translate-y-4', 'opacity-0');
-    }, 10);
-    
-    // Remover después de 3 segundos
-    setTimeout(() => {
-        notificacion.classList.add('opacity-0', 'translate-y-4');
-        setTimeout(() => {
-            document.body.removeChild(notificacion);
-        }, 300);
-    }, 3000);
-}
-
-// Agregar efectos visuales premium
-function agregarEfectosVisuales() {
-    // Efectos visuales en inputs
-    const inputs = document.querySelectorAll('input, select');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.parentElement.classList.add('ring-2', 'ring-blue-100', 'rounded-xl');
-        });
-        input.addEventListener('blur', function() {
-            this.parentElement.classList.remove('ring-2', 'ring-blue-100', 'rounded-xl');
-        });
+    document.querySelectorAll('.fn-toast').forEach(function (n) { n.remove(); });
+    const el = document.createElement('div');
+    el.className = 'fn-toast ' + (tipo || 'info');
+    el.textContent = mensaje;
+    Object.assign(el.style, {
+        position: 'fixed', top: '1.25rem', right: '1.25rem', zIndex: '80',
+        padding: '0.85rem 1.1rem', borderRadius: '14px', fontWeight: '700',
+        fontSize: '0.88rem', color: '#fff', boxShadow: '0 16px 30px -16px rgba(0,0,0,.4)',
+        background: tipo === 'success' ? '#059669' : tipo === 'error' ? '#DC2626' : tipo === 'warning' ? '#D97706' : '#6C5CEF'
     });
-    
-    // Animación de aparición escalonada
-    const elements = document.querySelectorAll('.fade-in');
-    elements.forEach((element, index) => {
-        element.style.animationDelay = `${index * 0.1}s`;
-    });
-    
-    // Efectos hover en tarjetas
-    const tarjetas = document.querySelectorAll('.hover-lift');
-    tarjetas.forEach(tarjeta => {
-        tarjeta.addEventListener('mouseenter', function() {
-            this.classList.add('shadow-lg');
-        });
-        tarjeta.addEventListener('mouseleave', function() {
-            this.classList.remove('shadow-lg');
-        });
-    });
+    document.body.appendChild(el);
+    setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .25s ease';
+        setTimeout(function () { el.remove(); }, 250);
+    }, 2800);
 }
 </script>
-
-<style>
-.notificacion-premium {
-    transform: translateY(-20px);
-    opacity: 0;
-    animation: slideIn 0.3s forwards;
-}
-
-@keyframes slideIn {
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Efectos para tabla */
-tbody tr {
-    transition: all 0.2s ease;
-}
-
-tbody tr:hover {
-    background-color: #f9fafb;
-}
-</style>
 {% endblock %}

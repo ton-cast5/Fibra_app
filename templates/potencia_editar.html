@@ -2,140 +2,8 @@
 
 {% block title %}Editar Medición - TONYLEX{% endblock %}
 
-{% block head %}
-<style>
-    .glass-effect {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .hover-lift {
-        transition: all 0.3s ease;
-    }
-    .hover-lift:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .fade-in {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .input-glow:focus {
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-        border-color: #10b981;
-    }
-    .excellent-badge {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        color: #065f46;
-        border: 1px solid #a7f3d0;
-    }
-    .normal-badge {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        color: #1e40af;
-        border: 1px solid #bfdbfe;
-    }
-    .warning-badge {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        color: #92400e;
-        border: 1px solid #fde68a;
-    }
-    .critical-badge {
-        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        color: #991b1b;
-        border: 1px solid #fecaca;
-    }
-    .result-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 2px solid #e2e8f0;
-    }
-    .resultado-mini-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-    }
-    html.dark .result-card {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-        border-color: rgba(71, 85, 105, 0.55);
-        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.22);
-    }
-    html.dark .resultado-mini-card {
-        background: rgba(30, 41, 59, 0.88);
-        border-color: rgba(71, 85, 105, 0.45);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-    }
-    html.dark .resultado-titulo {
-        color: #e2e8f0 !important;
-    }
-    html.dark .resultado-titulo svg {
-        color: #60a5fa !important;
-    }
-    html.dark .perdida-valor {
-        color: #60a5fa !important;
-    }
-    html.dark .calidad-track {
-        background: rgba(71, 85, 105, 0.45) !important;
-    }
-    html.dark .excellent-badge {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.22) 100%);
-        color: #6ee7b7;
-        border-color: rgba(16, 185, 129, 0.45);
-    }
-    html.dark .normal-badge {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(37, 99, 235, 0.22) 100%);
-        color: #93c5fd;
-        border-color: rgba(59, 130, 246, 0.45);
-    }
-    html.dark .warning-badge {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.22) 100%);
-        color: #fcd34d;
-        border-color: rgba(245, 158, 11, 0.45);
-    }
-    html.dark .critical-badge {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.28) 0%, rgba(220, 38, 38, 0.22) 100%);
-        color: #fca5a5;
-        border-color: rgba(239, 68, 68, 0.45);
-    }
-    .cliente-sugerencias {
-        position: absolute;
-        z-index: 40;
-        left: 0;
-        right: 0;
-        top: calc(100% + 4px);
-        max-height: 220px;
-        overflow-y: auto;
-        border-radius: 0.75rem;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
-    }
-    .cliente-sugerencia-item {
-        cursor: pointer;
-        padding: 0.65rem 1rem;
-        font-size: 0.875rem;
-        transition: background 0.15s ease;
-    }
-    .cliente-sugerencia-item:hover,
-    .cliente-sugerencia-item.activa {
-        background: rgba(59, 130, 246, 0.1);
-    }
-    .campo-solo-lectura {
-        background: #f8fafc;
-        cursor: not-allowed;
-    }
-    html.dark .campo-solo-lectura {
-        background: rgba(30, 41, 59, 0.6);
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="fade-in">
+<div class="fade-in fn-studio">
     <div class="fn-page-head">
         <div class="fn-page-head-left">
             <a class="fn-back" href="/potencias" aria-label="Volver">
@@ -146,277 +14,125 @@
                 <p>Actualiza los datos de la medición</p>
             </div>
         </div>
-        <div class="fn-page-actions">
-            <a class="fn-btn-ghost" href="/potencias">Volver</a>
-        </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Columna del Formulario -->
-        <div class="lg:col-span-2">
-            <div class="glass-effect rounded-2xl shadow-xl overflow-hidden fade-in">
-                <!-- Header del Formulario -->
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
-                    <h2 class="text-white text-xl font-bold flex items-center">
-                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                        Datos de la Medición
-                    </h2>
-                    <p class="text-blue-100 mt-2">Modifique los datos de la medición</p>
+    <div class="fn-studio-layout">
+        <form id="form-potencia" class="fn-studio-card">
+            <input type="hidden" id="potencia-id" name="id">
+
+            <div class="fn-studio-section">
+                <div class="fn-studio-section-head">
+                    <h2>Cliente y NAP</h2>
+                    <p>Puedes cambiar el cliente si hace falta</p>
                 </div>
-
-                <!-- Cuerpo del Formulario -->
-                <div class="p-8">
-                    <form id="form-potencia">
-                        <input type="hidden" id="potencia-id" name="id">
-                        
-                        <!-- Cliente (búsqueda) -->
-                        <div class="space-y-2 mb-6">
-                            <label for="cliente_busqueda" class="block text-sm font-semibold text-gray-700 flex items-center">
-                                <span class="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-1 rounded-lg mr-2">👤</span>
-                                Cliente *
-                            </label>
-                            <div class="relative">
-                                <input type="text" id="cliente_busqueda" autocomplete="off"
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300 bg-white"
-                                       placeholder="Escribe para buscar o seleccionar cliente...">
-                                <input type="hidden" id="cliente_id" name="cliente_id" required>
-                                <ul id="cliente-sugerencias" class="cliente-sugerencias fm-panel hidden"></ul>
-                            </div>
-                            <p class="text-xs text-gray-500">Coincidencia en tiempo real, sin distinguir mayúsculas</p>
+                <div class="fn-form-grid">
+                    <label class="fn-field wide">
+                        <span>Cliente *</span>
+                        <div style="position:relative">
+                            <input type="text" id="cliente_busqueda" autocomplete="off" data-tx-local="1"
+                                   placeholder="Escribe para buscar…">
+                            <input type="hidden" id="cliente_id" name="cliente_id" required>
+                            <ul id="cliente-sugerencias" class="cliente-sugerencias fm-panel hidden"></ul>
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <!-- NAP automática -->
-                            <div class="space-y-2">
-                                <label for="nap_nombre" class="block text-sm font-semibold text-gray-700 flex items-center">
-                                    <span class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-1 rounded-lg mr-2">📡</span>
-                                    NAP Asociada
-                                </label>
-                                <input type="text" id="nap_nombre" readonly
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl campo-solo-lectura text-gray-700"
-                                       placeholder="Se asigna al seleccionar el cliente">
-                                <input type="hidden" id="nap_id" name="nap_id">
-                            </div>
-
-                            <!-- Técnico -->
-                            <div class="space-y-2">
-                                <label for="tecnico" class="block text-sm font-semibold text-gray-700 flex items-center">
-                                    <span class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-1 rounded-lg mr-2">🔧</span>
-                                    Técnico
-                                </label>
-                                <select id="tecnico" name="tecnico"
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300 bg-white">
-                                    <option value="">-- Selecciona un técnico --</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <!-- Potencia de la NAP -->
-                            <div class="space-y-2">
-                                <label for="potencia-entrada" class="block text-sm font-semibold text-gray-700 flex items-center">
-                                    <span class="bg-gradient-to-r from-red-500 to-pink-600 text-white p-1 rounded-lg mr-2">📡</span>
-                                    Potencia de la NAP (dBm) *
-                                </label>
-                                <input type="number" step="0.1" name="potencia_entrada" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300"
-                                       placeholder="Ej: -18.5" id="potencia-entrada">
-                                <p id="hint-potencia-nap" class="text-xs text-gray-500 mt-1">Puedes editarla; al guardar se actualiza en todas las mediciones de esa NAP</p>
-                            </div>
-
-                            <!-- Potencia del Modem -->
-                            <div class="space-y-2">
-                                <label for="potencia-salida" class="block text-sm font-semibold text-gray-700 flex items-center">
-                                    <span class="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-1 rounded-lg mr-2">📶</span>
-                                    Potencia del Modem (dBm) *
-                                </label>
-                                <input type="number" step="0.1" name="potencia_salida" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300"
-                                       placeholder="Ej: -16.0" id="potencia-salida">
-                                <p class="text-xs text-gray-500 mt-1">Lectura en el equipo del cliente</p>
-                            </div>
-                        </div>
-
-                        <!-- Fecha -->
-                        <div class="mb-6">
-                            <label for="fecha-medicion" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                                <span class="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-1 rounded-lg mr-2">📅</span>
-                                Fecha de Medición
-                            </label>
-                            <input type="datetime-local" name="fecha_medicion"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300"
-                                   id="fecha-medicion">
-                        </div>
-
-                        <!-- Resultados Calculados -->
-                        <div class="mb-6 p-6 result-card rounded-2xl shadow-inner">
-                            <h3 class="resultado-titulo font-bold text-gray-800 mb-4 flex items-center text-lg">
-                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                                </svg>
-                                Resultados Calculados
-                            </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="resultado-mini-card p-4 rounded-xl shadow-sm">
-                                    <label class="block text-sm text-gray-600 mb-1">Pérdida Calculada</label>
-                                    <div class="perdida-valor text-2xl font-bold text-blue-600" id="perdida-calculada">0.0 dB</div>
-                                    <p class="text-xs text-gray-500 mt-1">Diferencia entre NAP y modem</p>
-                                </div>
-                                <div class="resultado-mini-card p-4 rounded-xl shadow-sm">
-                                    <label class="block text-sm text-gray-600 mb-1">Estado Estimado</label>
-                                    <div class="text-lg font-bold mt-1">
-                                        <span id="estado-estimado" class="px-3 py-1 rounded-lg">-</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">Calidad del enlace</p>
-                                </div>
-                                <div class="resultado-mini-card p-4 rounded-xl shadow-sm">
-                                    <label class="block text-sm text-gray-600 mb-1">Calidad</label>
-                                    <div class="h-2 rounded-full bg-gray-200 calidad-track mt-3">
-                                        <div id="calidad-bar" class="h-full rounded-full w-0"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Observaciones -->
-                        <div class="mb-8">
-                            <label for="observaciones" class="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                                <span class="bg-gradient-to-r from-gray-500 to-gray-600 text-white p-1 rounded-lg mr-2">
-                                    📝
-                                </span>
-                                Observaciones
-                            </label>
-                            <textarea name="observaciones" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 input-glow transition-all duration-300" 
-                                      placeholder="Notas adicionales..." id="observaciones"></textarea>
-                        </div>
-                        
-                        <!-- BOTONES -->
-                        <div class="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-                            <a href="/potencias" 
-                               class="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-2 sm:order-1">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                                </svg>
-                                Cancelar
-                            </a>
-                            
-                            <button type="submit" 
-                                    class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center order-1 sm:order-2">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Actualizar Medición
-                            </button>
-                        </div>
-                    </form>
+                    </label>
+                    <label class="fn-field">
+                        <span>NAP asociada</span>
+                        <input type="text" id="nap_nombre" readonly class="campo-solo-lectura" placeholder="Se asigna al elegir cliente">
+                        <input type="hidden" id="nap_id" name="nap_id">
+                    </label>
+                    <label class="fn-field">
+                        <span>Técnico</span>
+                        <select id="tecnico" name="tecnico">
+                            <option value="">— Selecciona —</option>
+                        </select>
+                    </label>
                 </div>
             </div>
-        </div>
 
-        <!-- Columna de Información -->
-        <div class="space-y-6">
-            <!-- Información de Potencia -->
-            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
-                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                    Rangos de Referencia
-                </h3>
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-emerald-200">
-                        <div class="flex items-center">
-                            <span class="w-3 h-3 bg-emerald-500 rounded-full mr-3"></span>
-                            <span class="text-sm font-medium text-gray-700">Excelente (≤ 1.0 dB)</span>
-                        </div>
-                        <span class="text-xs font-bold text-emerald-600">Óptimo</span>
+            <div class="fn-studio-section">
+                <div class="fn-studio-section-head">
+                    <h2>Lecturas</h2>
+                    <p>Ajusta potencias y revisa el resultado al instante</p>
+                </div>
+                <div class="fn-form-grid">
+                    <label class="fn-field">
+                        <span>Potencia NAP (dBm) *</span>
+                        <input type="number" step="0.1" name="potencia_entrada" required
+                               placeholder="Ej: -18.5" id="potencia-entrada">
+                        <small id="hint-potencia-nap">Al guardar se actualiza en las mediciones de esa NAP</small>
+                    </label>
+                    <label class="fn-field">
+                        <span>Potencia módem (dBm) *</span>
+                        <input type="number" step="0.1" name="potencia_salida" required
+                               placeholder="Ej: -16.0" id="potencia-salida">
+                        <small>Lectura en el equipo del cliente</small>
+                    </label>
+                    <label class="fn-field">
+                        <span>Fecha de medición</span>
+                        <input type="datetime-local" name="fecha_medicion" id="fecha-medicion">
+                    </label>
+                    <label class="fn-field wide">
+                        <span>Observaciones</span>
+                        <textarea name="observaciones" rows="3" id="observaciones" placeholder="Notas adicionales…"></textarea>
+                    </label>
+                </div>
+
+                <div class="fn-pot-result cols-3">
+                    <div class="fn-pot-result-item">
+                        <span class="lbl">Pérdida calculada</span>
+                        <div class="val perdida-valor" id="perdida-calculada">0.0 dB</div>
                     </div>
-                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-blue-200">
-                        <div class="flex items-center">
-                            <span class="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
-                            <span class="text-sm font-medium text-gray-700">Normal (1.1 - 2.5 dB)</span>
-                        </div>
-                        <span class="text-xs font-bold text-blue-600">Aceptable</span>
+                    <div class="fn-pot-result-item">
+                        <span class="lbl">Estado estimado</span>
+                        <div style="margin-top:0.35rem"><span id="estado-estimado">—</span></div>
                     </div>
-                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-amber-200">
-                        <div class="flex items-center">
-                            <span class="w-3 h-3 bg-amber-500 rounded-full mr-3"></span>
-                            <span class="text-sm font-medium text-gray-700">Bajo (2.6 - 3.5 dB)</span>
+                    <div class="fn-pot-result-item">
+                        <span class="lbl">Calidad</span>
+                        <div class="calidad-track" style="height:8px;border-radius:999px;background:#EEEAF8;margin-top:0.85rem;overflow:hidden">
+                            <div id="calidad-bar" style="height:100%;border-radius:inherit;width:0;background:#6C5CEF"></div>
                         </div>
-                        <span class="text-xs font-bold text-amber-600">Monitorizar</span>
-                    </div>
-                    <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200">
-                        <div class="flex items-center">
-                            <span class="w-3 h-3 bg-red-500 rounded-full mr-3"></span>
-                            <span class="text-sm font-medium text-gray-700">Crítico (> 3.5 dB)</span>
-                        </div>
-                        <span class="text-xs font-bold text-red-600">Alerta</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Consejos Rápidos -->
-            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
-                <h3 class="text-lg font-bold text-blue-800 mb-3">💡 Consejos de Edición</h3>
-                <ul class="text-sm text-blue-700 space-y-2">
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Verifica los valores de potencia</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Actualiza la fecha si es necesario</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Registra cambios importantes</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="mr-2">•</span>
-                        <span>Mantén información precisa</span>
-                    </li>
-                </ul>
+            <div class="fn-form-foot">
+                <p class="fn-form-hint">* Campos obligatorios</p>
+                <div class="fn-form-actions">
+                    <a href="/potencias" class="fn-btn-ghost fn-form-cancel">Cancelar</a>
+                    <button type="submit" class="fn-btn-primary fn-form-save">Guardar cambios</button>
+                </div>
             </div>
+        </form>
 
-            <!-- Información Técnica -->
-            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift">
-                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                    </svg>
-                    Valores Típicos
-                </h3>
-                <div class="space-y-3 text-sm">
-                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
-                        <span class="font-medium text-gray-700">Fibra Óptica Nueva</span>
-                        <span class="text-xs text-emerald-600">0.3-0.5 dB/km</span>
+        <aside class="fn-studio-aside">
+            <div class="fn-studio-side-card">
+                <div class="fn-studio-section-head">
+                    <h2>Rangos</h2>
+                    <p>Referencia de pérdida óptica</p>
+                </div>
+                <div class="fn-range-list">
+                    <div class="fn-range-row">
+                        <span class="left"><i class="dot" style="background:#059669"></i><strong>≤ 1.0 dB</strong></span>
+                        <em style="color:#0F7A45">Excelente</em>
                     </div>
-                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
-                        <span class="font-medium text-gray-700">Conector LC/UPC</span>
-                        <span class="text-xs text-blue-600">0.2-0.3 dB</span>
+                    <div class="fn-range-row">
+                        <span class="left"><i class="dot" style="background:#2563EB"></i><strong>1.1 – 2.5</strong></span>
+                        <em style="color:#1D4ED8">Normal</em>
                     </div>
-                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
-                        <span class="font-medium text-gray-700">Empalme Fusión</span>
-                        <span class="text-xs text-blue-600">0.05-0.1 dB</span>
+                    <div class="fn-range-row">
+                        <span class="left"><i class="dot" style="background:#D97706"></i><strong>2.6 – 3.5</strong></span>
+                        <em style="color:#9A6700">Bajo</em>
+                    </div>
+                    <div class="fn-range-row">
+                        <span class="left"><i class="dot" style="background:#DC2626"></i><strong>> 3.5 dB</strong></span>
+                        <em style="color:#B42318">Crítico</em>
                     </div>
                 </div>
             </div>
-
-            <!-- Nota Importante -->
-            <div class="glass-effect rounded-2xl shadow-xl p-6 hover-lift bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
-                <h3 class="text-lg font-bold text-amber-800 mb-3">⚠️ Importante</h3>
-                <p class="text-sm text-amber-700">
-                    Los cambios realizados se registrarán en el historial de la medición.
-                    Verifica dos veces los valores antes de guardar.
-                </p>
-            </div>
-        </div>
+        </aside>
     </div>
 </div>
 
-<!-- JavaScript para edición -->
 <script>
 let clientesLista = [];
 let indiceSugerenciaActiva = -1;
