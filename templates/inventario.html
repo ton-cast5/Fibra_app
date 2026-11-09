@@ -37,35 +37,21 @@
             <div class="label">Clientes activos</div>
             <div class="value">{{ clientes_activos }}</div>
             <div class="trend up">{{ total_clientes }} en total</div>
-            <div class="viz" aria-hidden="true">
-                <svg class="spark" viewBox="0 0 88 48" fill="none"><path d="M2 36 C18 34, 22 18, 36 20 S58 40, 72 16 S82 10, 86 12" stroke="#6C5CEF" stroke-width="3" stroke-linecap="round"/><circle cx="72" cy="16" r="4" fill="#6C5CEF"/></svg>
-            </div>
         </div>
         <div class="fn-kpi">
             <div class="label">Cajas NAP</div>
             <div class="value">{{ total_naps }}</div>
             <div class="trend flat">{{ puertos_ocupados }}/{{ puertos_totales }} puertos</div>
-            <div class="viz bars" aria-hidden="true">
-                <span style="height:40%"></span><span style="height:65%"></span><span style="height:50%"></span>
-                <span style="height:80%"></span><span style="height:55%"></span>
-            </div>
         </div>
         <div class="fn-kpi">
             <div class="label">Empalmes</div>
             <div class="value">{{ cajas_empalme }}</div>
             <div class="trend flat">En la red óptica</div>
-            <div class="viz" aria-hidden="true">
-                <svg class="spark" viewBox="0 0 88 48" fill="none"><path d="M4 28 C16 26, 24 34, 36 22 S56 10, 70 18 S80 30, 86 24" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/></svg>
-            </div>
         </div>
         <div class="fn-kpi">
             <div class="label">Distribución</div>
             <div class="value">{{ cajas_distribucion }}</div>
             <div class="trend {{ 'down' if ocupacion_promedio >= 80 else 'up' }}">{{ ocupacion_promedio }}% ocupación</div>
-            <div class="viz bars" aria-hidden="true">
-                <span style="height:35%"></span><span style="height:55%"></span><span style="height:75%"></span>
-                <span style="height:48%"></span><span style="height:62%"></span>
-            </div>
         </div>
     </div>
 

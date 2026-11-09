@@ -2629,6 +2629,7 @@ html.dark .fn-pot-search { background: rgba(255,255,255,.04); }
 
 /* ===== INVENTARIO ===== */
 .fn-inv { display: flex; flex-direction: column; gap: 1rem; }
+.fn-inv .fn-kpi { min-height: 0; }
 .fn-inv-clock {
   min-width: 7.5rem;
   padding: 0.55rem 0.85rem;
