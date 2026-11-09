@@ -5,6 +5,7 @@
 {% block head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<script src="{{ url_for('static', filename='js/tonylex-reports.js') }}?v=tx-reports-1"></script>
 {% endblock %}
 
 {% block content %}
@@ -198,250 +199,11 @@
     </div>
 </div>
 
-<!-- JavaScript Premium (CÓDIGO CORREGIDO) -->
 <script>
-// --- SISTEMA DE GENERACIÓN DE REPORTES CON DATOS REALES ---
-
-// Paleta corporativa formal para todos los PDF del inventario
-const pdfTheme = {
-    brand: {
-        name: "Internet SP",
-        tagline: "Infraestructura de Red y Fibra Optica",
-        department: "Departamento Tecnico",
-        contact: "soporte@fibramanager.com",
-    },
-    colors: {
-        primary: [15, 40, 71],
-        primaryMid: [30, 58, 95],
-        accent: [37, 99, 235],
-        accentLine: [180, 154, 90],
-        text: [30, 41, 59],
-        textMuted: [71, 85, 105],
-        textLight: [148, 163, 184],
-        white: [255, 255, 255],
-        tableHead: [15, 40, 71],
-        tableAlt: [241, 245, 249],
-        tableBorder: [203, 213, 225],
-        success: [21, 128, 61],
-        danger: [185, 28, 28],
-        warning: [161, 98, 7],
-    },
-};
-
-const companyConfig = {
-    name: pdfTheme.brand.name,
-    logoColor: pdfTheme.colors.primary,
-    accentColor: pdfTheme.colors.accent,
-    address: pdfTheme.brand.tagline,
-    contact: pdfTheme.brand.contact,
-};
-
-const { jsPDF } = window.jspdf;
-
-// Función para texto sin emojis (solución para compatibilidad)
-function textoPDF(texto) {
-    // Reemplazar emojis con texto descriptivo
-    const emojiMap = {
-        '👥': 'Clientes',
-        '📡': 'Cajas NAP',
-        '🔗': 'Empalmes',
-        '🏗️': 'Elementos Fisicos',
-        '📊': 'Estadisticas',
-        '✅': 'Activos',
-        '🎯': 'Recomendaciones',
-        '🏆': 'Conclusiones',
-        '📈': 'Tendencias',
-        '🎨': 'Fibras'
-    };
-    
-    let resultado = texto;
-    for (const [emoji, textoReemplazo] of Object.entries(emojiMap)) {
-        resultado = resultado.replace(new RegExp(emoji, 'g'), textoReemplazo);
-    }
-    
-    return resultado;
-}
-
-// Función para fecha en español
-function fechaEspanol() {
-    const fecha = new Date();
-    const opciones = {
-        timeZone: 'America/Mexico_City',
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    };
-
-    return fecha.toLocaleDateString('es-MX', opciones);
-}
-
-function getCorporateTableStyles(overrides = {}) {
-    const c = pdfTheme.colors;
-    return {
-        theme: 'grid',
-        headStyles: {
-            fillColor: c.tableHead,
-            textColor: c.white,
-            fontSize: 9,
-            fontStyle: 'bold',
-            halign: 'center',
-            cellPadding: 4,
-            lineColor: c.tableBorder,
-            lineWidth: 0.2,
-        },
-        bodyStyles: {
-            fontSize: 8.5,
-            textColor: c.text,
-            cellPadding: 3.5,
-            lineColor: c.tableBorder,
-            lineWidth: 0.15,
-        },
-        alternateRowStyles: {
-            fillColor: c.tableAlt,
-        },
-        margin: { left: 14, right: 14 },
-        ...overrides,
-    };
-}
-
-function drawCorporatePageHeader(doc, title, startY = 48) {
-    const c = pdfTheme.colors;
-    const b = pdfTheme.brand;
-    const pageWidth = doc.internal.pageSize.width;
-
-    doc.setFillColor(...c.primary);
-    doc.rect(0, 0, pageWidth, 36, 'F');
-
-    doc.setFillColor(...c.accentLine);
-    doc.rect(0, 36, pageWidth, 1.2, 'F');
-
-    doc.setTextColor(...c.white);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(textoPDF(title).toUpperCase(), 14, 14);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.text(`Fecha de emision: ${fechaEspanol()}`, 14, 22);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(b.name, pageWidth - 14, 13, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(b.department, pageWidth - 14, 20, { align: 'right' });
-    doc.text(b.contact, pageWidth - 14, 26, { align: 'right' });
-
-    return startY;
-}
-
-function addCorporateSectionTitle(doc, title, y = 20) {
-    const c = pdfTheme.colors;
-    const pageWidth = doc.internal.pageSize.width;
-
-    doc.setFillColor(...c.primaryMid);
-    doc.rect(14, y - 6, pageWidth - 28, 10, 'F');
-
-    doc.setTextColor(...c.white);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(textoPDF(title).toUpperCase(), 18, y);
-
-    doc.setDrawColor(...c.accentLine);
-    doc.setLineWidth(0.6);
-    doc.line(14, y + 6, pageWidth - 14, y + 6);
-
-    return y + 14;
-}
-
-function drawCorporateCoverPage(doc, reportTitle, reportSubtitle) {
-    const c = pdfTheme.colors;
-    const b = pdfTheme.brand;
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-
-    doc.setFillColor(...c.primary);
-    doc.rect(0, 0, pageWidth, 95, 'F');
-
-    doc.setFillColor(...c.accentLine);
-    doc.rect(0, 95, pageWidth, 2, 'F');
-
-    doc.setTextColor(...c.white);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(26);
-    doc.text(b.name.toUpperCase(), pageWidth / 2, 38, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(b.tagline, pageWidth / 2, 50, { align: 'center' });
-    doc.text(b.department, pageWidth / 2, 58, { align: 'center' });
-
-    doc.setTextColor(...c.primary);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.text(textoPDF(reportTitle).toUpperCase(), pageWidth / 2, 125, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
-    doc.setTextColor(...c.textMuted);
-    doc.text(textoPDF(reportSubtitle), pageWidth / 2, 142, { align: 'center' });
-
-    doc.setDrawColor(...c.tableBorder);
-    doc.setLineWidth(0.5);
-    doc.line(50, 155, pageWidth - 50, 155);
-
-    doc.setFontSize(10);
-    doc.setTextColor(...c.textLight);
-    doc.text(`Documento generado el ${fechaEspanol()}`, pageWidth / 2, 168, { align: 'center' });
-    doc.text('Uso interno y confidencial', pageWidth / 2, 176, { align: 'center' });
-
-    doc.setFillColor(...c.tableAlt);
-    doc.rect(14, pageHeight - 42, pageWidth - 28, 22, 'F');
-    doc.setTextColor(...c.textMuted);
-    doc.setFontSize(8);
-    doc.text(b.contact, pageWidth / 2, pageHeight - 30, { align: 'center' });
-}
-
-function createBasePDF(title) {
-    const doc = new jsPDF();
-    doc.setFont('helvetica');
-    drawCorporatePageHeader(doc, title);
-    return doc;
-}
-
-function addFooter(doc) {
-    const c = pdfTheme.colors;
-    const b = pdfTheme.brand;
-    const pageCount = doc.internal.getNumberOfPages();
-
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        const pageWidth = doc.internal.pageSize.width;
-        const pageHeight = doc.internal.pageSize.height;
-
-        doc.setFillColor(...c.primary);
-        doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
-
-        doc.setFontSize(7.5);
-        doc.setTextColor(...c.white);
-        doc.setFont('helvetica', 'normal');
-        doc.text(
-            `Documento confidencial | ${b.name} | Uso exclusivo interno`,
-            14,
-            pageHeight - 5
-        );
-        doc.text(`Pagina ${i} de ${pageCount}`, pageWidth - 14, pageHeight - 5, { align: 'right' });
-    }
-}
-
-// Función para obtener datos REALES del servidor
 async function obtenerDatosReal(endpoint) {
     try {
         const response = await fetch(endpoint);
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
+        if (!response.ok) throw new Error('Error HTTP: ' + response.status);
         return await response.json();
     } catch (error) {
         console.error('Error obteniendo datos:', error);
@@ -449,547 +211,104 @@ async function obtenerDatosReal(endpoint) {
     }
 }
 
-// --- FUNCIONES CORREGIDAS CON DATOS REALES ---
+function mostrarNotificacionPremium(mensaje, tipo) {
+    document.querySelectorAll('.notificacion-inventario').forEach(function (n) { n.remove(); });
+    const el = document.createElement('div');
+    el.className = 'notificacion-inventario';
+    el.textContent = mensaje;
+    Object.assign(el.style, {
+        position: 'fixed', top: '1.25rem', right: '1.25rem', zIndex: '80',
+        padding: '0.85rem 1.1rem', borderRadius: '14px', fontWeight: '700',
+        fontSize: '0.88rem', color: '#fff', boxShadow: '0 16px 30px -16px rgba(0,0,0,.4)',
+        background: tipo === 'success' ? '#059669' : tipo === 'error' ? '#DC2626' : tipo === 'warning' ? '#D97706' : '#6C5CEF'
+    });
+    document.body.appendChild(el);
+    setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .25s ease';
+        setTimeout(function () { el.remove(); }, 250);
+    }, 2800);
+}
+
+function ensureReports() {
+    if (!window.TonylexReports) throw new Error('Motor de reportes no cargado');
+    return window.TonylexReports;
+}
 
 async function generarPDFClientes() {
     mostrarNotificacionPremium('Generando reporte de clientes...', 'info');
-    
     try {
         const datos = await obtenerDatosReal('/api/clientes?all=1');
-        const doc = createBasePDF("Reporte de Clientes");
-        
-        let headers = [["ID", "NOMBRE", "DIRECCION", "PLAN", "ESTADO", "CONTACTO"]];
-        let data = [];
-        
-        if (datos && datos.length > 0) {
-            // Usar datos REALES de la API
-            datos.forEach(cliente => {
-                const estado = cliente.activo ? "ACTIVO" : "INACTIVO";
-                data.push([
-                    cliente.id,
-                    cliente.nombre || 'Sin nombre',
-                    cliente.direccion || 'Sin direccion',
-                    cliente.plan || 'Sin plan',
-                    estado,
-                    cliente.contacto || 'Sin contacto'
-                ]);
-            });
-        } else {
-            // Fallback si no hay datos
-            const fallbackData = window.clientesData || [];
-            if (fallbackData.length > 0) {
-                fallbackData.forEach(cliente => {
-                    data.push([
-                        cliente.id,
-                        cliente.nombre,
-                        cliente.direccion,
-                        cliente.plan || 'Sin plan',
-                        cliente.activo ? 'ACTIVO' : 'INACTIVO',
-                        cliente.contacto || 'Sin contacto'
-                    ]);
-                });
-            }
-        }
-
-        doc.autoTable({
-            head: headers,
-            body: data,
-            startY: 48,
-            ...getCorporateTableStyles({
-                columnStyles: {
-                    4: { halign: 'center', fontStyle: 'bold' },
-                    5: { halign: 'right' },
-                },
-                didParseCell: function(cellData) {
-                    if (cellData.section === 'body' && cellData.column.index === 4) {
-                        if (cellData.cell.raw === 'INACTIVO') {
-                            cellData.cell.styles.textColor = pdfTheme.colors.danger;
-                        } else if (cellData.cell.raw === 'ACTIVO') {
-                            cellData.cell.styles.textColor = pdfTheme.colors.success;
-                        }
-                    }
-                },
-            }),
-        });
-
-        addFooter(doc);
-        doc.save("Reporte_Clientes_" + new Date().toISOString().split('T')[0] + ".pdf");
-        mostrarNotificacionPremium('Reporte de clientes generado exitosamente', 'success');
+        await ensureReports().reportClientes(Array.isArray(datos) ? datos : []);
+        mostrarNotificacionPremium('Reporte de clientes listo', 'success');
     } catch (error) {
-        console.error('Error generando PDF de clientes:', error);
+        console.error(error);
         mostrarNotificacionPremium('Error generando reporte de clientes', 'error');
     }
 }
 
 async function generarPDFNaps() {
     mostrarNotificacionPremium('Generando reporte de NAPs...', 'info');
-    
     try {
         const datos = await obtenerDatosReal('/api/naps?all=1');
-        const doc = createBasePDF("Reporte de Cajas NAP");
-
-        let headers = [["ID", "NOMBRE", "PUERTOS TOTAL", "PUERTOS USADOS", "OCUPACION", "HILO CONEXION"]];
-        let data = [];
-        
-        if (datos && datos.length > 0) {
-            datos.forEach(nap => {
-                const puertosUsados = nap.clientes_count || 0;
-                const porcentajeUso = nap.puertos_total > 0 ? 
-                    Math.round((puertosUsados / nap.puertos_total) * 100) : 0;
-                
-                data.push([
-                    nap.id,
-                    nap.nombre || 'Sin nombre',
-                    nap.puertos_total || 0,
-                    puertosUsados,
-                    `${porcentajeUso}%`,
-                    nap.hilo_conexion || 'No definido'
-                ]);
-            });
-        } else {
-            // Fallback con datos del template
-            const fallbackData = window.napsData || [];
-            if (fallbackData.length > 0) {
-                fallbackData.forEach(nap => {
-                    const porcentajeUso = nap.puertos_total > 0 ? 
-                        Math.round((nap.puertos_ocupados / nap.puertos_total) * 100) : 0;
-                    
-                    data.push([
-                        nap.id,
-                        nap.nombre,
-                        nap.puertos_total,
-                        nap.puertos_ocupados || 0,
-                        `${porcentajeUso}%`,
-                        nap.hilo_conexion || 'No definido'
-                    ]);
-                });
-            }
-        }
-
-        doc.autoTable({
-            head: headers,
-            body: data,
-            startY: 48,
-            ...getCorporateTableStyles({
-                columnStyles: {
-                    4: { fontStyle: 'bold', halign: 'center' },
-                },
-                didParseCell: function(cellData) {
-                    if (cellData.section === 'body' && cellData.column.index === 4) {
-                        const porcentaje = parseInt(String(cellData.cell.raw), 10);
-                        if (porcentaje >= 80) {
-                            cellData.cell.styles.textColor = pdfTheme.colors.danger;
-                            cellData.cell.styles.fontStyle = 'bold';
-                        } else if (porcentaje >= 60) {
-                            cellData.cell.styles.textColor = pdfTheme.colors.warning;
-                        }
-                    }
-                },
-            }),
-        });
-
-        addFooter(doc);
-        doc.save("Reporte_NAPs_" + new Date().toISOString().split('T')[0] + ".pdf");
-        mostrarNotificacionPremium('Reporte de NAPs generado exitosamente', 'success');
+        await ensureReports().reportNaps(Array.isArray(datos) ? datos : []);
+        mostrarNotificacionPremium('Reporte de NAPs listo', 'success');
     } catch (error) {
-        console.error('Error generando PDF de NAPs:', error);
+        console.error(error);
         mostrarNotificacionPremium('Error generando reporte de NAPs', 'error');
     }
 }
 
-// --- INVENTARIO COMPLETO CORREGIDO ---
-async function generarInventarioCompletoReal() {
-    mostrarNotificacionPremium('Generando inventario completo...', 'info');
-    
-    try {
-        // 1. Obtener TODOS los datos de todas las APIs
-        const [clientesData, napsData] = await Promise.all([
-            obtenerDatosReal('/api/clientes?all=1'),
-            obtenerDatosReal('/api/naps?all=1')
-        ]);
-        
-        const doc = new jsPDF();
-        doc.setFont('helvetica');
-
-        drawCorporateCoverPage(
-            doc,
-            'Inventario Completo de Infraestructura',
-            'Control, respaldo y analisis de infraestructura de red'
-        );
-
-        const pageWidth = doc.internal.pageSize.width;
-
-        doc.addPage();
-        drawCorporatePageHeader(doc, 'Inventario Completo - Clientes');
-        let tableStartY = addCorporateSectionTitle(doc, 'Seccion 1: Cartera de Clientes', 44);
-
-        if (clientesData && clientesData.length > 0) {
-            const clientesHeaders = [['ID', 'NOMBRE', 'DIRECCION', 'PLAN', 'ESTADO', 'CONTACTO']];
-            const clientesRows = clientesData.map(c => [
-                c.id,
-                c.nombre || '',
-                c.direccion || '',
-                c.plan || '',
-                c.activo ? 'ACTIVO' : 'INACTIVO',
-                c.contacto || '',
-            ]);
-
-            doc.autoTable({
-                head: clientesHeaders,
-                body: clientesRows,
-                startY: tableStartY,
-                ...getCorporateTableStyles({
-                    didParseCell: function(cellData) {
-                        if (cellData.section === 'body' && cellData.column.index === 4) {
-                            if (cellData.cell.raw === 'INACTIVO') {
-                                cellData.cell.styles.textColor = pdfTheme.colors.danger;
-                            } else if (cellData.cell.raw === 'ACTIVO') {
-                                cellData.cell.styles.textColor = pdfTheme.colors.success;
-                            }
-                        }
-                    },
-                }),
-            });
-        }
-
-        doc.addPage();
-        drawCorporatePageHeader(doc, 'Inventario Completo - Cajas NAP');
-        tableStartY = addCorporateSectionTitle(doc, 'Seccion 2: Cajas NAP y Empalmes', 44);
-
-        if (napsData && napsData.length > 0) {
-            const napsHeaders = [['ID', 'NOMBRE', 'PUERTOS TOTAL', 'HILO CONEXION', 'LATITUD', 'LONGITUD']];
-            const napsRows = napsData.map(n => [
-                n.id,
-                n.nombre || '',
-                n.puertos_total || 0,
-                n.hilo_conexion || '',
-                n.latitud || '',
-                n.longitud || '',
-            ]);
-
-            doc.autoTable({
-                head: napsHeaders,
-                body: napsRows,
-                startY: tableStartY,
-                ...getCorporateTableStyles(),
-            });
-        }
-
-        doc.addPage();
-        drawCorporatePageHeader(doc, 'Inventario Completo - Resumen');
-        const summaryY = addCorporateSectionTitle(doc, 'Resumen Ejecutivo', 44);
-
-        const c = pdfTheme.colors;
-        const totalClientes = clientesData ? clientesData.length : 0;
-        const clientesActivos = clientesData ? clientesData.filter(cl => cl.activo).length : 0;
-        const totalNaps = napsData ? napsData.length : 0;
-        const pctActivos = totalClientes > 0 ? Math.round((clientesActivos / totalClientes) * 100) : 0;
-
-        doc.setFillColor(...c.tableAlt);
-        doc.rect(14, summaryY, pageWidth - 28, 38, 'F');
-        doc.setDrawColor(...c.tableBorder);
-        doc.setLineWidth(0.3);
-        doc.rect(14, summaryY, pageWidth - 28, 38, 'S');
-
-        doc.setFontSize(10);
-        doc.setTextColor(...c.primary);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Indicadores clave', 18, summaryY + 10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...c.text);
-        doc.setFontSize(9.5);
-        doc.text(`Clientes totales: ${totalClientes}`, 18, summaryY + 18);
-        doc.text(`Clientes activos: ${clientesActivos} (${pctActivos}%)`, 18, summaryY + 25);
-        doc.text(`Cajas en red: ${totalNaps}`, 18, summaryY + 32);
-
-        let yPos = summaryY + 48;
-        const lineHeight = 6.5;
-        const summaryText = [
-            'ALCANCE DEL DOCUMENTO',
-            `Consolidado al ${new Date().toLocaleDateString('es-MX')} con informacion operativa de clientes y cajas.`,
-            '',
-            'HALLAZGOS',
-            '- La red mantiene visibilidad centralizada de activos y ocupacion.',
-            '- Los indicadores permiten priorizar expansion y mantenimiento.',
-            '',
-            'RECOMENDACIONES',
-            '1. Monitorear cajas NAP con ocupacion superior al 80%.',
-            '2. Planificar capacidad en zonas de crecimiento sostenido.',
-            '3. Ejecutar revision preventiva trimestral de infraestructura.',
-            '',
-            'CONCLUSION',
-            'La operacion se encuentra en condiciones estables para continuar el plan de servicio.',
-        ];
-
-        summaryText.forEach((line) => {
-            if (line === 'ALCANCE DEL DOCUMENTO' || line === 'HALLAZGOS' || line === 'RECOMENDACIONES' || line === 'CONCLUSION') {
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...c.primaryMid);
-                doc.setFontSize(9.5);
-            } else {
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...c.text);
-                doc.setFontSize(9);
-            }
-            doc.text(textoPDF(line), 14, yPos, { maxWidth: pageWidth - 28 });
-            yPos += line ? lineHeight : 3;
-        });
-        
-        addFooter(doc);
-        
-        // Nombre del archivo con timestamp
-        const fileName = `Inventario_Completo_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(fileName);
-        
-        mostrarNotificacionPremium('Inventario completo generado exitosamente', 'success');
-        
-    } catch (error) {
-        console.error('Error generando inventario completo:', error);
-        mostrarNotificacionPremium('Error generando inventario completo', 'error');
-    }
-}
-
-// --- FUNCIONES DE INTERFAZ ---
-
-function mostrarNotificacionPremium(mensaje, tipo) {
-    // Eliminar notificaciones existentes
-    const notificacionesExistentes = document.querySelectorAll('.notificacion-inventario');
-    notificacionesExistentes.forEach(n => n.remove());
-
-    // Crear notificación
-    const notificacion = document.createElement('div');
-    notificacion.className = `notificacion-inventario fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-xl text-white font-semibold transform transition-all duration-300 ${
-        tipo === 'success' ? 'bg-gradient-to-r from-green-500 to-emerald-600' :
-        tipo === 'error' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
-        tipo === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
-        'bg-gradient-to-r from-blue-500 to-indigo-600'
-    }`;
-    
-    notificacion.innerHTML = `
-        <div class="flex items-center">
-            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${
-                    tipo === 'success' ? 'M5 13l4 4L19 7' : 
-                    tipo === 'error' ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' :
-                    'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                }"></path>
-            </svg>
-            ${mensaje}
-        </div>
-    `;
-    
-    document.body.appendChild(notificacion);
-    
-    // Animación de entrada
-    setTimeout(() => {
-        notificacion.classList.add('translate-y-0', 'opacity-100');
-        notificacion.classList.remove('-translate-y-4', 'opacity-0');
-    }, 10);
-    
-    // Remover después de 3 segundos
-    setTimeout(() => {
-        notificacion.classList.add('opacity-0', 'translate-y-4');
-        setTimeout(() => {
-            if (notificacion.parentNode) {
-                notificacion.parentNode.removeChild(notificacion);
-            }
-        }, 300);
-    }, 3000);
-}
-
-// Sobrescribir las funciones con notificaciones
-async function generarPDFClientesConNotificacion() {
-    await generarPDFClientes();
-}
-
-async function generarPDFNapsConNotificacion() {
-    await generarPDFNaps();
-}
-
 async function generarPDFDistribucionEmpalmes() {
-    mostrarNotificacionPremium('Generando reporte de distribucion y empalmes...', 'info');
-
+    mostrarNotificacionPremium('Generando tipificacion de cajas...', 'info');
     try {
         const datos = await obtenerDatosReal('/api/naps?all=1');
-        const doc = createBasePDF('Distribucion y Empalmes');
-
-        const naps = Array.isArray(datos) ? datos : [];
-        const distribucion = naps.filter(n => n.tipo_caja === 'distribucion');
-        const empalmes = naps.filter(n => n.tipo_caja === 'empalme');
-        const pageWidth = doc.internal.pageSize.width;
-        const c = pdfTheme.colors;
-
-        let y = addCorporateSectionTitle(doc, 'Resumen por tipo de caja', 44);
-
-        doc.setFillColor(...c.tableAlt);
-        doc.rect(14, y, pageWidth - 28, 28, 'F');
-        doc.setDrawColor(...c.tableBorder);
-        doc.setLineWidth(0.3);
-        doc.rect(14, y, pageWidth - 28, 28, 'S');
-
-        doc.setFontSize(9.5);
-        doc.setTextColor(...c.text);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Distribucion (NAP): ${distribucion.length} instaladas`, 18, y + 10);
-        doc.text(`Empalmes: ${empalmes.length} instaladas`, 18, y + 18);
-        doc.text(`Total en red: ${naps.length} cajas`, 18, y + 25);
-
-        function tablaPorTipo(titulo, lista, startY) {
-            let tableY = addCorporateSectionTitle(doc, titulo, startY);
-            if (!lista.length) {
-                doc.setFontSize(9);
-                doc.setTextColor(...c.textMuted);
-                doc.text('Sin cajas registradas de este tipo.', 14, tableY + 4);
-                return tableY + 14;
-            }
-
-            const headers = [['ID', 'NOMBRE', 'MODELO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO']];
-            const rows = lista.map(n => {
-                const usados = n.clientes_count || n.puertos_ocupados || 0;
-                const pct = n.puertos_total > 0 ? Math.round((usados / n.puertos_total) * 100) : 0;
-                return [
-                    n.id,
-                    n.nombre || '',
-                    n.nap_model_nombre || '',
-                    n.puertos_total || 0,
-                    usados,
-                    `${pct}%`,
-                    n.hilo_conexion || '',
-                ];
-            });
-
-            doc.autoTable({
-                head: headers,
-                body: rows,
-                startY: tableY,
-                ...getCorporateTableStyles({
-                    columnStyles: { 5: { halign: 'center', fontStyle: 'bold' } },
-                }),
-            });
-
-            return doc.lastAutoTable.finalY + 12;
-        }
-
-        let nextY = tablaPorTipo('Distribucion (NAP)', distribucion, y + 36);
-        if (nextY > doc.internal.pageSize.height - 60) {
-            doc.addPage();
-            drawCorporatePageHeader(doc, 'Distribucion y Empalmes');
-            nextY = 48;
-        }
-        tablaPorTipo('Empalmes', empalmes, nextY);
-
-        addFooter(doc);
-        doc.save('Reporte_Distribucion_Empalmes_' + new Date().toISOString().split('T')[0] + '.pdf');
-        mostrarNotificacionPremium('Reporte generado exitosamente', 'success');
+        await ensureReports().reportTipos(Array.isArray(datos) ? datos : []);
+        mostrarNotificacionPremium('Reporte generado', 'success');
     } catch (error) {
-        console.error('Error generando PDF distribucion/empalmes:', error);
+        console.error(error);
         mostrarNotificacionPremium('Error generando el reporte', 'error');
     }
 }
 
-async function generarPDFDistribucionEmpalmesConNotificacion() {
-    await generarPDFDistribucionEmpalmes();
-}
-
-// Reemplazar la función del botón "Inventario Completo"
-function mostrarModalInventarioCompleto() {
-    if (confirm('¿Generar inventario completo con todos los datos?\n\nEste proceso puede tomar unos segundos.')) {
-        generarInventarioCompletoReal();
+async function generarInventarioCompletoReal() {
+    mostrarNotificacionPremium('Generando inventario completo...', 'info');
+    try {
+        const [clientesData, napsData] = await Promise.all([
+            obtenerDatosReal('/api/clientes?all=1'),
+            obtenerDatosReal('/api/naps?all=1')
+        ]);
+        await ensureReports().reportInventarioCompleto(
+            Array.isArray(clientesData) ? clientesData : [],
+            Array.isArray(napsData) ? napsData : []
+        );
+        mostrarNotificacionPremium('Inventario completo listo', 'success');
+    } catch (error) {
+        console.error(error);
+        mostrarNotificacionPremium('Error generando inventario completo', 'error');
     }
 }
 
 async function generarPDFAsistenciaCompleto() {
     mostrarNotificacionPremium('Generando reporte de asistencia...', 'info');
-
     try {
         const payload = await obtenerDatosReal('/api/asistencias/export?dias=30');
-        if (!payload) {
-            throw new Error('Sin datos de asistencia');
-        }
-
-        const doc = new jsPDF();
-        doc.setFont('helvetica');
-        const res = payload.resumen || {};
-        const periodo = payload.periodo || {};
-
-        drawCorporateCoverPage(
-            doc,
-            'Reporte de Asistencia Laboral',
-            `Control de entradas y salidas | ${periodo.desde || ''} al ${periodo.hasta || ''}`
-        );
-
-        const pageWidth = doc.internal.pageSize.width;
-        const c = pdfTheme.colors;
-
-        doc.addPage();
-        drawCorporatePageHeader(doc, 'Asistencia - Resumen Ejecutivo');
-        let y = addCorporateSectionTitle(doc, 'Indicadores del periodo', 44);
-
-        doc.setFillColor(...c.tableAlt);
-        doc.rect(14, y, pageWidth - 28, 42, 'F');
-        doc.setDrawColor(...c.tableBorder);
-        doc.setLineWidth(0.3);
-        doc.rect(14, y, pageWidth - 28, 42, 'S');
-
-        doc.setFontSize(9.5);
-        doc.setTextColor(...c.text);
-        doc.setFont('helvetica', 'normal');
-        const lineasResumen = [
-            `Trabajadores activos: ${res.total_trabajadores ?? 0}`,
-            `Registros en periodo: ${res.registros_periodo ?? 0}`,
-            `Entradas: ${res.entradas_periodo ?? 0} | Salidas: ${res.salidas_periodo ?? 0}`,
-            `Personal dentro hoy: ${res.dentro_hoy ?? 0}`,
-            `Entradas hoy: ${res.entradas_hoy ?? 0} | Salidas hoy: ${res.salidas_hoy ?? 0}`,
-        ];
-        lineasResumen.forEach((linea, i) => {
-            doc.text(linea, 18, y + 10 + i * 7);
-        });
-
-        doc.addPage();
-        drawCorporatePageHeader(doc, 'Asistencia - Registro Detallado');
-        const tableStartY = addCorporateSectionTitle(doc, 'Movimientos registrados', 44);
-
-        const registros = payload.registros || [];
-        const headers = [['ID', 'TRABAJADOR', 'TIPO', 'FECHA', 'HORA']];
-        const rows = registros.map(r => [
-            r.id,
-            r.trabajador || '',
-            (r.tipo_label || r.tipo || '').toUpperCase(),
-            r.fecha || '',
-            r.hora || '',
-        ]);
-
-        if (rows.length > 0) {
-            doc.autoTable({
-                head: headers,
-                body: rows,
-                startY: tableStartY,
-                ...getCorporateTableStyles({
-                    columnStyles: { 2: { halign: 'center', fontStyle: 'bold' } },
-                    didParseCell: function(cellData) {
-                        if (cellData.section === 'body' && cellData.column.index === 2) {
-                            const val = String(cellData.cell.raw || '').toUpperCase();
-                            if (val.includes('ENTRADA')) {
-                                cellData.cell.styles.textColor = pdfTheme.colors.success;
-                            } else if (val.includes('SALIDA')) {
-                                cellData.cell.styles.textColor = pdfTheme.colors.primaryMid;
-                            }
-                        }
-                    },
-                }),
-            });
-        } else {
-            doc.setFontSize(10);
-            doc.setTextColor(...c.textMuted);
-            doc.text('No hay registros de asistencia en el periodo seleccionado.', 14, tableStartY + 8);
-        }
-
-        addFooter(doc);
-        doc.save('Reporte_Asistencia_' + new Date().toISOString().split('T')[0] + '.pdf');
-        mostrarNotificacionPremium('Reporte de asistencia generado exitosamente', 'success');
+        if (!payload) throw new Error('Sin datos de asistencia');
+        await ensureReports().reportAsistencia(payload);
+        mostrarNotificacionPremium('Reporte de asistencia listo', 'success');
     } catch (error) {
-        console.error('Error generando PDF de asistencia:', error);
+        console.error(error);
         mostrarNotificacionPremium('Error generando reporte de asistencia', 'error');
+    }
+}
+
+async function generarPDFClientesConNotificacion() { await generarPDFClientes(); }
+async function generarPDFNapsConNotificacion() { await generarPDFNaps(); }
+async function generarPDFDistribucionEmpalmesConNotificacion() { await generarPDFDistribucionEmpalmes(); }
+
+function mostrarModalInventarioCompleto() {
+    if (confirm('¿Generar inventario completo con todos los datos?\n\nEste proceso puede tomar unos segundos.')) {
+        generarInventarioCompletoReal();
     }
 }
 
@@ -1007,21 +326,5 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     }
 });
-
 </script>
-
-<style>
-.notificacion-inventario {
-    transform: translateY(-20px);
-    opacity: 0;
-    animation: slideIn 0.3s forwards;
-}
-
-@keyframes slideIn {
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-</style>
 {% endblock %}
