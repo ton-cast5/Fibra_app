@@ -68,7 +68,7 @@
             </div>
         </div>
         <div class="fn-page-actions">
-            <a class="fn-btn-primary" href="{{ url_for('agregar_cliente') }}">+ Crear cliente</a>
+            <a class="fn-btn-primary" href="{{ url_for('agregar_cliente', next=url_for('listar_clientes')) }}">+ Crear cliente</a>
         </div>
     </div>
 
@@ -166,7 +166,7 @@
                         </td>
                         <td class="px-5 py-4 whitespace-nowrap text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}" class="fn-action" title="Editar">
+                                <a href="{{ url_for('editar_cliente', cliente_id=cliente.id, next=url_for('listar_clientes')) }}" class="fn-action" title="Editar">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </a>
                                 <form action="{{ url_for('eliminar_cliente', cliente_id=cliente.id) }}" method="POST" class="inline-block"
@@ -188,7 +188,7 @@
                             {% else %}
                             <p class="font-semibold mb-1">No hay clientes</p>
                             <p class="text-sm mb-4">Agrega el primero para empezar.</p>
-                            <a href="{{ url_for('agregar_cliente') }}" class="fn-btn-primary">+ Crear cliente</a>
+                            <a href="{{ url_for('agregar_cliente', next=url_for('listar_clientes')) }}" class="fn-btn-primary">+ Crear cliente</a>
                             {% endif %}
                         </td>
                     </tr>

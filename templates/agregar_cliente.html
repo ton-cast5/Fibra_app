@@ -13,7 +13,11 @@
 {% set v_servicio = request.form.get('servicio', (cliente.servicio or '') if es_edicion else '') %}
 {% set v_nat_id = (request.form.get('nat_id') or (cliente.nat_id if es_edicion else (nat_destino.id if nat_destino else '')))|string %}
 {% set v_activo = ('activo' in request.form) if enviado else (cliente.activo if es_edicion else true) %}
-{% set url_volver = url_for('ver_nat', nat_id=cliente.nat_id) if es_edicion else (url_for('ver_nat', nat_id=nat_destino.id) if nat_destino else url_for('index')) %}
+{% set url_volver = url_volver if url_volver is defined and url_volver else (
+    url_for('ver_nat', nat_id=cliente.nat_id) if es_edicion else (
+        url_for('ver_nat', nat_id=nat_destino.id) if nat_destino else url_for('listar_clientes')
+    )
+) %}
 
 <div class="fade-in fn-studio">
     <div class="fn-page-head">
@@ -38,9 +42,10 @@
 
     <div class="fn-studio-layout">
         <form method="POST"
-              action="{{ url_for('editar_cliente', cliente_id=cliente.id) if es_edicion else url_for('agregar_cliente') }}"
+              action="{{ url_for('editar_cliente', cliente_id=cliente.id, next=url_volver) if es_edicion else url_for('agregar_cliente', next=url_volver) }}"
               class="fn-studio-card"
               id="fn-cliente-form">
+            <input type="hidden" name="next" value="{{ url_volver }}">
 
             <div class="fn-studio-section">
                 <div class="fn-studio-section-head">

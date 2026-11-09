@@ -27,7 +27,7 @@ from sqlalchemy.pool import NullPool
 import json
 import mimetypes
 import requests
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlparse
 from report_exports import exportar_dataframe_corporativo, crear_workbook_corporativo_multihoja
 from auth import init_auth
 
@@ -1488,7 +1488,7 @@ def api_clientes_buscar():
             'activo': bool(cli.activo),
             'nat_id': nat.id if nat else None,
             'nat_nombre': nat.nombre if nat else None,
-            'url_editar': url_for('editar_cliente', cliente_id=cli.id),
+            'url_editar': url_for('editar_cliente', cliente_id=cli.id, next=url_for('listar_clientes')),
             'url_eliminar': url_for('eliminar_cliente', cliente_id=cli.id),
             'url_nat': url_for('ver_nat', nat_id=nat.id) if nat else None,
         })
@@ -1985,11 +1985,27 @@ def ver_cliente(cliente_id):
     cliente = Cliente.query.get_or_404(cliente_id)
     return redirect(url_for('ver_nat', nat_id=cliente.nat_id))
 
+def _url_volver_cliente(cliente=None, nat_destino=None):
+    """Vuelve a la sección de origen (Clientes o NAP), no a un destino fijo."""
+    candidata = (request.form.get('next') or request.args.get('next') or '').strip()
+    if candidata:
+        parsed = urlparse(candidata)
+        # Solo rutas internas relativas (evita open redirect).
+        if not parsed.scheme and not parsed.netloc and candidata.startswith('/'):
+            return candidata
+    if cliente is not None and cliente.nat_id:
+        return url_for('ver_nat', nat_id=cliente.nat_id)
+    if nat_destino is not None:
+        return url_for('ver_nat', nat_id=nat_destino.id)
+    return url_for('listar_clientes')
+
+
 @app.route('/agregar_cliente/<int:nat_id>', methods=['GET', 'POST'])
 @app.route('/agregar_cliente', methods=['GET', 'POST'])
 def agregar_cliente(nat_id=None):
     nats = _nats_formulario_cliente()
     nat_destino = Nat.query.get(nat_id) if nat_id else None
+    url_volver = _url_volver_cliente(nat_destino=nat_destino)
     
     if request.method == 'POST':
         nombre = request.form.get('nombre')
@@ -2003,12 +2019,12 @@ def agregar_cliente(nat_id=None):
         
         if not nombre or not direccion or not nat_seleccionada_id:
             flash('Nombre, Dirección y NAT son obligatorios.', 'danger')
-            return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino)
+            return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino, url_volver=url_volver)
 
         nat_obj = Nat.query.get(nat_seleccionada_id)
         if activo and _nat_sin_cupo(nat_obj):
              flash('Error: La NAT seleccionada está llena (100% de uso).', 'danger')
-             return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino)
+             return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino, url_volver=url_volver)
         
         try:
             nuevo_cliente = Cliente(
@@ -2024,21 +2040,20 @@ def agregar_cliente(nat_id=None):
             db.session.add(nuevo_cliente)
             db.session.commit()
             flash(f'Cliente "{nombre}" registrado con éxito.', 'success')
-            
-            if nat_destino:
-                return redirect(url_for('ver_nat', nat_id=nat_destino.id))
-            return redirect(url_for('listar_clientes'))
+            return redirect(_url_volver_cliente(nat_destino=nat_destino))
             
         except Exception as e:
             db.session.rollback()
             flash(f'Error al registrar el cliente: {e}', 'danger')
             
-    return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino)
+    return render_template('agregar_cliente.html', nats=nats, nat_destino=nat_destino, url_volver=url_volver)
+
 
 @app.route('/editar_cliente/<int:cliente_id>', methods=['GET', 'POST'])
 def editar_cliente(cliente_id):
     cliente = Cliente.query.get_or_404(cliente_id)
     nats = _nats_formulario_cliente(cliente)
+    url_volver = _url_volver_cliente(cliente=cliente)
     
     if request.method == 'POST':
         nombre = request.form.get('nombre')
@@ -2052,17 +2067,17 @@ def editar_cliente(cliente_id):
         
         if not nombre or not direccion or not nat_seleccionada_id:
             flash('Nombre, Dirección y NAT son obligatorios.', 'danger')
-            return render_template('agregar_cliente.html', cliente=cliente, nats=nats)
+            return render_template('agregar_cliente.html', cliente=cliente, nats=nats, url_volver=url_volver)
 
         nat_obj = Nat.query.get(nat_seleccionada_id)
         
         if activo and _nat_sin_cupo(nat_obj):
             if int(nat_seleccionada_id) == cliente.nat_id and not cliente.activo:
                  flash('Error: La NAT seleccionada está llena (100% de uso) y no permite reactivación.', 'danger')
-                 return render_template('agregar_cliente.html', cliente=cliente, nats=nats)
+                 return render_template('agregar_cliente.html', cliente=cliente, nats=nats, url_volver=url_volver)
             if int(nat_seleccionada_id) != cliente.nat_id:
                  flash('Error: La nueva NAT seleccionada está llena (100% de uso).', 'danger')
-                 return render_template('agregar_cliente.html', cliente=cliente, nats=nats)
+                 return render_template('agregar_cliente.html', cliente=cliente, nats=nats, url_volver=url_volver)
 
         try:
             cliente.nombre = nombre
@@ -2076,12 +2091,12 @@ def editar_cliente(cliente_id):
             
             db.session.commit()
             flash(f'Cliente "{nombre}" actualizado con éxito.', 'success')
-            return redirect(url_for('ver_nat', nat_id=cliente.nat_id))
+            return redirect(_url_volver_cliente(cliente=cliente))
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar el cliente: {e}', 'danger')
 
-    return render_template('agregar_cliente.html', cliente=cliente, nats=nats)
+    return render_template('agregar_cliente.html', cliente=cliente, nats=nats, url_volver=url_volver)
 
 @app.route('/cliente/toggle_activo/<int:cliente_id>', methods=['POST'])
 def activar_cliente(cliente_id):

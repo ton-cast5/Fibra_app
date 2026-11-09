@@ -156,7 +156,7 @@
                 </div>
                 <div class="fn-nat-tools">
                     <div class="fn-nat-actions">
-                        <a class="fn-nat-action primary" href="{{ url_for('agregar_cliente', nat_id=nat.id) }}"
+                        <a class="fn-nat-action primary" href="{{ url_for('agregar_cliente', nat_id=nat.id, next=url_for('ver_nat', nat_id=nat.id)) }}"
                            {% if uso_porcentaje >= 100 %}aria-disabled="true" tabindex="-1"{% endif %}>+ Cliente</a>
                         <a class="fn-nat-action" href="{{ url_for('editar_nat', nat_id=nat.id) }}">Editar caja</a>
                         <a class="fn-nat-action" href="{{ url_for('mapa_nats') }}?highlight={{ nat.id }}">Mapa</a>
@@ -201,7 +201,7 @@
                                   onsubmit="return confirm('¿{{ 'Desactivar' if cliente.activo else 'Activar' }} a {{ cliente.nombre }}?');">
                                 <button type="submit" class="fn-nat-chip">{{ 'Desactivar' if cliente.activo else 'Activar' }}</button>
                             </form>
-                            <a href="{{ url_for('editar_cliente', cliente_id=cliente.id) }}" class="fn-nat-chip">Editar</a>
+                            <a href="{{ url_for('editar_cliente', cliente_id=cliente.id, next=url_for('ver_nat', nat_id=nat.id)) }}" class="fn-nat-chip">Editar</a>
                             <form method="POST" action="{{ url_for('eliminar_cliente', cliente_id=cliente.id) }}"
                                   onsubmit="return confirm('¿Eliminar a {{ cliente.nombre }}?');">
                                 <button type="submit" class="fn-nat-chip danger">Eliminar</button>
@@ -213,7 +213,7 @@
                 <div class="fn-nat-empty">
                     <h3>Aún no hay clientes</h3>
                     <p>Agrega el primero y verás aquí su estado al instante.</p>
-                    <a href="{{ url_for('agregar_cliente', nat_id=nat.id) }}" class="fn-btn-primary">+ Nuevo cliente</a>
+                    <a href="{{ url_for('agregar_cliente', nat_id=nat.id, next=url_for('ver_nat', nat_id=nat.id)) }}" class="fn-btn-primary">+ Nuevo cliente</a>
                 </div>
                 {% endfor %}
                 <div class="fn-nat-empty fn-nat-empty-filter" id="fn-nat-empty-filter" hidden>
