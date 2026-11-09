@@ -73,10 +73,10 @@
     </div>
 
     <form method="GET" action="{{ url_for('listar_clientes') }}" id="filtros-clientes" class="fn-toolbar fade-in">
-        <div class="fn-search-field fn-search-live" id="clientes-search">
+        <div class="fn-search-field">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
-            <input type="search" name="q" id="buscador" value="{{ filtros.q }}" placeholder="Buscar cliente, IP, NAP…" autocomplete="off" aria-autocomplete="list" aria-controls="clientes-suggest">
-            <div class="fn-suggest" id="clientes-suggest" hidden role="listbox"></div>
+            <input type="search" name="q" id="buscador" value="{{ filtros.q }}"
+                   placeholder="Nombre, apellido, IP, dirección, NAP, plan, activo…">
         </div>
         <select name="estado" class="filtro-servidor">
             <option value="todos" {% if filtros.estado == 'todos' %}selected{% endif %}>Todos los estados</option>
@@ -97,6 +97,9 @@
             <option value="Empresarial" {% if filtros.plan == 'Empresarial' %}selected{% endif %}>Empresarial</option>
         </select>
         <button type="submit">Buscar</button>
+        {% if filtros.q or filtros.estado != 'todos' or filtros.nap != 'todas' or filtros.plan != 'todos' %}
+        <a class="fn-btn-ghost" href="{{ url_for('listar_clientes') }}" style="min-height:40px;">Limpiar</a>
+        {% endif %}
     </form>
 
     <div class="fn-mini-stats fade-in">
@@ -175,223 +178,33 @@
                     {% else %}
                     <tr>
                         <td colspan="5" class="px-6 py-14 text-center text-gray-500">
+                            {% if filtros.q or filtros.estado != 'todos' or filtros.nap != 'todas' or filtros.plan != 'todos' %}
+                            <p class="font-semibold mb-1">Sin coincidencias</p>
+                            <p class="text-sm mb-4">Prueba otro nombre, IP, NAP, plan o estado.</p>
+                            <a href="{{ url_for('listar_clientes') }}" class="fn-btn-ghost">Limpiar filtros</a>
+                            {% else %}
                             <p class="font-semibold mb-1">No hay clientes</p>
                             <p class="text-sm mb-4">Agrega el primero para empezar.</p>
                             <a href="{{ url_for('agregar_cliente') }}" class="fn-btn-primary">+ Crear cliente</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        <div id="clientes-paginacion">
-            {% set base_url = url_for('listar_clientes') %}
-            {% include '_paginacion.html' %}
-        </div>
-        <p class="fn-live-note" id="clientes-live-note" hidden></p>
+        {% set base_url = url_for('listar_clientes') %}
+        {% include '_paginacion.html' %}
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('filtros-clientes');
-    var input = document.getElementById('buscador');
-    var box = document.getElementById('clientes-suggest');
-    var wrap = document.getElementById('clientes-search');
-    var tbody = document.getElementById('tabla-body');
-    var pagWrap = document.getElementById('clientes-paginacion');
-    var liveNote = document.getElementById('clientes-live-note');
-    var resultsStat = document.querySelector('.fn-mini-stats .fn-mini-stat:last-child .v');
-    var originalBody = tbody ? tbody.innerHTML : '';
-    var originalResults = resultsStat ? resultsStat.textContent : '';
-    var timer = null;
-    var lastQ = null;
-    var reqId = 0;
-    var liveActive = false;
-
-    var ICON_EDIT = '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>';
-    var ICON_DEL = '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
-    var EMPTY_HTML = '<tr><td colspan="5" class="px-6 py-14 text-center text-gray-500">' +
-        '<p class="font-semibold mb-1">Sin coincidencias</p>' +
-        '<p class="text-sm">Prueba otro nombre, apellido, IP o NAP.</p></td></tr>';
-
-    // Filtros de estado/NAP/plan sí recargan (cambian el contexto).
+    if (!form) return;
     document.querySelectorAll('.filtro-servidor').forEach(function (el) {
         el.addEventListener('change', function () { form.submit(); });
     });
-
-    if (!input || !box || !wrap || !tbody) return;
-
-    function hideSuggest() {
-        box.hidden = true;
-        box.innerHTML = '';
-    }
-
-    function escapeHtml(s) {
-        return String(s || '').replace(/[&<>"']/g, function (c) {
-            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
-        });
-    }
-
-    function filtersQuery(qOverride) {
-        var q = (qOverride != null ? qOverride : (input.value || '')).trim();
-        // Búsqueda en vivo solo por texto (nombre/apellido/IP/NAP…),
-        // igual en sugerencias y en la tabla. Sin recargar la página.
-        return 'q=' + encodeURIComponent(q) + '&estado=todos&nap=todas&plan=todos';
-    }
-
-    function syncUrl(q) {
-        try {
-            var url = new URL(window.location.href);
-            if (q) url.searchParams.set('q', q);
-            else url.searchParams.delete('q');
-            url.searchParams.delete('page');
-            history.replaceState(null, '', url.pathname + url.search);
-        } catch (e) {}
-    }
-
-    function restoreOriginal() {
-        liveActive = false;
-        lastQ = '';
-        hideSuggest();
-        tbody.innerHTML = originalBody;
-        if (resultsStat) resultsStat.textContent = originalResults;
-        if (pagWrap) pagWrap.hidden = false;
-        if (liveNote) liveNote.hidden = true;
-        syncUrl('');
-    }
-
-    function rowHtml(c) {
-        var initial = escapeHtml((c.nombre || '?').charAt(0).toUpperCase());
-        var planIp = escapeHtml(c.plan || 'Sin plan') + (c.ip ? ' · ' + escapeHtml(c.ip) : '');
-        var napCell = c.url_nat
-            ? '<a href="' + escapeHtml(c.url_nat) + '" class="text-sm font-semibold" style="color:var(--fn-violet);text-decoration:none;">' + escapeHtml(c.nat_nombre) + '</a>'
-            : '<span class="fn-status muted">Sin NAP</span>';
-        var estado = c.activo
-            ? '<span class="fn-status ok">Activo</span>'
-            : '<span class="fn-status bad">Inactivo</span>';
-        var safeName = (c.nombre || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        return '<tr class="table-row-hover cliente-row">' +
-            '<td class="px-5 py-4"><div class="flex items-center gap-3">' +
-            '<div class="fn-row-icon">' + initial + '</div><div>' +
-            '<div class="text-sm font-semibold text-gray-900">' + escapeHtml(c.nombre) + '</div>' +
-            '<div class="text-xs text-gray-500">' + planIp + '</div></div></div></td>' +
-            '<td class="px-5 py-4"><div class="text-sm text-gray-800 truncate max-w-xs">' + escapeHtml(c.direccion) + '</div>' +
-            '<div class="text-xs text-gray-500 mt-0.5">' + escapeHtml(c.contacto || 'Sin contacto') + '</div></td>' +
-            '<td class="px-5 py-4 whitespace-nowrap">' + napCell + '</td>' +
-            '<td class="px-5 py-4 whitespace-nowrap text-center">' + estado + '</td>' +
-            '<td class="px-5 py-4 whitespace-nowrap text-right"><div class="flex items-center justify-end gap-2">' +
-            '<a href="' + escapeHtml(c.url_editar) + '" class="fn-action" title="Editar">' + ICON_EDIT + '</a>' +
-            '<form action="' + escapeHtml(c.url_eliminar) + '" method="POST" class="inline-block" onsubmit="return confirm(\'¿Eliminar a ' + safeName + '?\');">' +
-            '<button type="submit" class="fn-action" title="Eliminar" style="color:#B42318;">' + ICON_DEL + '</button></form>' +
-            '</div></td></tr>';
-    }
-
-    function renderSuggestFromItems(items) {
-        if (!items.length) {
-            box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
-            box.hidden = false;
-            return;
-        }
-        box.innerHTML = items.slice(0, 8).map(function (c) {
-            var hint = [c.plan, c.nat_nombre || 'Sin NAP', c.ip].filter(Boolean).join(' · ');
-            return '<button type="button" class="fn-suggest-item" data-q="' + escapeHtml(c.nombre) + '" role="option">' +
-                '<span class="fn-suggest-type">Cliente</span>' +
-                '<span class="fn-suggest-label">' + escapeHtml(c.nombre) + '</span>' +
-                '<span class="fn-suggest-hint">' + escapeHtml(hint) + '</span></button>';
-        }).join('');
-        box.hidden = false;
-        box.querySelectorAll('.fn-suggest-item').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                input.value = btn.getAttribute('data-q') || '';
-                hideSuggest();
-                liveSearch(true);
-            });
-        });
-    }
-
-    function renderTable(data) {
-        var items = (data && data.items) || [];
-        liveActive = true;
-        if (!items.length) {
-            tbody.innerHTML = EMPTY_HTML;
-        } else {
-            tbody.innerHTML = items.map(rowHtml).join('');
-        }
-        if (resultsStat) resultsStat.textContent = String(data.total || 0);
-        if (pagWrap) pagWrap.hidden = true;
-        if (liveNote) {
-            liveNote.hidden = false;
-            liveNote.textContent = !items.length
-                ? '0 coincidencias'
-                : (data.truncated
-                    ? ('Mostrando ' + data.count + ' de ' + data.total + ' coincidencias')
-                    : (data.total + (data.total === 1 ? ' coincidencia' : ' coincidencias')));
-        }
-        renderSuggestFromItems(items);
-    }
-
-    function liveSearch(force) {
-        var q = (input.value || '').trim();
-        if (!force && q === lastQ) return;
-
-        if (!q) {
-            restoreOriginal();
-            return;
-        }
-
-        lastQ = q;
-        var myId = ++reqId;
-        fetch('/api/clientes?' + filtersQuery(q) + '&limit=100', { headers: { 'Accept': 'application/json' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (myId !== reqId) return;
-                if ((input.value || '').trim() !== q) return;
-                renderTable(data || { items: [], total: 0, count: 0 });
-                syncUrl(q);
-            })
-            .catch(function () {});
-    }
-
-    function onQueryChange() {
-        var trimmed = (input.value || '').trim();
-        clearTimeout(timer);
-
-        if (!trimmed) {
-            liveSearch(true);
-            return;
-        }
-
-        // Una sola petición: actualiza tabla + sugerencias sin recargar la página.
-        timer = setTimeout(function () { liveSearch(false); }, 200);
-    }
-
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        clearTimeout(timer);
-        hideSuggest();
-        liveSearch(true);
-    });
-
-    input.addEventListener('input', onQueryChange);
-    input.addEventListener('search', onQueryChange);
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') hideSuggest();
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            clearTimeout(timer);
-            hideSuggest();
-            liveSearch(true);
-        }
-    });
-    document.addEventListener('click', function (e) {
-        if (!wrap.contains(e.target)) hideSuggest();
-    });
-
-    // Si llegamos con ?q=…, sincroniza el desglose con la misma API.
-    if ((input.value || '').trim()) {
-        liveSearch(true);
-    }
 });
 </script>
 {% endblock %}

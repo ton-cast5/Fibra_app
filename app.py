@@ -751,9 +751,8 @@ def stats_nats_listado():
 def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
     """Consulta de clientes con filtros en servidor.
 
-    La búsqueda por texto parte el query en palabras: cada una debe coincidir
-    en nombre, dirección, contacto, IP, servicio, plan o NAP (sirve con solo
-    nombre o solo apellido).
+    El buscador acepta una o varias palabras (nombre/apellido, IP, ubicación,
+    NAP, plan, contacto, servicio; también 'activo'/'inactivo').
     """
     query = Cliente.query.options(joinedload(Cliente.nat))
     joined_nat = False
@@ -768,8 +767,9 @@ def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
         ensure_nat_join()
         tokens = [t for t in str(q).strip().split() if t]
         for token in tokens:
-            term = f'%{token.lower()}%'
-            query = query.filter(or_(
+            low = token.lower()
+            term = f'%{low}%'
+            parts = [
                 func.lower(Cliente.nombre).like(term),
                 func.lower(func.coalesce(Cliente.direccion, '')).like(term),
                 func.lower(func.coalesce(Cliente.contacto, '')).like(term),
@@ -777,7 +777,13 @@ def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
                 func.lower(func.coalesce(Cliente.servicio, '')).like(term),
                 func.lower(func.coalesce(Cliente.plan, '')).like(term),
                 func.lower(func.coalesce(Nat.nombre, '')).like(term),
-            ))
+                func.lower(func.coalesce(Nat.region, '')).like(term),
+            ]
+            if low in ('activo', 'activa', 'activos', 'activas'):
+                parts.append(Cliente.activo.is_(True))
+            elif low in ('inactivo', 'inactiva', 'inactivos', 'inactivas'):
+                parts.append(Cliente.activo.is_(False))
+            query = query.filter(or_(*parts))
 
     if estado == 'activo':
         query = query.filter(Cliente.activo.is_(True))
