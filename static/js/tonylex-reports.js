@@ -1,6 +1,6 @@
 /**
- * TONYLEX Reports — diseño ejecutivo tipo informe corporativo.
- * Paleta alineada a FINNOVA / referencia profesional (azul + violeta).
+ * TONYLEX Reports — informe ejecutivo (layout tipo reporte corporativo).
+ * Tablas sin IDs, tipografia contenida, graficas cuadradas y sin desborde.
  */
 (function (global) {
     'use strict';
@@ -15,7 +15,7 @@
 
     var C = {
         navy: [26, 59, 139],
-        navyDeep: [15, 40, 95],
+        royal: [52, 87, 213],
         violet: [108, 92, 239],
         purple: [159, 115, 210],
         sky: [133, 193, 233],
@@ -24,43 +24,50 @@
         muted: [100, 116, 139],
         light: [148, 163, 184],
         line: [191, 219, 254],
+        rule: [203, 213, 225],
         white: [255, 255, 255],
-        alt: [248, 250, 252],
+        alt: [246, 249, 252],
         ok: [5, 150, 105],
         warn: [217, 119, 6],
         bad: [220, 38, 38],
     };
 
+    var PAGE = { w: 210, h: 297, ml: 14, mr: 14, mt: 12, mb: 18 };
+    PAGE.contentW = PAGE.w - PAGE.ml - PAGE.mr;
+
     var _logoDataUrl = null;
     var _logoPromise = null;
 
-    function jsPDF() {
-        return new global.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    function createDoc() {
+        return new global.jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true });
     }
 
     function fechaLarga() {
         return new Date().toLocaleDateString('es-MX', {
             timeZone: 'America/Mexico_City',
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         });
     }
 
     function fechaCorta() {
         return new Date().toLocaleDateString('es-MX', {
             timeZone: 'America/Mexico_City',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
+            day: 'numeric', month: 'long', year: 'numeric',
         });
     }
 
     function clean(text) {
         return String(text == null ? '' : text)
+            .replace(/[\u0000-\u001F\u007F]/g, '')
             .replace(/[^\x20-\x7E\u00A0-\u024F]/g, '')
+            .replace(/\s+/g, ' ')
             .trim();
+    }
+
+    function clip(text, max) {
+        var t = clean(text);
+        if (t.length <= max) return t;
+        return t.slice(0, Math.max(0, max - 1)) + '.';
     }
 
     function loadLogo() {
@@ -72,10 +79,7 @@
                 if (!blob) return null;
                 return new Promise(function (resolve) {
                     var reader = new FileReader();
-                    reader.onload = function () {
-                        _logoDataUrl = reader.result;
-                        resolve(_logoDataUrl);
-                    };
+                    reader.onload = function () { _logoDataUrl = reader.result; resolve(_logoDataUrl); };
                     reader.onerror = function () { resolve(null); };
                     reader.readAsDataURL(blob);
                 });
@@ -85,274 +89,345 @@
     }
 
     function drawLogoMark(doc, x, y) {
-        // Marca geometrica (por si falla el PNG)
-        doc.setFillColor.apply(doc, C.violet);
-        doc.roundedRect(x, y, 7.2, 7.2, 1.6, 1.6, 'F');
+        doc.setFillColor.apply(doc, C.purple);
+        doc.roundedRect(x, y, 6.8, 6.8, 1.5, 1.5, 'F');
         doc.setFillColor.apply(doc, C.navy);
-        doc.roundedRect(x + 3.2, y + 2.2, 7.2, 7.2, 1.6, 1.6, 'F');
+        doc.roundedRect(x + 3.0, y + 2.0, 6.8, 6.8, 1.5, 1.5, 'F');
     }
 
     function drawBrandHeader(doc, logo) {
-        var pageW = doc.internal.pageSize.getWidth();
         if (logo) {
-            try {
-                doc.addImage(logo, 'PNG', 14, 10, 9, 9);
-            } catch (e) {
-                drawLogoMark(doc, 14, 10);
-            }
+            try { doc.addImage(logo, 'PNG', PAGE.ml, 9, 8.5, 8.5); }
+            catch (e) { drawLogoMark(doc, PAGE.ml, 9.2); }
         } else {
-            drawLogoMark(doc, 14, 10);
+            drawLogoMark(doc, PAGE.ml, 9.2);
         }
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
+        doc.setFontSize(11.5);
         doc.setTextColor.apply(doc, C.navy);
-        doc.text(BRAND.name, 26, 16);
+        doc.text(BRAND.name, PAGE.ml + 11, 14.2);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
+        doc.setFontSize(7);
         doc.setTextColor.apply(doc, C.muted);
-        doc.text(BRAND.tagline, 26, 20.5);
-        return 28;
+        doc.text(BRAND.tagline, PAGE.ml + 11, 18.4);
+        return 24;
     }
 
     function drawMasthead(doc, subtitle) {
-        var pageW = doc.internal.pageSize.getWidth();
-        var cx = pageW / 2;
+        var cx = PAGE.w / 2;
+        var lineL = 52;
+        var lineR = PAGE.w - 52;
 
         doc.setDrawColor.apply(doc, C.navy);
-        doc.setLineWidth(0.45);
-        doc.line(48, 34, pageW - 48, 34);
+        doc.setLineWidth(0.4);
+        doc.line(lineL, 30, lineR, 30);
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(28);
+        doc.setFontSize(26);
         doc.setTextColor.apply(doc, C.navy);
-        doc.text('REPORTE', cx, 46, { align: 'center' });
+        doc.text('REPORTE', cx, 41, { align: 'center' });
 
-        doc.line(48, 51, pageW - 48, 51);
+        doc.line(lineL, 46, lineR, 46);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor.apply(doc, C.navy);
-        doc.text(clean(subtitle).toUpperCase(), cx, 58, { align: 'center' });
-        return 66;
+        doc.setFontSize(8.5);
+        doc.setTextColor.apply(doc, C.royal);
+        var sub = clip(String(subtitle || '').toUpperCase(), 78);
+        doc.text(sub, cx, 53, { align: 'center' });
+        return 60;
     }
 
     function drawFooter(doc) {
-        var pageCount = doc.internal.getNumberOfPages();
-        var pageW = doc.internal.pageSize.getWidth();
-        var pageH = doc.internal.pageSize.getHeight();
-        var i;
-        for (i = 1; i <= pageCount; i++) {
+        var pages = doc.internal.getNumberOfPages();
+        for (var i = 1; i <= pages; i++) {
             doc.setPage(i);
             doc.setDrawColor.apply(doc, C.navy);
-            doc.setLineWidth(0.35);
-            doc.line(14, pageH - 14, pageW - 14, pageH - 14);
+            doc.setLineWidth(0.3);
+            doc.line(PAGE.ml, PAGE.h - 12, PAGE.w - PAGE.mr, PAGE.h - 12);
 
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.5);
+            doc.setFontSize(7.2);
             doc.setTextColor.apply(doc, C.navy);
-            doc.text(BRAND.url, 14, pageH - 8);
-            doc.text(fechaCorta(), pageW - 14, pageH - 8, { align: 'right' });
+            doc.text(BRAND.url, PAGE.ml, PAGE.h - 7);
+            doc.text(fechaCorta(), PAGE.w - PAGE.mr, PAGE.h - 7, { align: 'right' });
             doc.setTextColor.apply(doc, C.light);
-            doc.text(String(i) + ' / ' + String(pageCount), pageW / 2, pageH - 8, { align: 'center' });
+            doc.text(String(i) + ' / ' + String(pages), PAGE.w / 2, PAGE.h - 7, { align: 'center' });
         }
     }
 
     function drawPageHeader(doc, title, logo) {
         drawBrandHeader(doc, logo);
-        var pageW = doc.internal.pageSize.getWidth();
         doc.setDrawColor.apply(doc, C.line);
-        doc.setLineWidth(0.4);
-        doc.line(14, 24, pageW - 14, 24);
+        doc.setLineWidth(0.35);
+        doc.line(PAGE.ml, 22.5, PAGE.w - PAGE.mr, 22.5);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setTextColor.apply(doc, C.navy);
-        doc.text(clean(title).toUpperCase(), 14, 31);
-        return 38;
+        doc.text(clip(String(title || '').toUpperCase(), 70), PAGE.ml, 29);
+        return 36;
     }
 
-    function wrapText(doc, text, maxW) {
+    function wrap(doc, text, maxW) {
         return doc.splitTextToSize(clean(text), maxW);
     }
 
     function drawSectionTitle(doc, x, y, title) {
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
+        doc.setFontSize(11.5);
         doc.setTextColor.apply(doc, C.navy);
-        doc.text(clean(title), x, y);
-        return y + 6;
+        doc.text(clip(title, 48), x, y);
+        return y + 5.5;
     }
 
     function drawProse(doc, x, y, maxW, paragraphs, fontSize) {
-        fontSize = fontSize || 8.5;
+        fontSize = fontSize || 8.2;
+        var yy = y;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(fontSize);
         doc.setTextColor.apply(doc, C.ink);
-        var yy = y;
         (paragraphs || []).forEach(function (p) {
-            var lines = wrapText(doc, p, maxW);
+            var lines = wrap(doc, p, maxW);
             doc.text(lines, x, yy);
-            yy += lines.length * (fontSize * 0.45) + 3.2;
+            yy += lines.length * (fontSize * 0.42) + 2.8;
         });
         return yy;
     }
 
-    function drawTintBand(doc, y, h, fill) {
-        var pageW = doc.internal.pageSize.getWidth();
-        doc.setFillColor.apply(doc, fill || C.skySoft);
-        doc.rect(0, y, pageW, h, 'F');
+    function drawTintBand(doc, y, h) {
+        doc.setFillColor.apply(doc, C.skySoft);
+        doc.rect(0, y, PAGE.w, h, 'F');
     }
 
+    function drawLegend(doc, x, y, items) {
+        var xx = x;
+        (items || []).forEach(function (it) {
+            doc.setFillColor.apply(doc, it.color);
+            doc.roundedRect(xx, y - 2.2, 3.2, 3.2, 0.5, 0.5, 'F');
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6.5);
+            doc.setTextColor.apply(doc, C.muted);
+            doc.text(clip(it.label, 18), xx + 4.2, y);
+            xx += 4.2 + doc.getTextWidth(clip(it.label, 18)) + 5;
+        });
+    }
+
+    /** Barras agrupadas, sin desborde, ejes limpios */
     function drawGroupedBars(doc, opts) {
         var x = opts.x;
         var y = opts.y;
         var w = opts.w;
         var h = opts.h;
         var labels = opts.labels || [];
-        var series = opts.series || []; // [{color, values:[]}]
+        var series = opts.series || [];
         var maxVal = opts.max || 0;
-        var i, s, v, groupW, barW, gap, gx, bx, bh, baseY;
+        var i, gi, si, v, groupW, barW, gap, gx, bx, bh, baseY, gy;
 
         series.forEach(function (ser) {
             (ser.values || []).forEach(function (n) {
+                n = Number(n) || 0;
                 if (n > maxVal) maxVal = n;
             });
         });
-        if (maxVal <= 0) maxVal = 1;
+        maxVal = Math.max(maxVal, 1);
+        // Round nice max
+        var nice = Math.ceil(maxVal / 4) * 4;
+        if (nice < maxVal) nice = maxVal;
+        maxVal = nice;
 
-        // grid
+        var axisL = x + 8;
+        var plotW = w - 10;
+
         doc.setDrawColor.apply(doc, C.line);
-        doc.setLineWidth(0.2);
+        doc.setLineWidth(0.18);
         for (i = 0; i <= 4; i++) {
-            var gy = y + h - (h * i / 4);
-            doc.line(x, gy, x + w, gy);
-            doc.setFontSize(6.5);
+            gy = y + h - (h * i / 4);
+            doc.line(axisL, gy, x + w, gy);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6);
             doc.setTextColor.apply(doc, C.light);
-            doc.text(String(Math.round(maxVal * i / 4)), x - 2, gy + 1.2, { align: 'right' });
+            doc.text(String(Math.round(maxVal * i / 4)), axisL - 1.5, gy + 1.1, { align: 'right' });
         }
 
-        groupW = w / Math.max(labels.length, 1);
-        barW = Math.min(4.2, (groupW - 4) / Math.max(series.length, 1));
-        gap = 0.7;
+        groupW = plotW / Math.max(labels.length, 1);
+        var nSeries = Math.max(series.length, 1);
+        barW = Math.min(3.8, Math.max(2.2, (groupW - 5) / nSeries));
+        gap = 0.55;
         baseY = y + h;
+        var clusterW = nSeries * barW + (nSeries - 1) * gap;
 
         labels.forEach(function (label, gi) {
-            gx = x + gi * groupW + groupW / 2;
+            gx = axisL + gi * groupW + groupW / 2;
             series.forEach(function (ser, si) {
                 v = Number(ser.values[gi] || 0);
-                bh = (v / maxVal) * (h - 2);
-                bx = gx - ((series.length * barW + (series.length - 1) * gap) / 2) + si * (barW + gap);
+                bh = (v / maxVal) * (h - 1.5);
+                bx = gx - clusterW / 2 + si * (barW + gap);
                 doc.setFillColor.apply(doc, ser.color);
-                doc.roundedRect(bx, baseY - bh, barW, Math.max(bh, 0.4), 0.4, 0.4, 'F');
+                if (bh < 0.6) bh = v > 0 ? 0.6 : 0;
+                if (bh > 0) doc.roundedRect(bx, baseY - bh, barW, bh, 0.35, 0.35, 'F');
             });
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(6.5);
+            doc.setFontSize(6.2);
             doc.setTextColor.apply(doc, C.muted);
-            doc.text(clean(label), gx, baseY + 4, { align: 'center' });
+            doc.text(clip(label, 10), gx, baseY + 3.8, { align: 'center' });
         });
+
+        if (opts.legend && opts.legend.length) {
+            drawLegend(doc, axisL, y + h + 8.5, opts.legend);
+        }
     }
 
     function drawDonut(doc, opts) {
         var cx = opts.cx;
         var cy = opts.cy;
-        var r = opts.r || 28;
+        var r = opts.r || 27;
         var slices = opts.slices || [];
         var total = 0;
-        slices.forEach(function (s) { total += Number(s.value) || 0; });
+        slices.forEach(function (s) { total += Math.max(0, Number(s.value) || 0); });
+
         if (total <= 0) {
             doc.setDrawColor.apply(doc, C.line);
-            doc.setLineWidth(6);
-            doc.circle(cx, cy, r - 3, 'S');
-            return;
+            doc.setLineWidth(7);
+            doc.circle(cx, cy, r - 3.5, 'S');
+        } else {
+            var start = -Math.PI / 2;
+            var step = Math.PI / 120;
+            slices.forEach(function (slice) {
+                var sweep = (Math.max(0, Number(slice.value) || 0) / total) * Math.PI * 2;
+                var a = start;
+                var end = start + sweep;
+                doc.setDrawColor.apply(doc, slice.color);
+                doc.setLineWidth(7.2);
+                while (a < end - 0.0001) {
+                    var a2 = Math.min(a + step, end);
+                    doc.line(
+                        cx + Math.cos(a) * (r - 3.6),
+                        cy + Math.sin(a) * (r - 3.6),
+                        cx + Math.cos(a2) * (r - 3.6),
+                        cy + Math.sin(a2) * (r - 3.6)
+                    );
+                    a = a2;
+                }
+                start = end;
+            });
         }
 
-        // Approximate donut with colored arcs via thin wedges of triangles/rects
-        // jsPDF lacks arc fill; draw stacked pie wedges as lines around circumference
-        var start = -Math.PI / 2;
-        var step = Math.PI / 90;
-        slices.forEach(function (slice) {
-            var portion = (Number(slice.value) || 0) / total;
-            var sweep = portion * Math.PI * 2;
-            var a = start;
-            var end = start + sweep;
-            doc.setDrawColor.apply(doc, slice.color);
-            doc.setLineWidth(7.5);
-            while (a < end) {
-                var a2 = Math.min(a + step, end);
-                var x1 = cx + Math.cos(a) * (r - 3.5);
-                var y1 = cy + Math.sin(a) * (r - 3.5);
-                var x2 = cx + Math.cos(a2) * (r - 3.5);
-                var y2 = cy + Math.sin(a2) * (r - 3.5);
-                doc.line(x1, y1, x2, y2);
-                a = a2;
-            }
-            start = end;
-        });
-
         doc.setFillColor.apply(doc, C.white);
-        doc.circle(cx, cy, r - 9, 'F');
+        doc.circle(cx, cy, r - 8.8, 'F');
 
-        if (opts.centerLabel) {
+        if (opts.centerLabel != null) {
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
+            doc.setFontSize(12);
             doc.setTextColor.apply(doc, C.navy);
-            doc.text(String(opts.centerLabel), cx, cy + 1, { align: 'center' });
+            doc.text(String(opts.centerLabel), cx, cy + 0.5, { align: 'center' });
         }
         if (opts.centerSub) {
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
+            doc.setFontSize(6.5);
             doc.setTextColor.apply(doc, C.muted);
-            doc.text(String(opts.centerSub), cx, cy + 6, { align: 'center' });
+            doc.text(clip(opts.centerSub, 16), cx, cy + 5.5, { align: 'center' });
+        }
+
+        // Side labels for slices
+        if (opts.showLabels) {
+            var ly = cy - (slices.length * 5) / 2;
+            slices.forEach(function (s, idx) {
+                var pct = total ? Math.round((Number(s.value) / total) * 1000) / 10 : 0;
+                doc.setFillColor.apply(doc, s.color);
+                doc.circle(cx + r + 6, ly + idx * 7, 1.4, 'F');
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(6.5);
+                doc.setTextColor.apply(doc, C.ink);
+                doc.text(clip((s.label || '') + '  ' + pct + '%', 28), cx + r + 9, ly + idx * 7 + 1.2);
+            });
         }
     }
 
-    function drawKpiStack(doc, x, y, items) {
+    function drawKpiStack(doc, x, y, items, textW) {
+        textW = textW || 72;
         var yy = y;
         (items || []).forEach(function (item) {
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(22);
+            doc.setFontSize(20);
             doc.setTextColor.apply(doc, item.color || C.navy);
-            doc.text(String(item.value), x, yy);
+            var val = clip(String(item.value), 8);
+            doc.text(val, x, yy);
 
+            var valueW = Math.min(30, doc.getTextWidth(val) + 4);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
+            doc.setFontSize(7.5);
             doc.setTextColor.apply(doc, C.ink);
-            var lines = wrapText(doc, item.text || '', 78);
-            doc.text(lines, x + 28, yy - 5);
-            yy += Math.max(16, lines.length * 4 + 8);
+            var lines = wrap(doc, item.text || '', textW);
+            // max 3 lines to avoid cascade overflow
+            if (lines.length > 3) lines = lines.slice(0, 3);
+            doc.text(lines, x + valueW, yy - 4.5);
+            yy += Math.max(15, lines.length * 3.6 + 7);
         });
         return yy;
     }
 
-    function tableStyles(overrides) {
-        return Object.assign({
+    /** Tabla ejecutiva: sin rejilla pesada, anchos fijos, ellipsis */
+    function renderTable(doc, opts) {
+        var head = opts.head || [];
+        var body = opts.body || [];
+        var startY = opts.startY;
+        var widths = opts.widths || [];
+        var aligns = opts.aligns || [];
+        var paint = opts.paint || null;
+
+        doc.autoTable({
+            head: [head],
+            body: body,
+            startY: startY,
+            margin: { left: PAGE.ml, right: PAGE.mr, bottom: PAGE.mb },
+            tableWidth: PAGE.contentW,
             theme: 'plain',
+            styles: {
+                font: 'helvetica',
+                fontSize: 7.4,
+                textColor: C.ink,
+                cellPadding: { top: 2.6, right: 2.4, bottom: 2.6, left: 2.4 },
+                overflow: 'ellipsize',
+                minCellHeight: 7,
+                lineColor: C.rule,
+                lineWidth: 0,
+                valign: 'middle',
+            },
             headStyles: {
                 fillColor: C.navy,
                 textColor: C.white,
-                fontSize: 8,
                 fontStyle: 'bold',
-                halign: 'left',
-                cellPadding: { top: 3.2, bottom: 3.2, left: 3, right: 3 },
-            },
-            bodyStyles: {
-                fontSize: 7.8,
-                textColor: C.ink,
-                cellPadding: { top: 2.8, bottom: 2.8, left: 3, right: 3 },
+                fontSize: 7.2,
+                cellPadding: { top: 3.2, right: 2.4, bottom: 3.2, left: 2.4 },
             },
             alternateRowStyles: { fillColor: C.alt },
-            styles: {
-                lineColor: C.line,
-                lineWidth: 0.15,
+            columnStyles: (function () {
+                var map = {};
+                widths.forEach(function (w, i) {
+                    map[i] = {
+                        cellWidth: w,
+                        halign: aligns[i] || 'left',
+                    };
+                });
+                return map;
+            })(),
+            didParseCell: function (data) {
+                if (paint) paint(data);
             },
-            margin: { left: 14, right: 14 },
-        }, overrides || {});
-    }
-
-    function ensureSpace(doc, y, need, title, logo) {
-        var pageH = doc.internal.pageSize.getHeight();
-        if (y + need < pageH - 20) return y;
-        doc.addPage();
-        return drawPageHeader(doc, title, logo);
+            didDrawCell: function (data) {
+                // linea inferior suave (look ejecutivo)
+                if (data.section === 'body') {
+                    doc.setDrawColor.apply(doc, C.rule);
+                    doc.setLineWidth(0.12);
+                    doc.line(
+                        data.cell.x,
+                        data.cell.y + data.cell.height,
+                        data.cell.x + data.cell.width,
+                        data.cell.y + data.cell.height
+                    );
+                }
+            },
+        });
+        return doc.lastAutoTable.finalY;
     }
 
     function groupByPlan(clientes) {
@@ -361,9 +436,10 @@
             var key = clean(c.plan) || 'Sin plan';
             map[key] = (map[key] || 0) + 1;
         });
-        var entries = Object.keys(map).map(function (k) { return { label: k, value: map[k] }; });
-        entries.sort(function (a, b) { return b.value - a.value; });
-        return entries.slice(0, 6);
+        return Object.keys(map)
+            .map(function (k) { return { label: k, value: map[k] }; })
+            .sort(function (a, b) { return b.value - a.value; })
+            .slice(0, 5);
     }
 
     function occupancyBuckets(naps) {
@@ -382,11 +458,39 @@
         return buckets;
     }
 
-    // ---------- REPORT BUILDERS ----------
+    function statusPaint(colIndex, activeLabel) {
+        activeLabel = activeLabel || 'ACTIVO';
+        return function (d) {
+            if (d.section !== 'body' || d.column.index !== colIndex) return;
+            var raw = String(d.cell.raw || '').toUpperCase();
+            d.cell.styles.fontStyle = 'bold';
+            if (raw.indexOf(activeLabel) >= 0 || raw === 'OPTIMO' || raw.indexOf('ENTRADA') >= 0) {
+                d.cell.styles.textColor = C.ok;
+            } else if (raw.indexOf('MODER') >= 0 || raw.indexOf('WARN') >= 0) {
+                d.cell.styles.textColor = C.warn;
+            } else if (raw.indexOf('CRIT') >= 0 || raw.indexOf('INACT') >= 0 || (raw.indexOf('%') >= 0 && parseInt(raw, 10) >= 80)) {
+                d.cell.styles.textColor = C.bad;
+            } else if (raw.indexOf('SALIDA') >= 0) {
+                d.cell.styles.textColor = C.navy;
+            }
+        };
+    }
+
+    function pctPaint(colIndex) {
+        return function (d) {
+            if (d.section !== 'body' || d.column.index !== colIndex) return;
+            var p = parseInt(String(d.cell.raw), 10);
+            if (!isFinite(p)) return;
+            d.cell.styles.fontStyle = 'bold';
+            d.cell.styles.textColor = p >= 80 ? C.bad : (p >= 50 ? C.warn : C.ok);
+        };
+    }
+
+    // ---------- REPORTS ----------
 
     async function reportClientes(clientes) {
         var logo = await loadLogo();
-        var doc = jsPDF();
+        var doc = createDoc();
         var list = Array.isArray(clientes) ? clientes : [];
         var total = list.length;
         var activos = list.filter(function (c) { return !!c.activo; }).length;
@@ -394,94 +498,93 @@
         var pctAct = total ? Math.round((activos / total) * 1000) / 10 : 0;
         var pctIna = total ? Math.round((inactivos / total) * 1000) / 10 : 0;
         var planes = groupByPlan(list);
-        var pageW = doc.internal.pageSize.getWidth();
 
         drawBrandHeader(doc, logo);
         drawMasthead(doc, 'Cartera de clientes · estado operativo');
 
-        // Section 1: prose + bars by plan
-        var y = 70;
-        drawSectionTitle(doc, 14, y, 'Panorama de la cartera');
-        y = drawProse(doc, 14, y + 6, 88, [
-            'Este documento consolida la base de clientes registrados en TONYLEX, con enfasis en activacion, planes contratados y datos de contacto para operacion en campo.',
-            'Los indicadores se calculan en tiempo real al momento de la exportacion. Utilice la tabla detallada para auditoria y seguimiento comercial.',
-            'Priorice la reactivacion de cuentas inactivas y valide que cada servicio activo tenga NAP y plan asignados correctamente.'
-        ], 8.2);
+        // Columna texto + grafica
+        var leftW = 88;
+        var chartX = PAGE.ml + leftW + 6;
+        var chartW = PAGE.contentW - leftW - 6;
+        var y = 66;
 
-        var planLabels = planes.length ? planes.map(function (p) {
-            return p.label.length > 9 ? p.label.slice(0, 9) + '.' : p.label;
-        }) : ['Sin datos'];
+        drawSectionTitle(doc, PAGE.ml, y, 'Panorama de la cartera');
+        drawProse(doc, PAGE.ml, y + 6, leftW, [
+            'Consolidado de clientes registrados en TONYLEX: activacion, planes y datos de contacto para operacion en campo.',
+            'Los indicadores se calculan al momento de exportar. Use el anexo tabular para auditoria comercial.',
+            'Priorice reactivacion de inactivos y valide NAP/plan en cada servicio activo.'
+        ], 8);
+
+        var planLabels = planes.length ? planes.map(function (p) { return clip(p.label, 8); }) : ['N/D'];
         var planAct = planes.map(function (p) {
             return list.filter(function (c) { return (clean(c.plan) || 'Sin plan') === p.label && c.activo; }).length;
         });
         var planIna = planes.map(function (p) {
             return list.filter(function (c) { return (clean(c.plan) || 'Sin plan') === p.label && !c.activo; }).length;
         });
+        var planTot = planes.map(function (p) { return p.value; });
+
         drawGroupedBars(doc, {
-            x: 112, y: 72, w: 80, h: 42,
+            x: chartX, y: 66, w: chartW, h: 40,
             labels: planLabels,
             series: planes.length ? [
                 { color: C.sky, values: planIna },
                 { color: C.purple, values: planAct },
-                { color: C.navy, values: planes.map(function (p) { return p.value; }) },
+                { color: C.navy, values: planTot },
             ] : [{ color: C.navy, values: [0] }],
+            legend: [
+                { color: C.sky, label: 'Inactivos' },
+                { color: C.purple, label: 'Activos' },
+                { color: C.navy, label: 'Total' },
+            ],
         });
-        doc.setFontSize(7);
-        doc.setTextColor.apply(doc, C.muted);
-        doc.text('Por plan: inactivos · activos · total', 112, 120);
 
-        // Tint band
+        // Banda
         var bandY = 128;
-        drawTintBand(doc, bandY, 36, C.skySoft);
-        drawSectionTitle(doc, 14, bandY + 10, 'Lectura operativa');
-        drawProse(doc, 14, bandY + 16, pageW - 28, [
-            'Activos: ' + activos + ' de ' + total + ' (' + pctAct + '%). Inactivos: ' + inactivos + ' (' + pctIna + '%). ' +
-            'Mantenga la tasa de activacion por encima del 90% y documente bajas con motivo comercial o tecnico.'
-        ], 8.5);
+        drawTintBand(doc, bandY, 30);
+        drawSectionTitle(doc, PAGE.ml, bandY + 9, 'Lectura operativa');
+        drawProse(doc, PAGE.ml, bandY + 15, PAGE.contentW, [
+            'Activos ' + activos + ' de ' + total + ' (' + pctAct + '%). Inactivos ' + inactivos +
+            ' (' + pctIna + '%). Meta sugerida: mantener activacion por encima del 90%.'
+        ], 8);
 
         // Donut + KPIs
-        y = bandY + 48;
+        var blockY = bandY + 40;
         drawDonut(doc, {
-            cx: 48, cy: y + 28, r: 26,
+            cx: PAGE.ml + 28, cy: blockY + 26, r: 24,
             slices: [
-                { value: activos, color: C.navy },
-                { value: inactivos, color: C.purple },
+                { value: activos, color: C.navy, label: 'Activos' },
+                { value: Math.max(inactivos, 0), color: C.purple, label: 'Inactivos' },
             ],
             centerLabel: pctAct + '%',
             centerSub: 'activos',
         });
-        drawKpiStack(doc, 90, y + 12, [
-            { value: pctAct + '%', color: C.navy, text: 'Clientes activos sobre el total de la cartera al corte del reporte.' },
-            { value: pctIna + '%', color: C.purple, text: 'Cuentas inactivas que requieren revision comercial o tecnica.' },
-            { value: String(planes.length), color: C.sky, text: 'Planes distintos detectados en la base exportada.' },
-        ]);
+        drawKpiStack(doc, PAGE.ml + 64, blockY + 10, [
+            { value: pctAct + '%', color: C.navy, text: 'Clientes activos sobre el total de la cartera al corte.' },
+            { value: pctIna + '%', color: C.purple, text: 'Cuentas inactivas pendientes de revision.' },
+            { value: String(planes.length), color: C.sky, text: 'Planes distintos detectados en la exportacion.' },
+        ], 100);
 
-        // Detail table
+        // Tabla
         doc.addPage();
-        y = drawPageHeader(doc, 'Detalle de clientes', logo);
-        doc.autoTable({
-            head: [['ID', 'NOMBRE', 'DIRECCION', 'PLAN', 'ESTADO', 'CONTACTO', 'NAP']],
+        y = drawPageHeader(doc, 'Anexo · detalle de clientes', logo);
+        // widths sum ~ 182
+        renderTable(doc, {
+            startY: y,
+            head: ['NOMBRE', 'DIRECCION', 'PLAN', 'ESTADO', 'CONTACTO', 'NAP'],
+            widths: [38, 42, 26, 18, 28, 30],
+            aligns: ['left', 'left', 'left', 'center', 'left', 'left'],
             body: list.map(function (c) {
                 return [
-                    c.id,
-                    clean(c.nombre),
-                    clean(c.direccion),
-                    clean(c.plan) || '—',
+                    clip(c.nombre, 42),
+                    clip(c.direccion, 48),
+                    clip(c.plan || '—', 22),
                     c.activo ? 'ACTIVO' : 'INACTIVO',
-                    clean(c.contacto) || '—',
-                    clean(c.nap_nombre) || '—',
+                    clip(c.contacto || '—', 26),
+                    clip(c.nap_nombre || '—', 28),
                 ];
             }),
-            startY: y,
-            ...tableStyles({
-                didParseCell: function (d) {
-                    if (d.section === 'body' && d.column.index === 4) {
-                        var raw = String(d.cell.raw || '');
-                        d.cell.styles.fontStyle = 'bold';
-                        d.cell.styles.textColor = raw === 'ACTIVO' ? C.ok : C.bad;
-                    }
-                },
-            }),
+            paint: statusPaint(3),
         });
 
         drawFooter(doc);
@@ -490,90 +593,99 @@
 
     async function reportNaps(naps) {
         var logo = await loadLogo();
-        var doc = jsPDF();
+        var doc = createDoc();
         var list = Array.isArray(naps) ? naps : [];
         var dist = list.filter(function (n) { return n.tipo_caja !== 'empalme'; });
         var buckets = occupancyBuckets(list);
         var totalPuertos = dist.reduce(function (a, n) { return a + (n.puertos_total || 0); }, 0);
         var usados = dist.reduce(function (a, n) { return a + (n.clientes_count || n.puertos_ocupados || 0); }, 0);
         var pct = totalPuertos ? Math.round((usados / totalPuertos) * 1000) / 10 : 0;
-        var pageW = doc.internal.pageSize.getWidth();
 
         drawBrandHeader(doc, logo);
         drawMasthead(doc, 'Cajas NAP · capacidad y ocupacion');
 
-        var y = 70;
-        drawSectionTitle(doc, 14, y, 'Salud de la red de acceso');
-        drawProse(doc, 14, y + 6, 88, [
-            'El reporte resume la capacidad instalada en cajas de distribucion, el uso real de puertos y la concentracion de riesgo por saturacion.',
-            'Las cajas en nivel critico (>80%) deben priorizarse para expansion o redistribucion de clientes.',
-            'Los empalmes se listan en reportes de tipificacion; aqui el foco es capacidad util de acceso.'
-        ], 8.2);
+        var leftW = 88;
+        var chartX = PAGE.ml + leftW + 6;
+        var chartW = PAGE.contentW - leftW - 6;
+        var y = 66;
+
+        drawSectionTitle(doc, PAGE.ml, y, 'Salud de la red de acceso');
+        drawProse(doc, PAGE.ml, y + 6, leftW, [
+            'Capacidad instalada en cajas de distribucion, uso real de puertos y concentracion de riesgo por saturacion.',
+            'Cajas en nivel critico (>80%) deben priorizarse para expansion o redistribucion.',
+            'Este corte excluye empalmes del calculo de ocupacion util de acceso.'
+        ], 8);
+
+        var topNaps = dist.slice().sort(function (a, b) {
+            return (b.porcentaje_uso || 0) - (a.porcentaje_uso || 0);
+        }).slice(0, 5);
+        if (!topNaps.length) topNaps = dist.slice(0, 5);
+        var topLabels = topNaps.map(function (n) { return clip(n.nombre || 'NAP', 8); });
+        var topTotal = topNaps.map(function (n) { return n.puertos_total || 0; });
+        var topUsed = topNaps.map(function (n) { return n.clientes_count || n.puertos_ocupados || 0; });
+        var topFree = topNaps.map(function (n, i) { return Math.max(0, topTotal[i] - topUsed[i]); });
 
         drawGroupedBars(doc, {
-            x: 112, y: 72, w: 80, h: 42,
-            labels: ['Optimo', 'Moderado', 'Critico'],
-            series: [
-                { color: C.ok, values: [buckets.optimo, 0, 0] },
-                { color: C.warn, values: [0, buckets.moderado, 0] },
-                { color: C.bad, values: [0, 0, buckets.critico] },
+            x: chartX, y: 66, w: chartW, h: 40,
+            labels: topLabels.length ? topLabels : ['N/D'],
+            series: topLabels.length ? [
+                { color: C.sky, values: topFree },
+                { color: C.purple, values: topUsed },
+                { color: C.navy, values: topTotal },
+            ] : [{ color: C.navy, values: [0] }],
+            legend: [
+                { color: C.sky, label: 'Libres' },
+                { color: C.purple, label: 'Usados' },
+                { color: C.navy, label: 'Total' },
             ],
-            max: Math.max(buckets.optimo, buckets.moderado, buckets.critico, 1),
         });
 
         var bandY = 128;
-        drawTintBand(doc, bandY, 34, C.skySoft);
-        drawSectionTitle(doc, 14, bandY + 10, 'Capacidad consolidada');
-        drawProse(doc, 14, bandY + 16, pageW - 28, [
-            usados + ' puertos en uso de ' + totalPuertos + ' instalados (' + pct + '%). ' +
-            'Criticas: ' + buckets.critico + ' · Moderadas: ' + buckets.moderado + ' · Optimas: ' + buckets.optimo + '.'
-        ], 8.5);
+        drawTintBand(doc, bandY, 28);
+        drawSectionTitle(doc, PAGE.ml, bandY + 9, 'Capacidad consolidada');
+        drawProse(doc, PAGE.ml, bandY + 15, PAGE.contentW, [
+            usados + ' puertos en uso de ' + totalPuertos + ' (' + pct + '%). Criticas ' +
+            buckets.critico + ' · Moderadas ' + buckets.moderado + ' · Optimas ' + buckets.optimo + '.'
+        ], 8);
 
-        y = bandY + 46;
+        var blockY = bandY + 38;
         drawDonut(doc, {
-            cx: 48, cy: y + 28, r: 26,
+            cx: PAGE.ml + 28, cy: blockY + 26, r: 24,
             slices: [
-                { value: buckets.optimo, color: C.ok },
-                { value: buckets.moderado, color: C.warn },
-                { value: buckets.critico, color: C.bad },
+                { value: buckets.optimo, color: C.ok, label: 'Optimo' },
+                { value: buckets.moderado, color: C.warn, label: 'Moderado' },
+                { value: buckets.critico, color: C.bad, label: 'Critico' },
             ],
             centerLabel: pct + '%',
             centerSub: 'ocupacion',
         });
-        drawKpiStack(doc, 90, y + 10, [
-            { value: pct + '%', color: C.navy, text: 'Ocupacion media de puertos en cajas de distribucion.' },
-            { value: String(buckets.critico), color: C.bad, text: 'Cajas en nivel critico que requieren accion inmediata.' },
-            { value: String(dist.length), color: C.violet, text: 'Cajas NAP de distribucion contempladas en el analisis.' },
-        ]);
+        drawKpiStack(doc, PAGE.ml + 64, blockY + 8, [
+            { value: pct + '%', color: C.navy, text: 'Ocupacion media de puertos en distribucion.' },
+            { value: String(buckets.critico), color: C.bad, text: 'Cajas en nivel critico con accion prioritaria.' },
+            { value: String(dist.length), color: C.violet, text: 'Cajas NAP de distribucion en el analisis.' },
+        ], 100);
 
         doc.addPage();
-        y = drawPageHeader(doc, 'Inventario de cajas NAP', logo);
-        doc.autoTable({
-            head: [['ID', 'NOMBRE', 'TIPO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO', 'MODELO']],
+        y = drawPageHeader(doc, 'Anexo · inventario de cajas NAP', logo);
+        renderTable(doc, {
+            startY: y,
+            head: ['NOMBRE', 'TIPO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO', 'MODELO'],
+            widths: [40, 26, 18, 18, 22, 26, 32],
+            aligns: ['left', 'left', 'center', 'center', 'center', 'left', 'left'],
             body: list.map(function (n) {
                 var u = n.clientes_count || n.puertos_ocupados || 0;
                 var p = n.puertos_total > 0 ? Math.round((u / n.puertos_total) * 100) : 0;
                 return [
-                    n.id,
-                    clean(n.nombre),
-                    clean(n.tipo_caja_display || n.tipo_caja || '—'),
-                    n.puertos_total || 0,
-                    u,
+                    clip(n.nombre, 36),
+                    clip(n.tipo_caja_display || n.tipo_caja || '—', 18),
+                    String(n.puertos_total || 0),
+                    String(u),
                     p + '%',
-                    clean(n.hilo_conexion) || '—',
-                    clean(n.nap_model_nombre) || '—',
+                    clip(n.hilo_conexion || '—', 20),
+                    clip(n.nap_model_nombre || '—', 28),
                 ];
             }),
-            startY: y,
-            ...tableStyles({
-                didParseCell: function (d) {
-                    if (d.section === 'body' && d.column.index === 5) {
-                        var p = parseInt(String(d.cell.raw), 10) || 0;
-                        d.cell.styles.fontStyle = 'bold';
-                        d.cell.styles.textColor = p >= 80 ? C.bad : (p >= 50 ? C.warn : C.ok);
-                    }
-                },
-            }),
+            paint: pctPaint(4),
         });
 
         drawFooter(doc);
@@ -582,59 +694,70 @@
 
     async function reportTipos(naps) {
         var logo = await loadLogo();
-        var doc = jsPDF();
+        var doc = createDoc();
         var list = Array.isArray(naps) ? naps : [];
         var dist = list.filter(function (n) { return n.tipo_caja === 'distribucion'; });
         var emp = list.filter(function (n) { return n.tipo_caja === 'empalme'; });
         var total = list.length || 1;
         var pctD = Math.round((dist.length / total) * 1000) / 10;
         var pctE = Math.round((emp.length / total) * 1000) / 10;
-        var pageW = doc.internal.pageSize.getWidth();
 
         drawBrandHeader(doc, logo);
         drawMasthead(doc, 'Distribucion y empalmes · tipificacion de red');
 
-        var y = 70;
-        drawSectionTitle(doc, 14, y, 'Composicion de la red');
-        drawProse(doc, 14, y + 6, 88, [
-            'Clasificacion de cajas por rol funcional: acceso (distribucion/NAP) frente a nodos de empalme.',
-            'Una red equilibrada mantiene suficiente capacidad de acceso y empalmes estrategicos para continuidad del backbone.',
-            'Revise modelos y hilos en el detalle tabular para cuadrar inventario fisico vs sistema.'
-        ], 8.2);
+        var leftW = 88;
+        var chartX = PAGE.ml + leftW + 6;
+        var chartW = PAGE.contentW - leftW - 6;
+
+        drawSectionTitle(doc, PAGE.ml, 66, 'Composicion de la red');
+        drawProse(doc, PAGE.ml, 72, leftW, [
+            'Clasificacion por rol: acceso (NAP) frente a nodos de empalme.',
+            'Una red equilibrada combina capacidad de acceso con empalmes estrategicos.',
+            'Revise modelos e hilos en los anexos para cuadrar inventario fisico.'
+        ], 8);
+
+        var distPuertos = dist.reduce(function (a, n) { return a + (n.puertos_total || 0); }, 0);
+        var empPuertos = emp.reduce(function (a, n) { return a + (n.puertos_total || 0); }, 0);
+        var distUsados = dist.reduce(function (a, n) { return a + (n.clientes_count || n.puertos_ocupados || 0); }, 0);
+        var empUsados = emp.reduce(function (a, n) { return a + (n.clientes_count || n.puertos_ocupados || 0); }, 0);
 
         drawGroupedBars(doc, {
-            x: 112, y: 72, w: 80, h: 42,
+            x: chartX, y: 66, w: chartW, h: 40,
             labels: ['NAP', 'Empalme'],
             series: [
-                { color: C.sky, values: [dist.length, 0] },
-                { color: C.purple, values: [0, emp.length] },
-                { color: C.navy, values: [dist.length, emp.length] },
+                { color: C.sky, values: [dist.length, emp.length] },
+                { color: C.purple, values: [distUsados, empUsados] },
+                { color: C.navy, values: [distPuertos, empPuertos] },
             ],
-            max: Math.max(dist.length, emp.length, 1),
+            legend: [
+                { color: C.sky, label: 'Cajas' },
+                { color: C.purple, label: 'Usados' },
+                { color: C.navy, label: 'Puertos' },
+            ],
         });
 
         var bandY = 128;
-        drawTintBand(doc, bandY, 32, C.skySoft);
-        drawSectionTitle(doc, 14, bandY + 10, 'Balance tipologico');
-        drawProse(doc, 14, bandY + 16, pageW - 28, [
-            'Distribucion: ' + dist.length + ' (' + pctD + '%) · Empalmes: ' + emp.length + ' (' + pctE + '%) · Total: ' + list.length + ' cajas.'
-        ], 8.5);
+        drawTintBand(doc, bandY, 26);
+        drawSectionTitle(doc, PAGE.ml, bandY + 8, 'Balance tipologico');
+        drawProse(doc, PAGE.ml, bandY + 14, PAGE.contentW, [
+            'Distribucion ' + dist.length + ' (' + pctD + '%) · Empalmes ' + emp.length + ' (' + pctE + '%) · Total ' + list.length + '.'
+        ], 8);
 
-        y = bandY + 44;
+        var blockY = bandY + 36;
         drawDonut(doc, {
-            cx: 48, cy: y + 28, r: 26,
+            cx: PAGE.ml + 28, cy: blockY + 26, r: 24,
             slices: [
-                { value: dist.length, color: C.navy },
-                { value: emp.length, color: C.purple },
+                { value: dist.length, color: C.navy, label: 'NAP' },
+                { value: emp.length, color: C.purple, label: 'Empalme' },
             ],
             centerLabel: String(list.length),
             centerSub: 'cajas',
         });
-        drawKpiStack(doc, 90, y + 12, [
-            { value: pctD + '%', color: C.navy, text: 'Participacion de cajas de distribucion (NAP) en la red.' },
-            { value: pctE + '%', color: C.purple, text: 'Participacion de empalmes sobre el inventario total.' },
-            { value: String(list.length), color: C.sky, text: 'Elementos tipificados al momento de la exportacion.' },
-        ]);
+        drawKpiStack(doc, PAGE.ml + 64, blockY + 10, [
+            { value: pctD + '%', color: C.navy, text: 'Participacion de cajas de distribucion (NAP).' },
+            { value: pctE + '%', color: C.purple, text: 'Participacion de empalmes en el inventario.' },
+            { value: String(list.length), color: C.sky, text: 'Elementos tipificados al exportar.' },
+        ], 100);
 
         function tableTipo(titulo, rows) {
             doc.addPage();
@@ -642,23 +765,32 @@
             if (!rows.length) {
                 doc.setFontSize(9);
                 doc.setTextColor.apply(doc, C.muted);
-                doc.text('Sin registros de este tipo.', 14, start + 6);
+                doc.text('Sin registros de este tipo.', PAGE.ml, start + 6);
                 return;
             }
-            doc.autoTable({
-                head: [['ID', 'NOMBRE', 'MODELO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO']],
+            renderTable(doc, {
+                startY: start,
+                head: ['NOMBRE', 'MODELO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO'],
+                widths: [48, 40, 20, 20, 24, 30],
+                aligns: ['left', 'left', 'center', 'center', 'center', 'left'],
                 body: rows.map(function (n) {
                     var u = n.clientes_count || n.puertos_ocupados || 0;
                     var p = n.puertos_total > 0 ? Math.round((u / n.puertos_total) * 100) : 0;
-                    return [n.id, clean(n.nombre), clean(n.nap_model_nombre) || '—', n.puertos_total || 0, u, p + '%', clean(n.hilo_conexion) || '—'];
+                    return [
+                        clip(n.nombre, 40),
+                        clip(n.nap_model_nombre || '—', 34),
+                        String(n.puertos_total || 0),
+                        String(u),
+                        p + '%',
+                        clip(n.hilo_conexion || '—', 22),
+                    ];
                 }),
-                startY: start,
-                ...tableStyles(),
+                paint: pctPaint(4),
             });
         }
 
-        tableTipo('Cajas de distribucion (NAP)', dist);
-        tableTipo('Cajas de empalme', emp);
+        tableTipo('Anexo · cajas de distribucion (NAP)', dist);
+        tableTipo('Anexo · cajas de empalme', emp);
 
         drawFooter(doc);
         doc.save('TONYLEX_Tipos_Caja_' + new Date().toISOString().slice(0, 10) + '.pdf');
@@ -666,82 +798,95 @@
 
     async function reportInventarioCompleto(clientes, naps) {
         var logo = await loadLogo();
-        var doc = jsPDF();
+        var doc = createDoc();
         var cli = Array.isArray(clientes) ? clientes : [];
         var nap = Array.isArray(naps) ? naps : [];
         var activos = cli.filter(function (c) { return !!c.activo; }).length;
         var buckets = occupancyBuckets(nap);
-        var pageW = doc.internal.pageSize.getWidth();
+        var pctAct = cli.length ? Math.round((activos / cli.length) * 1000) / 10 : 0;
 
         drawBrandHeader(doc, logo);
         drawMasthead(doc, 'Inventario completo · infraestructura y cartera');
 
-        var y = 70;
-        drawSectionTitle(doc, 14, y, 'Resumen ejecutivo');
-        drawProse(doc, 14, y + 6, pageW - 28, [
-            'Documento maestro generado por TONYLEX con la fotografia operativa de clientes y cajas. Incluye indicadores visuales, tipificacion y anexos tabulares para auditoria.',
-            'Fecha de emision: ' + fechaLarga() + '. Uso interno y confidencial.'
-        ], 8.5);
+        drawSectionTitle(doc, PAGE.ml, 66, 'Resumen ejecutivo');
+        drawProse(doc, PAGE.ml, 72, PAGE.contentW, [
+            'Documento maestro TONYLEX con fotografia operativa de clientes y cajas. Incluye indicadores, tipificacion y anexos tabulares.',
+            'Emision: ' + fechaLarga() + '. Uso interno y confidencial.'
+        ], 8.2);
 
-        y = 100;
+        var inact = Math.max(0, cli.length - activos);
         drawGroupedBars(doc, {
-            x: 14, y: y, w: 95, h: 40,
-            labels: ['Clientes', 'Activos', 'Cajas', 'Criticas'],
+            x: PAGE.ml, y: 96, w: 100, h: 38,
+            labels: ['Clientes', 'Cajas'],
             series: [
-                { color: C.sky, values: [cli.length, 0, 0, 0] },
-                { color: C.purple, values: [0, activos, 0, 0] },
-                { color: C.navy, values: [0, 0, nap.length, buckets.critico] },
+                { color: C.sky, values: [cli.length, nap.length] },
+                { color: C.purple, values: [activos, buckets.optimo + buckets.moderado] },
+                { color: C.navy, values: [inact, buckets.critico] },
             ],
-            max: Math.max(cli.length, activos, nap.length, buckets.critico, 1),
+            legend: [
+                { color: C.sky, label: 'Total' },
+                { color: C.purple, label: 'Activos / OK+Mod' },
+                { color: C.navy, label: 'Inact. / Critico' },
+            ],
         });
 
         drawDonut(doc, {
-            cx: 150, cy: y + 22, r: 24,
+            cx: 158, cy: 116, r: 24,
             slices: [
-                { value: buckets.optimo, color: C.ok },
-                { value: buckets.moderado, color: C.warn },
-                { value: buckets.critico, color: C.bad },
+                { value: buckets.optimo, color: C.ok, label: 'Optimo' },
+                { value: buckets.moderado, color: C.warn, label: 'Moderado' },
+                { value: buckets.critico, color: C.bad, label: 'Critico' },
             ],
             centerLabel: String(nap.length),
             centerSub: 'cajas',
         });
 
-        var bandY = 152;
-        drawTintBand(doc, bandY, 28, C.skySoft);
-        drawProse(doc, 14, bandY + 10, pageW - 28, [
-            'Cartera: ' + cli.length + ' clientes (' + activos + ' activos). Red: ' + nap.length + ' cajas · ' + buckets.critico + ' en ocupacion critica.'
-        ], 8.5);
+        var bandY = 150;
+        drawTintBand(doc, bandY, 24);
+        drawProse(doc, PAGE.ml, bandY + 10, PAGE.contentW, [
+            'Cartera ' + cli.length + ' (' + activos + ' activos, ' + pctAct + '%). Red ' + nap.length +
+            ' cajas · ' + buckets.critico + ' en ocupacion critica.'
+        ], 8);
 
-        // Reuse table pages via internal helpers
         doc.addPage();
-        y = drawPageHeader(doc, 'Anexo A · Clientes', logo);
-        doc.autoTable({
-            head: [['ID', 'NOMBRE', 'PLAN', 'ESTADO', 'NAP', 'CONTACTO']],
-            body: cli.map(function (c) {
-                return [c.id, clean(c.nombre), clean(c.plan) || '—', c.activo ? 'ACTIVO' : 'INACTIVO', clean(c.nap_nombre) || '—', clean(c.contacto) || '—'];
-            }),
+        var y = drawPageHeader(doc, 'Anexo A · clientes', logo);
+        renderTable(doc, {
             startY: y,
-            ...tableStyles({
-                didParseCell: function (d) {
-                    if (d.section === 'body' && d.column.index === 3) {
-                        d.cell.styles.fontStyle = 'bold';
-                        d.cell.styles.textColor = String(d.cell.raw) === 'ACTIVO' ? C.ok : C.bad;
-                    }
-                },
+            head: ['NOMBRE', 'PLAN', 'ESTADO', 'NAP', 'CONTACTO'],
+            widths: [48, 32, 22, 40, 40],
+            aligns: ['left', 'left', 'center', 'left', 'left'],
+            body: cli.map(function (c) {
+                return [
+                    clip(c.nombre, 40),
+                    clip(c.plan || '—', 26),
+                    c.activo ? 'ACTIVO' : 'INACTIVO',
+                    clip(c.nap_nombre || '—', 34),
+                    clip(c.contacto || '—', 34),
+                ];
             }),
+            paint: statusPaint(2),
         });
 
         doc.addPage();
-        y = drawPageHeader(doc, 'Anexo B · Cajas', logo);
-        doc.autoTable({
-            head: [['ID', 'NOMBRE', 'TIPO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO']],
+        y = drawPageHeader(doc, 'Anexo B · cajas', logo);
+        renderTable(doc, {
+            startY: y,
+            head: ['NOMBRE', 'TIPO', 'PUERTOS', 'USADOS', 'OCUPACION', 'HILO'],
+            widths: [48, 30, 20, 20, 26, 38],
+            aligns: ['left', 'left', 'center', 'center', 'center', 'left'],
             body: nap.map(function (n) {
                 var u = n.clientes_count || n.puertos_ocupados || 0;
                 var p = n.puertos_total > 0 ? Math.round((u / n.puertos_total) * 100) : 0;
-                return [n.id, clean(n.nombre), clean(n.tipo_caja_display || n.tipo_caja || '—'), n.puertos_total || 0, u, p + '%', clean(n.hilo_conexion) || '—'];
+                return [
+                    clip(n.nombre, 40),
+                    clip(n.tipo_caja_display || n.tipo_caja || '—', 22),
+                    String(n.puertos_total || 0),
+                    String(u),
+                    p + '%',
+                    clip(n.hilo_conexion || '—', 28),
+                ];
             }),
-            startY: y,
-            ...tableStyles(),
+            paint: pctPaint(4),
         });
 
         drawFooter(doc);
@@ -750,87 +895,92 @@
 
     async function reportAsistencia(payload) {
         var logo = await loadLogo();
-        var doc = jsPDF();
+        var doc = createDoc();
         var res = (payload && payload.resumen) || {};
         var periodo = (payload && payload.periodo) || {};
         var registros = (payload && payload.registros) || [];
         var entradas = res.entradas_periodo || 0;
         var salidas = res.salidas_periodo || 0;
-        var totalMov = entradas + salidas || 1;
+        var totalMov = (entradas + salidas) || 1;
         var pctE = Math.round((entradas / totalMov) * 1000) / 10;
         var pctS = Math.round((salidas / totalMov) * 1000) / 10;
-        var pageW = doc.internal.pageSize.getWidth();
 
         drawBrandHeader(doc, logo);
-        drawMasthead(doc, 'Asistencia laboral · ' + (periodo.desde || '') + ' al ' + (periodo.hasta || ''));
+        drawMasthead(doc, 'Asistencia laboral · ' + clip((periodo.desde || '') + ' al ' + (periodo.hasta || ''), 48));
 
-        var y = 70;
-        drawSectionTitle(doc, 14, y, 'Control de jornada');
-        drawProse(doc, 14, y + 6, 88, [
-            'Consolidado de entradas y salidas del personal activo. Sirve para cuadrar presencia en campo, turnos y cumplimiento operativo.',
-            'El detalle cronologico permite auditoria por trabajador y tipo de movimiento.',
-            'Periodo analizado: ultimos ' + (periodo.dias || 30) + ' dias.'
-        ], 8.2);
+        var leftW = 88;
+        var chartX = PAGE.ml + leftW + 6;
+        var chartW = PAGE.contentW - leftW - 6;
+
+        drawSectionTitle(doc, PAGE.ml, 66, 'Control de jornada');
+        drawProse(doc, PAGE.ml, 72, leftW, [
+            'Consolidado de entradas y salidas del personal activo para cuadrar presencia en campo.',
+            'El anexo cronologico permite auditoria por trabajador y tipo de movimiento.',
+            'Periodo: ultimos ' + (periodo.dias || 30) + ' dias.'
+        ], 8);
 
         drawGroupedBars(doc, {
-            x: 112, y: 72, w: 80, h: 42,
-            labels: ['Entradas', 'Salidas', 'Hoy in', 'Hoy out'],
+            x: chartX, y: 66, w: chartW, h: 40,
+            labels: ['Periodo', 'Hoy'],
             series: [
-                { color: C.sky, values: [entradas, 0, res.entradas_hoy || 0, 0] },
-                { color: C.purple, values: [0, salidas, 0, res.salidas_hoy || 0] },
-                { color: C.navy, values: [entradas, salidas, res.entradas_hoy || 0, res.salidas_hoy || 0] },
+                { color: C.sky, values: [entradas, res.entradas_hoy || 0] },
+                { color: C.purple, values: [salidas, res.salidas_hoy || 0] },
+                { color: C.navy, values: [entradas + salidas, (res.entradas_hoy || 0) + (res.salidas_hoy || 0)] },
             ],
-            max: Math.max(entradas, salidas, res.entradas_hoy || 0, res.salidas_hoy || 0, 1),
+            legend: [
+                { color: C.sky, label: 'Entradas' },
+                { color: C.purple, label: 'Salidas' },
+                { color: C.navy, label: 'Total' },
+            ],
         });
 
         var bandY = 128;
-        drawTintBand(doc, bandY, 34, C.skySoft);
-        drawSectionTitle(doc, 14, bandY + 10, 'Indicadores del periodo');
-        drawProse(doc, 14, bandY + 16, pageW - 28, [
-            'Personal: ' + (res.total_trabajadores || 0) +
-            ' · Registros: ' + (res.registros_periodo || 0) +
-            ' · Dentro hoy: ' + (res.dentro_hoy || 0) +
-            ' · Movimientos hoy: ' + ((res.entradas_hoy || 0) + (res.salidas_hoy || 0))
-        ], 8.5);
+        drawTintBand(doc, bandY, 28);
+        drawSectionTitle(doc, PAGE.ml, bandY + 9, 'Indicadores del periodo');
+        drawProse(doc, PAGE.ml, bandY + 15, PAGE.contentW, [
+            'Personal ' + (res.total_trabajadores || 0) +
+            ' · Registros ' + (res.registros_periodo || 0) +
+            ' · Dentro hoy ' + (res.dentro_hoy || 0) +
+            ' · Movimientos hoy ' + ((res.entradas_hoy || 0) + (res.salidas_hoy || 0))
+        ], 8);
 
-        y = bandY + 46;
+        var blockY = bandY + 38;
         drawDonut(doc, {
-            cx: 48, cy: y + 28, r: 26,
+            cx: PAGE.ml + 28, cy: blockY + 26, r: 24,
             slices: [
-                { value: entradas, color: C.navy },
-                { value: salidas, color: C.purple },
+                { value: entradas, color: C.navy, label: 'Entradas' },
+                { value: salidas, color: C.purple, label: 'Salidas' },
             ],
             centerLabel: String(res.registros_periodo || 0),
             centerSub: 'movs',
         });
-        drawKpiStack(doc, 90, y + 12, [
-            { value: pctE + '%', color: C.navy, text: 'Entradas respecto al total de movimientos del periodo.' },
-            { value: pctS + '%', color: C.purple, text: 'Salidas registradas en el mismo intervalo de analisis.' },
-            { value: String(res.dentro_hoy || 0), color: C.sky, text: 'Colaboradores actualmente en jornada al corte de hoy.' },
-        ]);
+        drawKpiStack(doc, PAGE.ml + 64, blockY + 10, [
+            { value: pctE + '%', color: C.navy, text: 'Entradas respecto al total de movimientos.' },
+            { value: pctS + '%', color: C.purple, text: 'Salidas registradas en el mismo intervalo.' },
+            { value: String(res.dentro_hoy || 0), color: C.sky, text: 'Colaboradores en jornada al corte de hoy.' },
+        ], 100);
 
         doc.addPage();
-        y = drawPageHeader(doc, 'Registro detallado de asistencia', logo);
+        var y = drawPageHeader(doc, 'Anexo · registro detallado', logo);
         if (!registros.length) {
             doc.setFontSize(9);
             doc.setTextColor.apply(doc, C.muted);
-            doc.text('No hay registros en el periodo seleccionado.', 14, y + 8);
+            doc.text('No hay registros en el periodo seleccionado.', PAGE.ml, y + 8);
         } else {
-            doc.autoTable({
-                head: [['ID', 'TRABAJADOR', 'TIPO', 'FECHA', 'HORA']],
-                body: registros.map(function (r) {
-                    return [r.id, clean(r.trabajador), clean((r.tipo_label || r.tipo || '').toUpperCase()), r.fecha || '', r.hora || ''];
-                }),
+            renderTable(doc, {
                 startY: y,
-                ...tableStyles({
-                    didParseCell: function (d) {
-                        if (d.section === 'body' && d.column.index === 2) {
-                            var val = String(d.cell.raw || '').toUpperCase();
-                            d.cell.styles.fontStyle = 'bold';
-                            d.cell.styles.textColor = val.indexOf('ENTRADA') >= 0 ? C.ok : C.navy;
-                        }
-                    },
+                head: ['TRABAJADOR', 'TIPO', 'FECHA', 'HORA'],
+                widths: [86, 32, 32, 32],
+                aligns: ['left', 'center', 'center', 'center'],
+                body: registros.map(function (r) {
+                    return [
+                        clip(r.trabajador, 55),
+                        clip((r.tipo_label || r.tipo || '').toUpperCase(), 16),
+                        r.fecha || '',
+                        r.hora || '',
+                    ];
                 }),
+                paint: statusPaint(1),
             });
         }
 
