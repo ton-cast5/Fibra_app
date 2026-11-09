@@ -77,14 +77,14 @@
     <div class="fn-asi-grid">
         {% for item in tarjetas %}
         {% set t = item.trabajador %}
-        <article class="fn-asi-card" id="worker-card-{{ t.id }}" data-trabajador-id="{{ t.id }}">
+        <article class="fn-asi-card {{ 'is-in' if item.en_jornada else '' }}" id="worker-card-{{ t.id }}" data-trabajador-id="{{ t.id }}">
             <div class="fn-asi-card-top">
                 <div class="fn-asi-avatar">{{ t.nombre_completo[0]|upper }}</div>
                 <span id="worker-badge-{{ t.id }}" class="fn-asi-badge {{ 'is-in' if item.en_jornada else 'is-out' }}">
                     {{ 'Dentro' if item.en_jornada else 'Fuera' }}
                 </span>
             </div>
-            <h3>{{ t.nombre_completo }}</h3>
+            <h3 title="{{ t.nombre_completo }}">{{ t.nombre_completo }}</h3>
 
             <div id="worker-registros-{{ t.id }}" class="fn-asi-logs">
                 {% if item.registros %}
@@ -175,7 +175,7 @@
 </div>
 
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     if (window.FibraTiempo) {
         FibraTiempo.iniciarReloj(
             document.getElementById('reloj-sistema-fecha'),
@@ -235,6 +235,7 @@
         }
         var card = document.getElementById('worker-card-' + trabajador.id);
         if (card) {
+            card.classList.toggle('is-in', !!trabajador.en_jornada);
             card.querySelectorAll('.btn-marcaje').forEach(function (btn) {
                 var tipo = btn.getAttribute('data-tipo');
                 if (tipo === 'entrada') btn.disabled = !trabajador.puede_entrada;
@@ -312,6 +313,6 @@
             });
         });
     });
-})();
+});
 </script>
 {% endblock %}
