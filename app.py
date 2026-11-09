@@ -748,11 +748,28 @@ def stats_nats_listado():
     }
 
 
+_ACCENT_FROM = 'áàäâéèëêíìïîóòöôúùüûñçÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛÑÇ'
+_ACCENT_TO = 'aaaaeeeeiiiioooouuuuncAAAAEEEEIIIIOOOOUUUUNC'
+
+
+def _fold_texto(valor):
+    """Minúsculas sin acentos para coincidencias cercanas."""
+    import unicodedata
+    texto = unicodedata.normalize('NFD', (valor or '').lower())
+    return ''.join(ch for ch in texto if unicodedata.category(ch) != 'Mn')
+
+
+def _sql_fold(expr):
+    """Equivalente SQL de _fold_texto (case + acentos)."""
+    return func.translate(func.lower(func.coalesce(expr, '')), _ACCENT_FROM, _ACCENT_TO)
+
+
 def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
     """Consulta de clientes con filtros en servidor.
 
     El buscador acepta una o varias palabras (nombre/apellido, IP, ubicación,
     NAP, plan, contacto, servicio; también 'activo'/'inactivo').
+    Ignora mayúsculas/minúsculas y acentos.
     """
     query = Cliente.query.options(joinedload(Cliente.nat))
     joined_nat = False
@@ -768,20 +785,21 @@ def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
         tokens = [t for t in str(q).strip().split() if t]
         for token in tokens:
             low = token.lower()
-            term = f'%{low}%'
+            folded = _fold_texto(token)
+            term = f'%{folded}%'
             parts = [
-                func.lower(Cliente.nombre).like(term),
-                func.lower(func.coalesce(Cliente.direccion, '')).like(term),
-                func.lower(func.coalesce(Cliente.contacto, '')).like(term),
-                func.lower(func.coalesce(Cliente.ip, '')).like(term),
-                func.lower(func.coalesce(Cliente.servicio, '')).like(term),
-                func.lower(func.coalesce(Cliente.plan, '')).like(term),
-                func.lower(func.coalesce(Nat.nombre, '')).like(term),
-                func.lower(func.coalesce(Nat.region, '')).like(term),
+                _sql_fold(Cliente.nombre).like(term),
+                _sql_fold(Cliente.direccion).like(term),
+                _sql_fold(Cliente.contacto).like(term),
+                _sql_fold(Cliente.ip).like(term),
+                _sql_fold(Cliente.servicio).like(term),
+                _sql_fold(Cliente.plan).like(term),
+                _sql_fold(Nat.nombre).like(term),
+                _sql_fold(Nat.region).like(term),
             ]
-            if low in ('activo', 'activa', 'activos', 'activas'):
+            if low in ('activo', 'activa', 'activos', 'activas') or folded in ('activo', 'activa', 'activos', 'activas'):
                 parts.append(Cliente.activo.is_(True))
-            elif low in ('inactivo', 'inactiva', 'inactivos', 'inactivas'):
+            elif low in ('inactivo', 'inactiva', 'inactivos', 'inactivas') or folded in ('inactivo', 'inactiva', 'inactivos', 'inactivas'):
                 parts.append(Cliente.activo.is_(False))
             query = query.filter(or_(*parts))
 
@@ -799,9 +817,7 @@ def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
                 query = query.filter(Cliente.nat_id == int(nat_pk))
 
     if plan and plan != 'todos':
-        query = query.filter(func.lower(func.coalesce(Cliente.plan, '')).like(
-            f'%{plan.strip().lower()}%'
-        ))
+        query = query.filter(_sql_fold(Cliente.plan).like(f'%{_fold_texto(plan)}%'))
 
     if joined_nat:
         query = query.distinct()
@@ -1443,9 +1459,9 @@ def api_buscar_global():
     return jsonify({'results': results[:limit]})
 
 
-@app.route('/api/clientes')
-def api_clientes_listado():
-    """Listado JSON de clientes para búsqueda en vivo sin recargar la página."""
+@app.route('/api/clientes/buscar')
+def api_clientes_buscar():
+    """Sugerencias/filtro JSON de clientes (ruta propia: /api/clientes ya existía)."""
     q = (request.args.get('q') or '').strip()
     estado = request.args.get('estado', 'todos')
     nat_id = request.args.get('nap', 'todas')

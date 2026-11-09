@@ -260,10 +260,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function fetchSuggest(q) {
         var myId = ++reqId;
-        fetch('/api/clientes?q=' + encodeURIComponent(q) + '&estado=todos&nap=todas&plan=todos&limit=8', {
-            headers: { 'Accept': 'application/json' }
+        fetch('/api/clientes/buscar?q=' + encodeURIComponent(q) + '&limit=8', {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
         })
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                if (!r.ok) throw new Error('buscar ' + r.status);
+                return r.json();
+            })
             .then(function (data) {
                 if (myId !== reqId) return;
                 if ((input.value || '').trim() !== q) return;
