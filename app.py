@@ -2498,7 +2498,7 @@ def api_get_potencias():
         meta = meta_paginacion(
             count_row,
             1 if usar_todo else page,
-            count_row if usar_todo else per_page,
+            (count_row or 1) if usar_todo else per_page,
         )
         resumen = _resumen_estados_potencias(filtros)
 

@@ -446,11 +446,13 @@ async function exportarCSV() {
     try {
         mostrarNotificacion('Preparando exportación…', 'info');
         const response = await fetch(construirUrlPotencias(1, true));
-        if (!response.ok) throw new Error('Error HTTP: ' + response.status);
-        const data = await response.json();
-        const filas = (data.potencias || []).map(mapearPotencia);
+        const data = await response.json().catch(function () { return null; });
+        if (!response.ok) {
+            throw new Error((data && data.message) || ('Error HTTP: ' + response.status));
+        }
+        const filas = ((data && data.potencias) || []).map(mapearPotencia);
         if (!filas.length) {
-            mostrarNotificacion('No hay datos para exportar', 'warning');
+            mostrarNotificacion('No hay mediciones para exportar', 'warning');
             return;
         }
 

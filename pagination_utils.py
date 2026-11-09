@@ -20,8 +20,10 @@ def api_devolver_todo():
 
 
 def meta_paginacion(total, page, per_page):
+    per_page = max(1, int(per_page or 1))
+    total = max(0, int(total or 0))
     pages = max(1, (total + per_page - 1) // per_page)
-    page = min(page, pages)
+    page = min(max(1, int(page or 1)), pages)
     return {
         'page': page,
         'per_page': per_page,
