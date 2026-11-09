@@ -1,551 +1,205 @@
-<!-- templates/inventario.html -->
 {% extends "base.html" %}
 
-{% block title %} Gestión - TONYLEX{% endblock %}
+{% block title %}Inventario - TONYLEX{% endblock %}
 
 {% block head %}
-<!-- Incluir jsPDF y autotable para los reportes premium -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-
-<style>
-    .glass-effect {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .hover-lift {
-        transition: all 0.3s ease;
-    }
-    .hover-lift:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .fade-in {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .input-glow:focus {
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-        border-color: #10b981;
-    }
-    .gradient-text {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    
-    /* Colores para los estados */
-    .badge-excelente { 
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white; 
-    }
-    .badge-normal { 
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white; 
-    }
-    .badge-bajo { 
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: white; 
-    }
-    .badge-critico { 
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        color: white; 
-    }
-    
-    .card-glow {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .badge-pulse {
-        animation: pulse 3s infinite cubic-bezier(0.4, 0, 0.6, 1);
-    }
-    
-    @keyframes pulse {
-        0%, 100% { 
-            transform: scale(1); 
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-        }
-        50% { 
-            transform: scale(1.05);
-            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-        }
-    }
-    
-    .btn-premium {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        border: none;
-        transition: all 0.4s ease;
-    }
-    
-    .btn-premium:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-    }
-    
-    .download-card {
-        background: linear-gradient(145deg,
-            rgba(255, 255, 255, 0.95) 0%,
-            rgba(249, 250, 251, 0.95) 100%);
-        border: 1px solid #e5e7eb;
-        transition: all 0.3s ease;
-    }
-    .download-card:hover {
-        border-color: #3b82f6;
-        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04);
-    }
-    .fm-stat-mini {
-        background: linear-gradient(to bottom right, #eff6ff, #ecfeff);
-        border: 1px solid transparent;
-    }
-    .fm-stat-mini.emerald { background: linear-gradient(to bottom right, #ecfdf5, #f0fdf4); }
-    .fm-stat-mini.orange { background: linear-gradient(to bottom right, #fff7ed, #fffbeb); }
-    .fm-stat-mini.amber { background: linear-gradient(to bottom right, #fffbeb, #fefce8); }
-    .fm-stat-mini.purple { background: linear-gradient(to bottom right, #faf5ff, #fdf4ff); }
-    .inv-legend-box {
-        background: linear-gradient(to right, rgba(238, 242, 255, 0.8), rgba(250, 245, 255, 0.8));
-        border: 1px solid rgba(199, 210, 254, 0.5);
-    }
-    .inv-tipo-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-    }
-
-    html.dark .download-card {
-        background: var(--fm-surface) !important;
-        border-color: var(--fm-border) !important;
-    }
-    html.dark .download-card:hover {
-        border-color: var(--fm-accent) !important;
-        box-shadow: var(--fm-shadow-lg) !important;
-    }
-    html.dark .fm-stat-mini,
-    html.dark .fm-stat-mini.emerald,
-    html.dark .fm-stat-mini.orange,
-    html.dark .fm-stat-mini.amber,
-    html.dark .fm-stat-mini.purple {
-        background: var(--fm-surface-hover) !important;
-        border-color: var(--fm-border) !important;
-    }
-    html.dark .inv-legend-box {
-        background: linear-gradient(to right, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08)) !important;
-        border-color: var(--fm-border) !important;
-    }
-    html.dark .inv-tipo-card {
-        background: var(--fm-surface-hover) !important;
-        border-color: var(--fm-border) !important;
-    }
-    html.dark .from-purple-600.bg-clip-text,
-    html.dark .from-purple-600.to-indigo-600.bg-clip-text {
-        -webkit-text-fill-color: #c4b5fd;
-        color: #c4b5fd;
-    }
-    html.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
-    html.dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.2) !important; }
-    html.dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.2) !important; }
-    html.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
-    html.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
-    html.dark .text-blue-800 { color: #93c5fd !important; }
-    html.dark .text-green-800 { color: #6ee7b7 !important; }
-    html.dark .text-yellow-800 { color: #fde047 !important; }
-    html.dark .text-red-800 { color: #fca5a5 !important; }
-    html.dark .text-emerald-800 { color: #6ee7b7 !important; }
-    html.dark .text-indigo-800 { color: #c7d2fe !important; }
-    html.dark .from-gray-200 { --tw-gradient-from: var(--fm-border) !important; }
-    html.dark .bg-gradient-to-br.from-blue-500\/10,
-    html.dark [class*="from-blue-500/10"],
-    html.dark [class*="from-orange-500/10"],
-    html.dark [class*="from-teal-500/10"] {
-        background: rgba(99, 102, 241, 0.08) !important;
-    }
-    
-    .floating-icon {
-        animation: float 6s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-    }
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="fade-in">
+{% set tasa_activos = ((clientes_activos / total_clientes) * 100) if total_clientes > 0 else 0 %}
+{% set ocup_tone = 'bad' if ocupacion_promedio >= 80 else ('warn' if ocupacion_promedio >= 50 else 'ok') %}
+{% set ocup_label = 'Crítico' if ocupacion_promedio >= 80 else ('Moderado' if ocupacion_promedio >= 50 else 'Óptimo') %}
+
+<div class="fade-in fn-inv">
     <div class="fn-page-head">
         <div class="fn-page-head-left">
-            <a class="fn-back" href="{{ url_for('dashboard') }}" aria-label="Volver"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></a>
+            <a class="fn-back" href="{{ url_for('dashboard') }}" aria-label="Volver">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </a>
             <div>
                 <h1>Inventario</h1>
-                <p>Reportes y análisis de tu infraestructura.</p>
+                <p>Reportes claros de tu red y personal.</p>
             </div>
         </div>
         <div class="fn-page-actions">
-            <div class="glass-effect fm-panel rounded-2xl px-4 py-2 text-center min-w-[10rem]">
-                <p class="text-xs text-gray-500 uppercase tracking-wide m-0">Hora</p>
-                <p id="reloj-inventario-fecha" class="text-xs font-medium text-gray-600 m-0">{{ fecha_actual.split(' ')[0] if ' ' in fecha_actual else fecha_actual }}</p>
-                <p id="reloj-inventario-hora" class="text-lg font-bold text-gray-900 font-mono m-0" aria-live="polite">{{ fecha_actual.split(' ')[1] if ' ' in fecha_actual else '' }}</p>
+            <div class="fn-inv-clock">
+                <p class="lbl">Ahora</p>
+                <p id="reloj-inventario-fecha" class="day">{{ fecha_actual.split(' ')[0] if ' ' in fecha_actual else fecha_actual }}</p>
+                <p id="reloj-inventario-hora" class="time" aria-live="polite">{{ fecha_actual.split(' ')[1] if ' ' in fecha_actual else '' }}</p>
             </div>
         </div>
     </div>
 
-    <!-- Estadísticas Premium -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {% macro stat_card(title, count, icon, color_from, color_to) %}
-        <div class="glass-effect fm-panel rounded-2xl p-6 hover-lift">
-            <div class="flex items-center justify-between mb-4">
-                <div class="bg-gradient-to-br {{ color_from }} {{ color_to }} text-white p-3 rounded-xl">
-                    {{ icon|safe }}
-                </div>
-                <span class="text-3xl font-bold text-gray-900">{{ count }}</span>
+    <div class="fn-kpi-grid">
+        <div class="fn-kpi">
+            <div class="label">Clientes activos</div>
+            <div class="value">{{ clientes_activos }}</div>
+            <div class="trend up">{{ total_clientes }} en total</div>
+            <div class="viz" aria-hidden="true">
+                <svg class="spark" viewBox="0 0 88 48" fill="none"><path d="M2 36 C18 34, 22 18, 36 20 S58 40, 72 16 S82 10, 86 12" stroke="#6C5CEF" stroke-width="3" stroke-linecap="round"/><circle cx="72" cy="16" r="4" fill="#6C5CEF"/></svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ title }}</h3>
-            <div class="h-1 w-full bg-gradient-to-r from-gray-200 to-transparent rounded-full"></div>
         </div>
-        {% endmacro %}
-
-        {{ stat_card('👥 Clientes Activos', clientes_activos, 
-            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M9 10a3 3 0 11-6 0 3 3 0 016 0zm3 9a6 6 0 00-9-5.143v1.286A6 6 0 009 21h6z"></path></svg>',
-            'from-blue-500', 'to-cyan-500') }}
-        
-        {{ stat_card('📡 Cajas NAP', total_naps,
-            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>',
-            'from-orange-500', 'to-amber-500') }}
-        
-        {{ stat_card('🔗 Empalmes', cajas_empalme,
-            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
-            'from-emerald-500', 'to-teal-500') }}
-        
-        {{ stat_card('📡 Distribución', cajas_distribucion,
-            '<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L6 22h12L12 2zM12 2v6m0 4v4m0 4v2"></path></svg>',
-            'from-purple-500', 'to-violet-500') }}
+        <div class="fn-kpi">
+            <div class="label">Cajas NAP</div>
+            <div class="value">{{ total_naps }}</div>
+            <div class="trend flat">{{ puertos_ocupados }}/{{ puertos_totales }} puertos</div>
+            <div class="viz bars" aria-hidden="true">
+                <span style="height:40%"></span><span style="height:65%"></span><span style="height:50%"></span>
+                <span style="height:80%"></span><span style="height:55%"></span>
+            </div>
+        </div>
+        <div class="fn-kpi">
+            <div class="label">Empalmes</div>
+            <div class="value">{{ cajas_empalme }}</div>
+            <div class="trend flat">En la red óptica</div>
+            <div class="viz" aria-hidden="true">
+                <svg class="spark" viewBox="0 0 88 48" fill="none"><path d="M4 28 C16 26, 24 34, 36 22 S56 10, 70 18 S80 30, 86 24" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/></svg>
+            </div>
+        </div>
+        <div class="fn-kpi">
+            <div class="label">Distribución</div>
+            <div class="value">{{ cajas_distribucion }}</div>
+            <div class="trend {{ 'down' if ocupacion_promedio >= 80 else 'up' }}">{{ ocupacion_promedio }}% ocupación</div>
+            <div class="viz bars" aria-hidden="true">
+                <span style="height:35%"></span><span style="height:55%"></span><span style="height:75%"></span>
+                <span style="height:48%"></span><span style="height:62%"></span>
+            </div>
+        </div>
     </div>
 
-    <!-- Sección Principal de Reportes -->
-    <div class="mb-12">
-        <div class="flex items-center justify-between mb-8">
-            <div>
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">
-                    <span class="gradient-text">📊 Reportes Ejecutivos</span>
-                </h2>
-                <p class="text-gray-600">Selecciona el reporte que necesitas descargar</p>
+    <div class="fn-inv-section-head">
+        <div>
+            <h2>Reportes</h2>
+            <p>Descarga PDF o Excel con datos en vivo</p>
+        </div>
+    </div>
+
+    <div class="fn-inv-grid">
+        <article class="fn-inv-card">
+            <div class="fn-inv-card-top">
+                <div>
+                    <h3>Clientes</h3>
+                    <p>Listado con estado, planes y contactos</p>
+                </div>
+                <span class="fn-status-pill is-ok">{{ clientes_activos }} activos</span>
+            </div>
+
+            <div class="fn-inv-meter ok">
+                <div class="row">
+                    <span>Tasa de activación</span>
+                    <strong>{{ '%.1f'|format(tasa_activos) }}%</strong>
+                </div>
+                <div class="track" aria-hidden="true"><i style="width: {{ [tasa_activos, 100]|min }}%"></i></div>
+            </div>
+
+            <div class="fn-inv-mini">
+                <div><em>{{ total_clientes }}</em><span>Total</span></div>
+                <div><em>{{ clientes_activos }}</em><span>Activos</span></div>
+            </div>
+
+            <div class="fn-inv-actions">
+                <button type="button" onclick="generarPDFClientesConNotificacion()" class="fn-btn-primary">PDF</button>
+                <a href="{{ url_for('descargar_excel_clientes') }}" class="fn-btn-ghost">Excel</a>
+            </div>
+        </article>
+
+        <article class="fn-inv-card">
+            <div class="fn-inv-card-top">
+                <div>
+                    <h3>Cajas NAP</h3>
+                    <p>Capacidad, ubicación y ocupación</p>
+                </div>
+                <span class="fn-status-pill is-{{ 'danger' if ocup_tone == 'bad' else ('warn' if ocup_tone == 'warn' else 'ok') }}">{{ ocupacion_promedio }}% · {{ ocup_label }}</span>
+            </div>
+
+            <div class="fn-inv-meter {{ ocup_tone }}">
+                <div class="row">
+                    <span>Uso de capacidad</span>
+                    <strong>{{ ocupacion_promedio }}%</strong>
+                </div>
+                <div class="track" aria-hidden="true"><i style="width: {{ [ocupacion_promedio, 100]|min }}%"></i></div>
+            </div>
+
+            <div class="fn-inv-mini cols-3">
+                <div><em>{{ total_naps }}</em><span>Cajas</span></div>
+                <div><em>{{ puertos_totales }}</em><span>Puertos</span></div>
+                <div><em>{{ puertos_ocupados }}</em><span>Usados</span></div>
+            </div>
+
+            <div class="fn-inv-actions">
+                <button type="button" onclick="generarPDFNapsConNotificacion()" class="fn-btn-primary">PDF</button>
+                <a href="{{ url_for('descargar_excel_naps') }}" class="fn-btn-ghost">Excel</a>
+            </div>
+        </article>
+
+        <article class="fn-inv-card">
+            <div class="fn-inv-card-top">
+                <div>
+                    <h3>Tipos de caja</h3>
+                    <p>Distribución y empalmes en la red</p>
+                </div>
+                <span class="fn-status-pill">{{ cajas_distribucion + cajas_empalme }} cajas</span>
+            </div>
+
+            <div class="fn-inv-types">
+                {% for item in resumen_tipos %}
+                <div class="fn-inv-type" style="border-left-color: {{ item.color }}">
+                    <div>
+                        <strong>{{ item.nombre }}</strong>
+                        <span>Instaladas en campo</span>
+                    </div>
+                    <em>{{ item.nats_count }}</em>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="fn-inv-actions">
+                <button type="button" onclick="generarPDFDistribucionEmpalmesConNotificacion()" class="fn-btn-primary">PDF</button>
+                <a href="{{ url_for('descargar_excel_todo') }}" class="fn-btn-ghost">Excel</a>
+            </div>
+        </article>
+    </div>
+
+    <section class="fn-inv-banner">
+        <div>
+            <h3>Inventario completo</h3>
+            <p>Clientes + cajas en un solo documento ejecutivo</p>
+            <div class="fn-inv-mini cols-3">
+                <div><em>{{ total_clientes + total_naps }}</em><span>Registros</span></div>
+                <div><em>{{ clientes_activos }}</em><span>Activos</span></div>
+                <div><em>{{ ocupacion_promedio }}%</em><span>Ocupación</span></div>
             </div>
         </div>
+        <div class="fn-inv-actions">
+            <button type="button" onclick="mostrarModalInventarioCompleto()" class="fn-btn-primary">PDF completo</button>
+            <a href="{{ url_for('descargar_excel_todo') }}" class="fn-btn-ghost">Excel completo</a>
+        </div>
+    </section>
 
-        <!-- Cards de Reportes Premium -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-            <!-- Card Clientes -->
-            <div class="download-card fade-in rounded-2xl p-8 hover-lift card-glow" style="animation-delay: 0.1s">
-                <div class="flex items-start justify-between mb-6">
-                    <div class="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-4 rounded-2xl">
-                        <div class="text-3xl">👥</div>
-                    </div>
-                    <span class="text-xs font-semibold px-3 py-1 rounded-full fm-tag-blue">ACTIVOS: {{ clientes_activos }}</span>
-                </div>
-                
-                <h3 class="text-2xl font-bold text-gray-900 mb-3">Reporte de Clientes</h3>
-                <p class="text-gray-600 mb-6">Listado completo con estado, planes y contactos</p>
-                
-                <div class="space-y-4 mb-8">
-                    <div>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="font-medium text-gray-700">Tasa de activación</span>
-                            <span class="font-bold text-gray-900">{{ ((clientes_activos/total_clientes)*100)|round(1) if total_clientes > 0 else 0 }}%</span>
-                        </div>
-                        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
-                            <div class="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" 
-                                 style="width: {{ (clientes_activos/total_clientes*100) if total_clientes > 0 else 0 }}%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="text-center p-3 rounded-xl fm-stat-mini">
-                            <div class="text-lg font-bold text-blue-600">{{ total_clientes }}</div>
-                            <div class="text-xs text-gray-600">Total</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
-                            <div class="text-lg font-bold text-emerald-600">{{ clientes_activos }}</div>
-                            <div class="text-xs text-gray-600">Activos</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-3">
-                    <button onclick="generarPDFClientesConNotificacion()" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        PDF
-                    </button>
-                    <a href="{{ url_for('descargar_excel_clientes') }}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Excel
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Card NAPs -->
-            <div class="download-card fade-in rounded-2xl p-8 hover-lift card-glow" style="animation-delay: 0.2s">
-                <div class="flex items-start justify-between mb-6">
-                    <div class="bg-gradient-to-br from-orange-500/10 to-amber-500/10 p-4 rounded-2xl">
-                        <div class="text-3xl">📡</div>
-                    </div>
-                    <span class="text-xs font-semibold px-3 py-1 rounded-full {{ 'fm-tag-red badge-pulse' if ocupacion_promedio >= 80 else 'fm-tag-amber' if ocupacion_promedio >= 50 else 'fm-tag-green' }}">
-                        {{ ocupacion_promedio }}% OCUPADO
-                    </span>
-                </div>
-                
-                <h3 class="text-2xl font-bold text-gray-900 mb-3">Reporte de Cajas NAP</h3>
-                <p class="text-gray-600 mb-6">Capacidad, ubicación y estado de distribución</p>
-                
-                <div class="space-y-4 mb-8">
-                    <div>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span class="font-medium text-gray-700">Uso de capacidad</span>
-                            <span class="font-bold {{ 'text-red-600' if ocupacion_promedio >= 80 else 'text-yellow-600' if ocupacion_promedio >= 50 else 'text-green-600' }}">
-                                {{ ocupacion_promedio }}%
-                            </span>
-                        </div>
-                        <div class="h-2 rounded-full overflow-hidden bg-gray-200">
-                            <div class="h-full rounded-full {{ 'bg-gradient-to-r from-red-500 to-pink-500' if ocupacion_promedio >= 80 else 'bg-gradient-to-r from-yellow-500 to-amber-500' if ocupacion_promedio >= 50 else 'bg-gradient-to-r from-green-500 to-emerald-500' }}" 
-                                 style="width: {{ ocupacion_promedio }}%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="text-center p-3 rounded-xl fm-stat-mini orange">
-                            <div class="text-lg font-bold text-orange-600">{{ total_naps }}</div>
-                            <div class="text-xs text-gray-600">Cajas</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini amber">
-                            <div class="text-lg font-bold text-amber-600">{{ puertos_totales }}</div>
-                            <div class="text-xs text-gray-600">Puertos</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
-                            <div class="text-lg font-bold text-emerald-600">{{ puertos_ocupados }}</div>
-                            <div class="text-xs text-gray-600">Usados</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-3">
-                    <button onclick="generarPDFNapsConNotificacion()" class="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        PDF
-                    </button>
-                    <a href="{{ url_for('descargar_excel_naps') }}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Excel
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Card Resumen tipos -->
-            <div class="download-card fade-in rounded-2xl p-8 hover-lift card-glow" style="animation-delay: 0.3s">
-                <div class="flex items-start justify-between mb-6">
-                    <div class="bg-gradient-to-br from-teal-500/10 to-emerald-500/10 p-4 rounded-2xl">
-                        <div class="text-3xl">📦</div>
-                    </div>
-                    <span class="text-xs font-semibold px-3 py-1 rounded-full fm-tag-green">{{ cajas_distribucion + cajas_empalme }} cajas</span>
-                </div>
-                
-                <h3 class="text-2xl font-bold text-gray-900 mb-3">Distribución y empalmes</h3>
-                <p class="text-gray-600 mb-6">Resumen por tipo de caja en la red</p>
-                
-                <div class="space-y-3 mb-8">
-                    {% for item in resumen_tipos %}
-                    <div class="inv-tipo-card p-4 rounded-xl transition-colors w-full"
-                         style="border-left: 4px solid {{ item.color }}">
-                        <div class="font-semibold text-gray-900">{{ item.nombre }}</div>
-                        <div class="text-sm text-gray-500 mt-1">{{ item.nats_count }} instaladas</div>
-                    </div>
-                    {% endfor %}
-                </div>
-                
-                <div class="flex gap-3">
-                    <button onclick="generarPDFDistribucionEmpalmesConNotificacion()" class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        PDF
-                    </button>
-                    <a href="{{ url_for('descargar_excel_todo') }}" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Excel
-                    </a>
-                </div>
+    <section class="fn-inv-banner">
+        <div>
+            <h3>Asistencia laboral</h3>
+            <p>Entradas, salidas y personal en jornada</p>
+            <div class="fn-inv-mini cols-4">
+                <div><em>{{ total_trabajadores }}</em><span>Personal</span></div>
+                <div><em>{{ dentro_hoy }}</em><span>Dentro hoy</span></div>
+                <div><em>{{ entradas_hoy }}</em><span>Entradas</span></div>
+                <div><em>{{ registros_mes }}</em><span>30 días</span></div>
             </div>
         </div>
-
-        <!-- Inventario Completo -->
-        <div class="glass-effect fm-panel rounded-2xl shadow-xl p-8 mb-8 hover-lift">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                <div class="mb-8 lg:mb-0 lg:mr-8">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 rounded-2xl mr-4">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-1">📦 Inventario Completo</h3>
-                            <p class="text-gray-600">Documento ejecutivo con todos los componentes</p>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center p-3 rounded-xl fm-stat-mini">
-                            <div class="text-lg font-bold text-blue-600">5</div>
-                            <div class="text-xs text-gray-600">Secciones</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini purple">
-                            <div class="text-lg font-bold text-purple-600">{{ total_clientes + total_naps }}</div>
-                            <div class="text-xs text-gray-600">Registros</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
-                            <div class="text-lg font-bold text-emerald-600">1</div>
-                            <div class="text-xs text-gray-600">Formato</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button onclick="mostrarModalInventarioCompleto()" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
-                        PDF COMPLETO
-                    </button>
-                    <a href="{{ url_for('descargar_excel_todo') }}" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        EXCEL COMPLETO
-                    </a>
-                </div>
-            </div>
+        <div class="fn-inv-actions">
+            <button type="button" onclick="mostrarModalAsistenciaCompleto()" class="fn-btn-primary">PDF asistencia</button>
+            <a href="{{ url_for('descargar_excel_asistencias') }}" class="fn-btn-ghost">Excel asistencia</a>
         </div>
+    </section>
 
-        <!-- Reporte de Asistencia Laboral -->
-        <div class="glass-effect fm-panel rounded-2xl shadow-xl p-8 mb-8 hover-lift">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                <div class="mb-8 lg:mb-0 lg:mr-8">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-gradient-to-r from-teal-500 to-cyan-600 text-white p-4 rounded-2xl mr-4">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-1">Asistencia Laboral</h3>
-                            <p class="text-gray-600">Control de entradas, salidas y personal en jornada</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div class="text-center p-3 rounded-xl fm-stat-mini">
-                            <div class="text-lg font-bold text-teal-600">{{ total_trabajadores }}</div>
-                            <div class="text-xs text-gray-600">Personal</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini emerald">
-                            <div class="text-lg font-bold text-emerald-600">{{ dentro_hoy }}</div>
-                            <div class="text-xs text-gray-600">Dentro hoy</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini blue">
-                            <div class="text-lg font-bold text-blue-600">{{ entradas_hoy }}</div>
-                            <div class="text-xs text-gray-600">Entradas hoy</div>
-                        </div>
-                        <div class="text-center p-3 rounded-xl fm-stat-mini purple">
-                            <div class="text-lg font-bold text-purple-600">{{ registros_mes }}</div>
-                            <div class="text-xs text-gray-600">Registros (30d)</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button onclick="mostrarModalAsistenciaCompleto()" class="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        PDF ASISTENCIA
-                    </button>
-                    <a href="{{ url_for('descargar_excel_asistencias') }}" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center">
-                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        EXCEL ASISTENCIA
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Leyenda Interactiva -->
-        <div class="inv-legend-box rounded-2xl p-8">
-            <h3 class="text-xl font-bold text-indigo-800 mb-6 flex items-center">
-                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                📋 Guía de Estados y Niveles
-            </h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div class="flex items-center space-x-3">
-                    <div class="relative">
-                        <div class="w-4 h-4 rounded-full bg-red-500"></div>
-                        <div class="absolute inset-0 rounded-full bg-red-500 animate-ping"></div>
-                    </div>
-                    <div>
-                        <div class="font-semibold text-gray-900">Crítico</div>
-                        <div class="text-sm text-gray-600">>80% capacidad</div>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
-                    <div>
-                        <div class="font-semibold text-gray-900">Moderado</div>
-                        <div class="text-sm text-gray-600">50-80% capacidad</div>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="w-4 h-4 rounded-full bg-green-500"></div>
-                    <div>
-                        <div class="font-semibold text-gray-900">Óptimo</div>
-                        <div class="text-sm text-gray-600"><50% capacidad</div>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2 rounded-lg">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="font-semibold text-gray-900">Descarga</div>
-                        <div class="text-sm text-gray-600">Datos en tiempo real</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="fn-inv-legend" aria-label="Leyenda de ocupación">
+        <span class="title">Capacidad</span>
+        <span class="item"><i class="dot" style="background:#DC2626"></i> Crítico <small>&gt;80%</small></span>
+        <span class="item"><i class="dot" style="background:#D97706"></i> Moderado <small>50–80%</small></span>
+        <span class="item"><i class="dot" style="background:#059669"></i> Óptimo <small>&lt;50%</small></span>
     </div>
 </div>
 
