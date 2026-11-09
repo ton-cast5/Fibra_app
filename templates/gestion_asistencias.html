@@ -1,208 +1,169 @@
 {% extends "base.html" %}
 
-{% block title %}Gestión de Asistencias - TONYLEX{% endblock %}
-
-{% block head %}
-<style>
-    .fade-in { animation: fadeInUp 0.45s ease-out; }
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: none; }
-    }
-    .worker-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .worker-card:hover { transform: translateY(-2px); }
-    .btn-entrada {
-        background: linear-gradient(135deg, #059669, #10b981);
-        color: white;
-    }
-    .btn-entrada:disabled {
-        background: #374151;
-        color: #9ca3af;
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-    .btn-salida {
-        background: linear-gradient(135deg, #dc2626, #ef4444);
-        color: white;
-    }
-    .btn-salida:disabled {
-        background: #374151;
-        color: #9ca3af;
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-    .badge-dentro {
-        background: rgba(16, 185, 129, 0.15);
-        color: #047857;
-        border: 1px solid rgba(16, 185, 129, 0.35);
-    }
-    .badge-fuera {
-        background: rgba(107, 114, 128, 0.15);
-        color: #4b5563;
-        border: 1px solid rgba(107, 114, 128, 0.3);
-    }
-    html.dark .badge-dentro { color: #6ee7b7; }
-    html.dark .badge-fuera { color: #94a3b8; }
-    html.dark .from-indigo-600.bg-clip-text {
-        -webkit-text-fill-color: #a5b4fc;
-        color: #a5b4fc;
-    }
-    .tipo-entrada { color: #059669; font-weight: 600; }
-    .tipo-salida { color: #dc2626; font-weight: 600; }
-    html.dark .tipo-entrada { color: #34d399; }
-    html.dark .tipo-salida { color: #f87171; }
-</style>
-{% endblock %}
+{% block title %}Asistencias - TONYLEX{% endblock %}
 
 {% block content %}
-<div class="fade-in">
+{% from '_kpi_viz.html' import kpi_bars, kpi_spark %}
+{% set pct_dentro = ((dentro / total_trabajadores) * 100) if total_trabajadores > 0 else 0 %}
+{% set marcajes = registros_dia|length %}
+{% set pct_entradas = ((entradas_hoy / marcajes) * 100) if marcajes > 0 else 0 %}
+{% set con_registro = tarjetas|map(attribute='registros')|select|list|length %}
+{% set pct_marcados = ((con_registro / total_trabajadores) * 100) if total_trabajadores > 0 else 0 %}
+
+<div class="fade-in fn-asi">
     <div class="fn-page-head">
         <div class="fn-page-head-left">
-            <a class="fn-back" href="{{ url_for('dashboard') }}" aria-label="Volver"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></a>
+            <a class="fn-back" href="{{ url_for('dashboard') }}" aria-label="Volver">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </a>
             <div>
                 <h1>Asistencias</h1>
-                <p>Registro de entrada y salida del personal.</p>
+                <p>Entrada y salida del personal, en un solo lugar.</p>
             </div>
         </div>
         <div class="fn-page-actions">
-            <div class="glass-effect fm-panel rounded-2xl px-4 py-2 text-center min-w-[10rem]">
-                <p class="text-xs text-gray-500 uppercase tracking-wide m-0">Hora</p>
-                <p id="reloj-sistema-fecha" class="text-xs font-medium text-gray-600 m-0">{{ fecha_actual.split(' ')[0] if ' ' in fecha_actual else fecha_actual }}</p>
-                <p id="reloj-sistema-hora" class="text-lg font-bold text-gray-900 font-mono m-0" aria-live="polite">{{ fecha_actual.split(' ')[1] if ' ' in fecha_actual else '' }}</p>
+            <div class="fn-inv-clock">
+                <p class="lbl">Ahora</p>
+                <p id="reloj-sistema-fecha" class="day">{{ fecha_actual.split(' ')[0] if ' ' in fecha_actual else fecha_actual }}</p>
+                <p id="reloj-sistema-hora" class="time" aria-live="polite">{{ fecha_actual.split(' ')[1] if ' ' in fecha_actual else '' }}</p>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="fm-panel glass-effect rounded-xl p-4 text-center">
-            <p class="text-2xl font-bold text-gray-900">{{ total_trabajadores }}</p>
-            <p class="text-sm text-gray-600">Trabajadores activos</p>
+    <div class="fn-kpi-grid">
+        <div class="fn-kpi">
+            <div class="label">Personal activo</div>
+            <div class="value">{{ total_trabajadores }}</div>
+            <div class="trend flat">{{ '%.0f'|format(pct_marcados) }}% con marcaje hoy</div>
+            {{ kpi_spark(pct_marcados, '#6C5CEF') }}
         </div>
-        <div class="fm-panel glass-effect rounded-xl p-4 text-center">
-            <p id="stat-dentro" class="text-2xl font-bold text-emerald-600">{{ dentro }}</p>
-            <p class="text-sm text-gray-600">Dentro ahora</p>
+        <div class="fn-kpi">
+            <div class="label">Dentro ahora</div>
+            <div class="value" id="stat-dentro">{{ dentro }}</div>
+            <div class="trend up">{{ '%.0f'|format(pct_dentro) }}% del equipo</div>
+            {{ kpi_bars(pct_dentro, 'ok' if pct_dentro >= 50 else 'warn') }}
         </div>
-        <div class="fm-panel glass-effect rounded-xl p-4 text-center">
-            <p id="stat-entradas" class="text-2xl font-bold text-blue-600">{{ entradas_hoy }}</p>
-            <p class="text-sm text-gray-600">Entradas hoy</p>
+        <div class="fn-kpi">
+            <div class="label">Entradas hoy</div>
+            <div class="value" id="stat-entradas">{{ entradas_hoy }}</div>
+            <div class="trend flat">Marcajes de ingreso</div>
+            {{ kpi_spark(pct_entradas if es_hoy else 0, '#14B8A6') }}
         </div>
-        <div class="fm-panel glass-effect rounded-xl p-4 text-center">
-            <p id="stat-marcajes" class="text-2xl font-bold text-indigo-600">{{ registros_dia|length }}</p>
-            <p class="text-sm text-gray-600">Marcajes del día</p>
+        <div class="fn-kpi">
+            <div class="label">Marcajes del día</div>
+            <div class="value" id="stat-marcajes">{{ marcajes }}</div>
+            <div class="trend flat">{{ fecha_consulta }}</div>
+            {{ kpi_bars([marcajes, 100]|min if marcajes else 0, 'violet') }}
         </div>
     </div>
 
     {% if es_hoy %}
-    <div class="fm-info-box rounded-xl px-4 py-3 mb-6 text-sm text-gray-700">
-        <strong>Registro manual:</strong> cada persona pulsa <strong>Entrada</strong> al llegar y <strong>Salida</strong> al irse.
-        La fecha y hora se guardan automáticamente. Próximamente: lector NFC con tarjeta.
+    <div class="fn-asi-note">
+        <strong>Registro manual:</strong> cada persona pulsa Entrada al llegar y Salida al irse. Fecha y hora se guardan solas.
     </div>
     {% else %}
-    <div class="rounded-xl px-4 py-3 mb-6 text-sm bg-amber-50 border border-amber-200 text-amber-900 fm-badge-pill">
-        Consultando historial del {{ fecha_consulta }}. Los botones de registro solo están activos para el día de hoy.
+    <div class="fn-asi-note is-hist">
+        Consultando historial del <strong>{{ fecha_consulta }}</strong>. Los botones de registro solo están activos para hoy.
     </div>
     {% endif %}
 
-    <h2 class="text-xl font-bold text-gray-800 mb-4">Personal</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+    <div class="fn-asi-section-head">
+        <div>
+            <h2>Personal</h2>
+            <p>Tarjetas de marcaje por colaborador</p>
+        </div>
+    </div>
+
+    <div class="fn-asi-grid">
         {% for item in tarjetas %}
         {% set t = item.trabajador %}
-        <div class="fm-card worker-card rounded-2xl p-5 shadow-lg" id="worker-card-{{ t.id }}" data-trabajador-id="{{ t.id }}">
-            <div class="flex items-start justify-between mb-3">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center font-bold text-sm">
-                    {{ t.nombre_completo[0]|upper }}
-                </div>
-                <span id="worker-badge-{{ t.id }}" class="text-xs font-semibold px-2 py-1 rounded-full {% if item.en_jornada %}badge-dentro{% else %}badge-fuera{% endif %}">
-                    {% if item.en_jornada %}Dentro{% else %}Fuera{% endif %}
+        <article class="fn-asi-card" id="worker-card-{{ t.id }}" data-trabajador-id="{{ t.id }}">
+            <div class="fn-asi-card-top">
+                <div class="fn-asi-avatar">{{ t.nombre_completo[0]|upper }}</div>
+                <span id="worker-badge-{{ t.id }}" class="fn-asi-badge {{ 'is-in' if item.en_jornada else 'is-out' }}">
+                    {{ 'Dentro' if item.en_jornada else 'Fuera' }}
                 </span>
             </div>
-            <h3 class="font-bold text-gray-900 text-sm leading-tight mb-3 min-h-[2.5rem]">{{ t.nombre_completo }}</h3>
+            <h3>{{ t.nombre_completo }}</h3>
 
-            <div id="worker-registros-{{ t.id }}" class="text-xs text-gray-500 mb-3 border-t border-gray-200 pt-2 {% if item.registros %}space-y-1{% endif %}">
+            <div id="worker-registros-{{ t.id }}" class="fn-asi-logs">
                 {% if item.registros %}
-                {% for r in item.registros %}
-                <div class="flex justify-between">
-                    <span class="{% if r.tipo == 'entrada' %}tipo-entrada{% else %}tipo-salida{% endif %}">{{ r.tipo_label }}</span>
-                    <span>{{ r.fecha_hora.strftime('%H:%M:%S') }}</span>
-                </div>
-                {% endfor %}
+                    {% for r in item.registros %}
+                    <div class="row">
+                        <span class="{{ 'in' if r.tipo == 'entrada' else 'out' }}">{{ r.tipo_label }}</span>
+                        <span class="time">{{ r.fecha_hora.strftime('%H:%M:%S') }}</span>
+                    </div>
+                    {% endfor %}
                 {% else %}
-                <p class="worker-sin-marcajes">Sin marcajes este día</p>
+                    <p class="empty worker-sin-marcajes">Sin marcajes este día</p>
                 {% endif %}
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
+            <div class="fn-asi-actions">
                 <form method="POST" action="{{ url_for('registrar_asistencia_laboral') }}" class="form-asistencia" data-tipo="entrada">
                     <input type="hidden" name="trabajador_id" value="{{ t.id }}">
                     <input type="hidden" name="tipo" value="entrada">
-                    <button type="submit" class="btn-entrada w-full py-2.5 rounded-xl text-sm font-bold shadow-md btn-marcaje"
-                            data-tipo="entrada" {% if not item.puede_entrada %}disabled{% endif %}>
+                    <button type="submit" class="entrada btn-marcaje" data-tipo="entrada" {% if not item.puede_entrada %}disabled{% endif %}>
                         Entrada
                     </button>
                 </form>
                 <form method="POST" action="{{ url_for('registrar_asistencia_laboral') }}" class="form-asistencia" data-tipo="salida">
                     <input type="hidden" name="trabajador_id" value="{{ t.id }}">
                     <input type="hidden" name="tipo" value="salida">
-                    <button type="submit" class="btn-salida w-full py-2.5 rounded-xl text-sm font-bold shadow-md btn-marcaje"
-                            data-tipo="salida" {% if not item.puede_salida %}disabled{% endif %}>
+                    <button type="submit" class="salida btn-marcaje" data-tipo="salida" {% if not item.puede_salida %}disabled{% endif %}>
                         Salida
                     </button>
                 </form>
             </div>
-        </div>
+        </article>
         {% endfor %}
     </div>
 
-    <div class="fm-card rounded-2xl shadow-xl overflow-hidden">
-        <div class="fm-form-header px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-             style="background: linear-gradient(to right, #4f46e5, #6366f1);">
-            <h2 class="text-lg font-bold text-white">Historial del día</h2>
-            <form method="GET" action="{{ url_for('gestion_asistencias') }}" class="flex items-center gap-2">
-                <input type="date" name="fecha" value="{{ fecha_consulta }}"
-                       class="px-3 py-1.5 rounded-lg text-sm text-gray-900 border-0">
-                <button type="submit" class="px-4 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium">
-                    Ver
-                </button>
+    <section class="fn-asi-panel">
+        <div class="fn-asi-panel-head">
+            <div>
+                <h2>Historial del día</h2>
+                <p>Movimientos registrados en la fecha seleccionada</p>
+            </div>
+            <form method="GET" action="{{ url_for('gestion_asistencias') }}" class="fn-asi-dateform">
+                <input type="date" name="fecha" value="{{ fecha_consulta }}">
+                <button type="submit" class="fn-btn-ghost">Ver</button>
                 {% if not es_hoy %}
-                <a href="{{ url_for('gestion_asistencias') }}" class="px-3 py-1.5 text-white text-sm underline">Hoy</a>
+                <a href="{{ url_for('gestion_asistencias') }}" class="fn-btn-primary">Hoy</a>
                 {% endif %}
             </form>
         </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gradient-to-r from-indigo-700 to-violet-700">
+        <div class="fn-asi-table-wrap">
+            <table class="fn-asi-table">
+                <thead>
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase">Hora</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase">Trabajador</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-white uppercase">Tipo</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold text-white uppercase">Acción</th>
+                        <th>Hora</th>
+                        <th>Trabajador</th>
+                        <th>Tipo</th>
+                        <th></th>
                     </tr>
                 </thead>
-                <tbody id="historial-tbody" class="fm-table-body divide-y divide-gray-200">
+                <tbody id="historial-tbody">
                     {% for r in registros_dia %}
-                    <tr class="table-row-hover" data-registro-id="{{ r.id }}">
-                        <td class="px-4 py-3 text-sm font-mono text-gray-700">
-                            {{ r.fecha_hora.strftime('%d/%m/%Y %H:%M:%S') }}
-                        </td>
-                        <td class="px-4 py-3 font-medium text-gray-900">{{ r.trabajador.nombre_completo }}</td>
-                        <td class="px-4 py-3 text-center">
-                            <span class="text-sm font-semibold px-3 py-1 rounded-full {% if r.tipo == 'entrada' %}fm-tag-green{% else %}fm-tag-red{% endif %}">
+                    <tr data-registro-id="{{ r.id }}">
+                        <td class="mono">{{ r.fecha_hora.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td>{{ r.trabajador.nombre_completo }}</td>
+                        <td>
+                            <span class="fn-asi-badge {{ 'is-in' if r.tipo == 'entrada' else 'is-out' }}">
                                 {{ r.tipo_label }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-right">
+                        <td style="text-align:right">
                             <form method="POST" action="{{ url_for('eliminar_registro_asistencia', registro_id=r.id) }}"
                                   onsubmit="return confirm('¿Eliminar este marcaje?');" class="inline">
                                 <input type="hidden" name="fecha" value="{{ fecha_consulta }}">
-                                <button type="submit" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50">
-                                    Eliminar
-                                </button>
+                                <button type="submit" class="del">Eliminar</button>
                             </form>
                         </td>
                     </tr>
                     {% else %}
                     <tr id="historial-vacio">
-                        <td colspan="4" class="px-6 py-10 text-center text-gray-500">
+                        <td colspan="4" style="text-align:center;padding:2.2rem;color:var(--fn-muted)">
                             No hay registros para esta fecha.
                         </td>
                     </tr>
@@ -210,7 +171,7 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 </div>
 
 <script>
@@ -228,21 +189,20 @@
     function mostrarToast(mensaje, tipo) {
         document.querySelectorAll('.toast-asistencia').forEach(function (n) { n.remove(); });
         var toast = document.createElement('div');
-        var colores = {
-            success: 'bg-emerald-600',
-            error: 'bg-red-600',
-            info: 'bg-indigo-600'
-        };
-        toast.className = 'toast-asistencia fixed top-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl text-white text-sm font-semibold transform transition-all duration-300 -translate-y-4 opacity-0 ' + (colores[tipo] || colores.info);
+        toast.className = 'toast-asistencia';
         toast.textContent = mensaje;
-        document.body.appendChild(toast);
-        requestAnimationFrame(function () {
-            toast.classList.remove('-translate-y-4', 'opacity-0');
+        Object.assign(toast.style, {
+            position: 'fixed', top: '1.25rem', right: '1.25rem', zIndex: '80',
+            padding: '0.85rem 1.1rem', borderRadius: '14px', fontWeight: '700',
+            fontSize: '0.88rem', color: '#fff', boxShadow: '0 16px 30px -16px rgba(0,0,0,.4)',
+            background: tipo === 'success' ? '#059669' : tipo === 'error' ? '#DC2626' : '#6C5CEF'
         });
+        document.body.appendChild(toast);
         setTimeout(function () {
-            toast.classList.add('opacity-0', 'translate-y-4');
-            setTimeout(function () { toast.remove(); }, 300);
-        }, 3200);
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity .25s ease';
+            setTimeout(function () { toast.remove(); }, 250);
+        }, 2800);
     }
 
     function actualizarResumen(resumen) {
@@ -260,18 +220,16 @@
         var badge = document.getElementById('worker-badge-' + trabajador.id);
         if (badge) {
             badge.textContent = trabajador.en_jornada ? 'Dentro' : 'Fuera';
-            badge.className = 'text-xs font-semibold px-2 py-1 rounded-full ' + (trabajador.en_jornada ? 'badge-dentro' : 'badge-fuera');
+            badge.className = 'fn-asi-badge ' + (trabajador.en_jornada ? 'is-in' : 'is-out');
         }
         var registrosEl = document.getElementById('worker-registros-' + trabajador.id);
         if (registrosEl) {
             if (!trabajador.registros || !trabajador.registros.length) {
-                registrosEl.innerHTML = '<p class="worker-sin-marcajes">Sin marcajes este día</p>';
-                registrosEl.classList.remove('space-y-1');
+                registrosEl.innerHTML = '<p class="empty worker-sin-marcajes">Sin marcajes este día</p>';
             } else {
-                registrosEl.classList.add('space-y-1');
                 registrosEl.innerHTML = trabajador.registros.map(function (r) {
-                    var cls = r.tipo === 'entrada' ? 'tipo-entrada' : 'tipo-salida';
-                    return '<div class="flex justify-between"><span class="' + cls + '">' + r.tipo_label + '</span><span>' + r.hora + '</span></div>';
+                    var cls = r.tipo === 'entrada' ? 'in' : 'out';
+                    return '<div class="row"><span class="' + cls + '">' + r.tipo_label + '</span><span class="time">' + r.hora + '</span></div>';
                 }).join('');
             }
         }
@@ -292,14 +250,13 @@
         var vacio = document.getElementById('historial-vacio');
         if (vacio) vacio.remove();
         var tr = document.createElement('tr');
-        tr.className = 'table-row-hover';
         tr.setAttribute('data-registro-id', registro.id);
-        var tagCls = registro.tipo === 'entrada' ? 'fm-tag-green' : 'fm-tag-red';
+        var badgeCls = registro.tipo === 'entrada' ? 'is-in' : 'is-out';
         tr.innerHTML =
-            '<td class="px-4 py-3 text-sm font-mono text-gray-700">' + registro.fecha_hora + '</td>' +
-            '<td class="px-4 py-3 font-medium text-gray-900">' + registro.trabajador_nombre + '</td>' +
-            '<td class="px-4 py-3 text-center"><span class="text-sm font-semibold px-3 py-1 rounded-full ' + tagCls + '">' + registro.tipo_label + '</span></td>' +
-            '<td class="px-4 py-3 text-right text-xs text-gray-400">—</td>';
+            '<td class="mono">' + registro.fecha_hora + '</td>' +
+            '<td>' + registro.trabajador_nombre + '</td>' +
+            '<td><span class="fn-asi-badge ' + badgeCls + '">' + registro.tipo_label + '</span></td>' +
+            '<td style="text-align:right;color:var(--fn-muted);font-size:0.78rem">—</td>';
         tbody.insertBefore(tr, tbody.firstChild);
     }
 

@@ -2930,5 +2930,278 @@ html.dark .fn-inv-mini > div,
 html.dark .fn-inv-type,
 html.dark .fn-inv-meter .track { background: rgba(255,255,255,.05); }
 
+/* ===== ASISTENCIAS ===== */
+.fn-asi { display: flex; flex-direction: column; gap: 1rem; }
+.fn-asi-note {
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--fn-border);
+  background: #fff;
+  box-shadow: var(--fn-shadow);
+  font-size: 0.84rem;
+  color: var(--fn-ink);
+  line-height: 1.45;
+}
+.fn-asi-note strong { font-weight: 800; }
+.fn-asi-note.is-hist {
+  background: #FFF6DF;
+  border-color: #F5E2A8;
+  color: #9A6700;
+}
+.fn-asi-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.fn-asi-section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  color: var(--fn-ink);
+}
+.fn-asi-section-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--fn-muted);
+}
+.fn-asi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+@media (max-width: 1200px) {
+  .fn-asi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 780px) {
+  .fn-asi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .fn-asi-grid { grid-template-columns: 1fr; }
+}
+.fn-asi-card {
+  background: #fff;
+  border: 1px solid var(--fn-border);
+  border-radius: 20px;
+  box-shadow: var(--fn-shadow);
+  padding: 1rem 1.05rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.fn-asi-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(108,92,239,.28);
+}
+.fn-asi-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+.fn-asi-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 850;
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--fn-violet);
+  flex-shrink: 0;
+}
+.fn-asi-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.fn-asi-badge.is-in {
+  color: #0F7A45;
+  background: #E9F9F0;
+  border-color: #C6EED8;
+}
+.fn-asi-badge.is-out {
+  color: var(--fn-muted);
+  background: #F1F0F5;
+  border-color: var(--fn-border);
+}
+.fn-asi-card h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--fn-ink);
+  line-height: 1.3;
+  min-height: 2.4em;
+}
+.fn-asi-logs {
+  margin: 0;
+  padding: 0.55rem 0 0;
+  border-top: 1px solid var(--fn-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-height: 2.4rem;
+  font-size: 0.74rem;
+}
+.fn-asi-logs .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.fn-asi-logs .in { color: #0F7A45; font-weight: 750; }
+.fn-asi-logs .out { color: #B42318; font-weight: 750; }
+.fn-asi-logs .time {
+  color: var(--fn-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.fn-asi-logs .empty {
+  margin: 0;
+  color: var(--fn-muted);
+  font-weight: 650;
+}
+.fn-asi-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-top: auto;
+}
+.fn-asi-actions button {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  min-height: 40px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  color: #fff;
+  transition: filter .15s ease, opacity .15s ease;
+}
+.fn-asi-actions button.entrada { background: #059669; }
+.fn-asi-actions button.salida { background: #DC2626; }
+.fn-asi-actions button:hover:not(:disabled) { filter: brightness(1.06); }
+.fn-asi-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: none;
+  background: #9CA3AF;
+}
+
+.fn-asi-panel {
+  background: #fff;
+  border: 1px solid var(--fn-border);
+  border-radius: 22px;
+  box-shadow: var(--fn-shadow);
+  overflow: hidden;
+}
+.fn-asi-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--fn-border);
+}
+.fn-asi-panel-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 850;
+}
+.fn-asi-panel-head p {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--fn-muted);
+}
+.fn-asi-dateform {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+.fn-asi-dateform input[type="date"] {
+  min-height: 38px;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--fn-border);
+  border-radius: 12px;
+  background: var(--fn-bg-2);
+  color: var(--fn-ink);
+  font: inherit;
+  font-size: 0.86rem;
+}
+.fn-asi-table-wrap { overflow-x: auto; }
+.fn-asi-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+.fn-asi-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fn-muted);
+  padding: 0.75rem 1rem;
+  background: var(--fn-bg-2);
+  border-bottom: 1px solid var(--fn-border);
+}
+.fn-asi-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid rgba(20,19,28,0.06);
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
+.fn-asi-table tbody tr:hover { background: rgba(108,92,239,0.04); }
+.fn-asi-table .mono {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--fn-ink);
+}
+.fn-asi-table .del {
+  appearance: none;
+  border: 1px solid var(--fn-border);
+  background: #fff;
+  color: #B42318;
+  border-radius: 10px;
+  padding: 0.3rem 0.65rem;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.fn-asi-table .del:hover { background: #FEECEC; border-color: #F5C2C0; }
+
+html.dark .fn-asi-note,
+html.dark .fn-asi-card,
+html.dark .fn-asi-panel,
+html.dark .fn-asi-dateform input[type="date"],
+html.dark .fn-asi-table .del {
+  background: #1A1825;
+  border-color: rgba(255,255,255,.08);
+  color: #F3F0FF;
+}
+html.dark .fn-asi-card h3,
+html.dark .fn-asi-panel-head h2,
+html.dark .fn-asi-section-head h2,
+html.dark .fn-asi-table .mono { color: #F3F0FF; }
+html.dark .fn-asi-note.is-hist {
+  background: rgba(217,119,6,.12);
+  border-color: rgba(245,226,168,.25);
+  color: #FCD34D;
+}
+html.dark .fn-asi-table th { background: rgba(255,255,255,.04); }
+
 /* Mapa: no tocar Leaflet ni controles. Sin reglas aquí. */
 
