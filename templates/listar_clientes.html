@@ -204,19 +204,18 @@ document.addEventListener('DOMContentLoaded', function () {
     var resultsStat = document.querySelector('.fn-mini-stats .fn-mini-stat:last-child .v');
     var originalBody = tbody ? tbody.innerHTML : '';
     var originalResults = resultsStat ? resultsStat.textContent : '';
-    var suggestTimer = null;
-    var lastSuggest = '';
-    var suggestReq = 0;
-    var tableReq = 0;
-    var showingEmpty = false;
+    var timer = null;
+    var lastQ = null;
+    var reqId = 0;
     var liveActive = false;
 
     var ICON_EDIT = '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>';
     var ICON_DEL = '<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
     var EMPTY_HTML = '<tr><td colspan="5" class="px-6 py-14 text-center text-gray-500">' +
         '<p class="font-semibold mb-1">Sin coincidencias</p>' +
-        '<p class="text-sm">Prueba otro nombre, IP o NAP.</p></td></tr>';
+        '<p class="text-sm">Prueba otro nombre, apellido, IP o NAP.</p></td></tr>';
 
+    // Filtros de estado/NAP/plan sí recargan (cambian el contexto).
     document.querySelectorAll('.filtro-servidor').forEach(function (el) {
         el.addEventListener('change', function () { form.submit(); });
     });
@@ -234,15 +233,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function filtersQuery() {
-        var estado = (form.querySelector('[name="estado"]') || {}).value || 'todos';
-        var nap = (form.querySelector('[name="nap"]') || {}).value || 'todas';
-        var plan = (form.querySelector('[name="plan"]') || {}).value || 'todos';
-        var q = (input.value || '').trim();
-        return 'q=' + encodeURIComponent(q) +
-            '&estado=' + encodeURIComponent(estado) +
-            '&nap=' + encodeURIComponent(nap) +
-            '&plan=' + encodeURIComponent(plan);
+    function filtersQuery(qOverride) {
+        var q = (qOverride != null ? qOverride : (input.value || '')).trim();
+        // Búsqueda en vivo solo por texto (nombre/apellido/IP/NAP…),
+        // igual en sugerencias y en la tabla. Sin recargar la página.
+        return 'q=' + encodeURIComponent(q) + '&estado=todos&nap=todas&plan=todos';
     }
 
     function syncUrl(q) {
@@ -255,56 +250,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) {}
     }
 
-    function showEmptyEverywhere() {
-        showingEmpty = true;
-        box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
-        box.hidden = false;
-        tbody.innerHTML = EMPTY_HTML;
-        if (resultsStat) resultsStat.textContent = '0';
-        if (pagWrap) pagWrap.hidden = true;
-        if (liveNote) {
-            liveNote.hidden = false;
-            liveNote.textContent = '0 coincidencias';
-        }
-    }
-
-    function softRestoreList() {
-        // Vuelve el listado base sin recargar; la tabla no “parpadea” en cada letra.
-        if (!showingEmpty && !liveActive) return;
-        showingEmpty = false;
-        liveActive = false;
-        tbody.innerHTML = originalBody;
-        if (resultsStat) resultsStat.textContent = originalResults;
-        if (pagWrap) pagWrap.hidden = false;
-        if (liveNote) liveNote.hidden = true;
-    }
-
     function restoreOriginal() {
-        showingEmpty = false;
         liveActive = false;
+        lastQ = '';
         hideSuggest();
         tbody.innerHTML = originalBody;
         if (resultsStat) resultsStat.textContent = originalResults;
         if (pagWrap) pagWrap.hidden = false;
         if (liveNote) liveNote.hidden = true;
         syncUrl('');
-    }
-
-    function renderSuggest(items) {
-        box.innerHTML = items.map(function (it) {
-            return '<button type="button" class="fn-suggest-item" data-q="' + escapeHtml(it.label) + '" role="option">' +
-                '<span class="fn-suggest-type">Cliente</span>' +
-                '<span class="fn-suggest-label">' + escapeHtml(it.label) + '</span>' +
-                '<span class="fn-suggest-hint">' + escapeHtml(it.hint || '') + '</span></button>';
-        }).join('');
-        box.hidden = false;
-        box.querySelectorAll('.fn-suggest-item').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                input.value = btn.getAttribute('data-q') || '';
-                hideSuggest();
-                applySearch();
-            });
-        });
     }
 
     function rowHtml(c) {
@@ -333,10 +287,32 @@ document.addEventListener('DOMContentLoaded', function () {
             '</div></td></tr>';
     }
 
+    function renderSuggestFromItems(items) {
+        if (!items.length) {
+            box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
+            box.hidden = false;
+            return;
+        }
+        box.innerHTML = items.slice(0, 8).map(function (c) {
+            var hint = [c.plan, c.nat_nombre || 'Sin NAP', c.ip].filter(Boolean).join(' · ');
+            return '<button type="button" class="fn-suggest-item" data-q="' + escapeHtml(c.nombre) + '" role="option">' +
+                '<span class="fn-suggest-type">Cliente</span>' +
+                '<span class="fn-suggest-label">' + escapeHtml(c.nombre) + '</span>' +
+                '<span class="fn-suggest-hint">' + escapeHtml(hint) + '</span></button>';
+        }).join('');
+        box.hidden = false;
+        box.querySelectorAll('.fn-suggest-item').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                input.value = btn.getAttribute('data-q') || '';
+                hideSuggest();
+                liveSearch(true);
+            });
+        });
+    }
+
     function renderTable(data) {
         var items = (data && data.items) || [];
         liveActive = true;
-        showingEmpty = !items.length;
         if (!items.length) {
             tbody.innerHTML = EMPTY_HTML;
         } else {
@@ -352,69 +328,49 @@ document.addEventListener('DOMContentLoaded', function () {
                     ? ('Mostrando ' + data.count + ' de ' + data.total + ' coincidencias')
                     : (data.total + (data.total === 1 ? ' coincidencia' : ' coincidencias')));
         }
+        renderSuggestFromItems(items);
     }
 
-    function applySearch() {
+    function liveSearch(force) {
         var q = (input.value || '').trim();
+        if (!force && q === lastQ) return;
+
         if (!q) {
             restoreOriginal();
             return;
         }
-        var myId = ++tableReq;
-        fetch('/api/clientes?' + filtersQuery() + '&limit=100', { headers: { 'Accept': 'application/json' } })
+
+        lastQ = q;
+        var myId = ++reqId;
+        fetch('/api/clientes?' + filtersQuery(q) + '&limit=100', { headers: { 'Accept': 'application/json' } })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (myId !== tableReq) return;
+                if (myId !== reqId) return;
                 if ((input.value || '').trim() !== q) return;
                 renderTable(data || { items: [], total: 0, count: 0 });
                 syncUrl(q);
-                if (!(data && data.items && data.items.length)) {
-                    box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
-                    box.hidden = false;
-                }
             })
             .catch(function () {});
     }
 
-    function fetchSuggest(q) {
-        var myId = ++suggestReq;
-        fetch('/api/buscar?tipo=cliente&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (myId !== suggestReq) return;
-                if ((input.value || '').trim() !== q) return;
-                var items = (data && data.results) || [];
-                if (!items.length) {
-                    showEmptyEverywhere();
-                    return;
-                }
-                softRestoreList();
-                renderSuggest(items);
-            })
-            .catch(function () { hideSuggest(); });
-    }
-
     function onQueryChange() {
         var trimmed = (input.value || '').trim();
-        clearTimeout(suggestTimer);
+        clearTimeout(timer);
 
         if (!trimmed) {
-            lastSuggest = '';
-            restoreOriginal();
+            liveSearch(true);
             return;
         }
 
-        if (trimmed === lastSuggest) return;
-        suggestTimer = setTimeout(function () {
-            lastSuggest = trimmed;
-            fetchSuggest(trimmed);
-        }, 140);
+        // Una sola petición: actualiza tabla + sugerencias sin recargar la página.
+        timer = setTimeout(function () { liveSearch(false); }, 200);
     }
 
     form.addEventListener('submit', function (e) {
         e.preventDefault();
+        clearTimeout(timer);
         hideSuggest();
-        applySearch();
+        liveSearch(true);
     });
 
     input.addEventListener('input', onQueryChange);
@@ -423,13 +379,19 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.key === 'Escape') hideSuggest();
         if (e.key === 'Enter') {
             e.preventDefault();
+            clearTimeout(timer);
             hideSuggest();
-            applySearch();
+            liveSearch(true);
         }
     });
     document.addEventListener('click', function (e) {
         if (!wrap.contains(e.target)) hideSuggest();
     });
+
+    // Si llegamos con ?q=…, sincroniza el desglose con la misma API.
+    if ((input.value || '').trim()) {
+        liveSearch(true);
+    }
 });
 </script>
 {% endblock %}

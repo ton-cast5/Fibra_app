@@ -749,19 +749,35 @@ def stats_nats_listado():
 
 
 def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
-    """Consulta de clientes con filtros en servidor."""
-    query = Cliente.query.options(joinedload(Cliente.nat))
+    """Consulta de clientes con filtros en servidor.
 
-    if q:
-        term = f'%{q.strip().lower()}%'
-        query = query.outerjoin(Nat, Cliente.nat_id == Nat.id).filter(or_(
-            func.lower(Cliente.nombre).like(term),
-            func.lower(Cliente.direccion).like(term),
-            func.lower(func.coalesce(Cliente.contacto, '')).like(term),
-            func.lower(func.coalesce(Cliente.ip, '')).like(term),
-            func.lower(func.coalesce(Cliente.servicio, '')).like(term),
-            func.lower(func.coalesce(Nat.nombre, '')).like(term),
-        ))
+    La búsqueda por texto parte el query en palabras: cada una debe coincidir
+    en nombre, dirección, contacto, IP, servicio, plan o NAP (sirve con solo
+    nombre o solo apellido).
+    """
+    query = Cliente.query.options(joinedload(Cliente.nat))
+    joined_nat = False
+
+    def ensure_nat_join():
+        nonlocal query, joined_nat
+        if not joined_nat:
+            query = query.outerjoin(Nat, Cliente.nat_id == Nat.id)
+            joined_nat = True
+
+    if q and str(q).strip():
+        ensure_nat_join()
+        tokens = [t for t in str(q).strip().split() if t]
+        for token in tokens:
+            term = f'%{token.lower()}%'
+            query = query.filter(or_(
+                func.lower(Cliente.nombre).like(term),
+                func.lower(func.coalesce(Cliente.direccion, '')).like(term),
+                func.lower(func.coalesce(Cliente.contacto, '')).like(term),
+                func.lower(func.coalesce(Cliente.ip, '')).like(term),
+                func.lower(func.coalesce(Cliente.servicio, '')).like(term),
+                func.lower(func.coalesce(Cliente.plan, '')).like(term),
+                func.lower(func.coalesce(Nat.nombre, '')).like(term),
+            ))
 
     if estado == 'activo':
         query = query.filter(Cliente.activo.is_(True))
@@ -777,8 +793,12 @@ def construir_query_clientes(q=None, estado=None, nat_id=None, plan=None):
                 query = query.filter(Cliente.nat_id == int(nat_pk))
 
     if plan and plan != 'todos':
-        query = query.filter(func.lower(Cliente.plan).like(f'%{plan.strip().lower()}%'))
+        query = query.filter(func.lower(func.coalesce(Cliente.plan, '')).like(
+            f'%{plan.strip().lower()}%'
+        ))
 
+    if joined_nat:
+        query = query.distinct()
     return query.order_by(Cliente.nombre)
 
 
@@ -1399,17 +1419,8 @@ def api_buscar_global():
                     'url': url_for('ver_nat', nat_id=nat.id),
                 })
         if tipo in ('', 'all', 'cliente', 'clientes'):
-            cli_q = Cliente.query.options(joinedload(Cliente.nat)).outerjoin(
-                Nat, Cliente.nat_id == Nat.id
-            ).filter(db.or_(
-                Cliente.nombre.ilike(like),
-                Cliente.direccion.ilike(like),
-                func.coalesce(Cliente.contacto, '').ilike(like),
-                func.coalesce(Cliente.ip, '').ilike(like),
-                func.coalesce(Cliente.servicio, '').ilike(like),
-                func.coalesce(Cliente.plan, '').ilike(like),
-                func.coalesce(Nat.nombre, '').ilike(like),
-            )).order_by(Cliente.nombre.asc()).limit(10 if tipo.startswith('cliente') else 8)
+            # Misma lógica que el listado /api/clientes para que coincidan.
+            cli_q = construir_query_clientes(q=q).limit(10 if tipo.startswith('cliente') else 8)
             for cli in cli_q.all():
                 nap_nombre = cli.nat.nombre if cli.nat else 'Sin NAP'
                 hint_bits = [bit for bit in (cli.plan, nap_nombre, cli.ip) if bit]
@@ -1417,7 +1428,6 @@ def api_buscar_global():
                     'type': 'cliente',
                     'label': cli.nombre,
                     'hint': ' · '.join(hint_bits) if hint_bits else (cli.direccion or 'Cliente'),
-                    # Quedarse en el listado filtrado (no ir a editar).
                     'url': url_for('listar_clientes', q=cli.nombre),
                 })
     except Exception as e:
