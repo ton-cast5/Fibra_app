@@ -18,7 +18,7 @@
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap"></noscript>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tonylex-shell.css') }}?v=fn-clientes-live-2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tonylex-shell.css') }}?v=fn-clientes-local-1">
     <script src="{{ url_for('static', filename='js/fibra-tiempo.js') }}" defer></script>
     
     {% block head %}{% endblock %}
@@ -950,6 +950,8 @@
         (function () {
             function bindLiveSearch(input) {
                 if (!input || input.dataset.txBound === '1') return;
+                // El buscador de Clientes tiene su propio filtro de tabla: no redirigir.
+                if (input.dataset.txLocal === '1' || input.closest('#filtros-clientes')) return;
                 input.dataset.txBound = '1';
                 var wrap = input.closest('.relative') || input.parentElement;
                 if (!wrap) return;

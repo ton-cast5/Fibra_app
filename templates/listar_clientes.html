@@ -77,7 +77,8 @@
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
             <input type="search" name="q" id="buscador" value="{{ filtros.q }}"
                    placeholder="Nombre, apellido, IP, dirección, NAP, plan, activo…"
-                   autocomplete="off" aria-autocomplete="list" aria-controls="clientes-suggest">
+                   autocomplete="off" data-tx-local="1"
+                   aria-autocomplete="list" aria-controls="clientes-suggest">
             <div class="fn-suggest" id="clientes-suggest" hidden role="listbox"></div>
         </div>
         <select name="estado" class="filtro-servidor">
@@ -250,7 +251,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
         box.hidden = false;
         box.querySelectorAll('.fn-suggest-item').forEach(function (btn) {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('mousedown', function (e) {
+                e.preventDefault(); // evita blur/navegación; aplica filtro de la tabla
                 applyInTable(btn.getAttribute('data-q') || '');
             });
         });
