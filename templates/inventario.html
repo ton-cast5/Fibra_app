@@ -83,7 +83,7 @@
                     <h3>Clientes</h3>
                     <p>Listado con estado, planes y contactos</p>
                 </div>
-                <span class="fn-status-pill is-ok">{{ clientes_activos }} activos</span>
+                <span class="fn-status-pill is-ok">{{ clientes_activos }} act.</span>
             </div>
 
             <div class="fn-inv-meter ok">
@@ -111,7 +111,7 @@
                     <h3>Cajas NAP</h3>
                     <p>Capacidad, ubicación y ocupación</p>
                 </div>
-                <span class="fn-status-pill is-{{ 'danger' if ocup_tone == 'bad' else ('warn' if ocup_tone == 'warn' else 'ok') }}">{{ ocupacion_promedio }}% · {{ ocup_label }}</span>
+                <span class="fn-status-pill is-{{ 'danger' if ocup_tone == 'bad' else ('warn' if ocup_tone == 'warn' else 'ok') }}">{{ ocup_label }}</span>
             </div>
 
             <div class="fn-inv-meter {{ ocup_tone }}">
@@ -173,8 +173,8 @@
             </div>
         </div>
         <div class="fn-inv-actions">
-            <button type="button" onclick="mostrarModalInventarioCompleto()" class="fn-btn-primary">PDF completo</button>
-            <a href="{{ url_for('descargar_excel_todo') }}" class="fn-btn-ghost">Excel completo</a>
+            <button type="button" onclick="mostrarModalInventarioCompleto()" class="fn-btn-primary">PDF</button>
+            <a href="{{ url_for('descargar_excel_todo') }}" class="fn-btn-ghost">Excel</a>
         </div>
     </section>
 
@@ -190,8 +190,8 @@
             </div>
         </div>
         <div class="fn-inv-actions">
-            <button type="button" onclick="mostrarModalAsistenciaCompleto()" class="fn-btn-primary">PDF asistencia</button>
-            <a href="{{ url_for('descargar_excel_asistencias') }}" class="fn-btn-ghost">Excel asistencia</a>
+            <button type="button" onclick="mostrarModalAsistenciaCompleto()" class="fn-btn-primary">PDF</button>
+            <a href="{{ url_for('descargar_excel_asistencias') }}" class="fn-btn-ghost">Excel</a>
         </div>
     </section>
 
@@ -1004,30 +1004,13 @@ function mostrarModalAsistenciaCompleto() {
     }
 }
 
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     if (window.FibraTiempo) {
         FibraTiempo.iniciarReloj(
             document.getElementById('reloj-inventario-fecha'),
             document.getElementById('reloj-inventario-hora')
         );
     }
-})();
-
-// Inicialización cuando el DOM está listo
-document.addEventListener('DOMContentLoaded', function() {
-    // Asegurar que los botones usen las funciones correctas
-    const btnInventarioCompleto = document.querySelector('[onclick*="mostrarModalInventarioCompleto"]');
-    if (btnInventarioCompleto) {
-        btnInventarioCompleto.onclick = mostrarModalInventarioCompleto;
-    }
-    
-    // También puedes eliminar el atributo onclick antiguo y agregar el nuevo
-    const btns = document.querySelectorAll('button');
-    btns.forEach(btn => {
-        if (btn.onclick && btn.onclick.toString().includes('mostrarModalInventarioCompleto')) {
-            btn.onclick = mostrarModalInventarioCompleto;
-        }
-    });
 });
 
 </script>
