@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+{% from '_kpi_viz.html' import kpi_bars, kpi_spark %}
 {% set tasa_activos = ((clientes_activos / total_clientes) * 100) if total_clientes > 0 else 0 %}
 {% set ocup_puertos = ((puertos_ocupados / puertos_totales) * 100) if puertos_totales > 0 else 0 %}
 {% set pct_empalme = ((cajas_empalme / total_naps) * 100) if total_naps > 0 else 0 %}
@@ -15,37 +16,6 @@
 {% set ocup_tone = 'bad' if ocupacion_promedio >= 80 else ('warn' if ocupacion_promedio >= 50 else 'ok') %}
 {% set ocup_label = 'Crítico' if ocupacion_promedio >= 80 else ('Moderado' if ocupacion_promedio >= 50 else 'Óptimo') %}
 {% set puertos_tone = 'bad' if ocup_puertos >= 80 else ('warn' if ocup_puertos >= 50 else 'ok') %}
-
-{# Viz anclado al % real: barras crecen hacia el valor actual #}
-{% macro inv_bars(pct, tone='violet') -%}
-{%- set p = [pct, 100]|min -%}
-{%- set h = [p, 10]|max -%}
-<div class="viz bars tone-{{ tone }}" aria-hidden="true" title="{{ '%.0f'|format(p) }}%">
-    <span style="height: {{ [h * 0.38, 12]|max|round }}%"></span>
-    <span style="height: {{ [h * 0.62, 14]|max|round }}%"></span>
-    <span style="height: {{ [h * 0.48, 12]|max|round }}%"></span>
-    <span style="height: {{ [h * 0.84, 16]|max|round }}%"></span>
-    <span style="height: {{ [h * 0.66, 14]|max|round }}%"></span>
-    <span style="height: {{ h|round }}%"></span>
-</div>
-{%- endmacro %}
-
-{% macro inv_spark(pct, color='#6C5CEF') -%}
-{%- set p = [pct, 100]|min -%}
-{%- set y1 = [40 - p * 0.18, 8]|max|round(1) -%}
-{%- set y2 = [40 - p * 0.34, 8]|max|round(1) -%}
-{%- set y3 = [40 - p * 0.26, 8]|max|round(1) -%}
-{%- set y4 = [40 - p * 0.58, 8]|max|round(1) -%}
-{%- set y5 = [40 - p * 0.72, 8]|max|round(1) -%}
-{%- set y6 = [40 - p * 0.88, 8]|max|round(1) -%}
-<div class="viz" aria-hidden="true" title="{{ '%.0f'|format(p) }}%">
-    <svg class="spark" viewBox="0 0 88 48" fill="none">
-        <path d="M2 {{ y1 }} C18 {{ y2 }}, 28 {{ y3 }}, 40 {{ y4 }} S62 {{ y5 }}, 78 {{ y6 }} S84 {{ y6 }}, 86 {{ y6 }}"
-              stroke="{{ color }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="78" cy="{{ y6 }}" r="4" fill="{{ color }}"/>
-    </svg>
-</div>
-{%- endmacro %}
 
 <div class="fade-in fn-inv">
     <div class="fn-page-head">
@@ -72,25 +42,25 @@
             <div class="label">Clientes activos</div>
             <div class="value">{{ clientes_activos }}</div>
             <div class="trend up">{{ '%.0f'|format(tasa_activos) }}% de {{ total_clientes }}</div>
-            {{ inv_spark(tasa_activos, '#6C5CEF') }}
+            {{ kpi_spark(tasa_activos, '#6C5CEF') }}
         </div>
         <div class="fn-kpi">
             <div class="label">Cajas NAP</div>
             <div class="value">{{ total_naps }}</div>
             <div class="trend flat">{{ puertos_ocupados }}/{{ puertos_totales }} puertos</div>
-            {{ inv_bars(ocup_puertos, puertos_tone) }}
+            {{ kpi_bars(ocup_puertos, puertos_tone) }}
         </div>
         <div class="fn-kpi">
             <div class="label">Empalmes</div>
             <div class="value">{{ cajas_empalme }}</div>
             <div class="trend flat">{{ '%.0f'|format(pct_empalme) }}% de la red</div>
-            {{ inv_spark(pct_empalme, '#14B8A6') }}
+            {{ kpi_spark(pct_empalme, '#14B8A6') }}
         </div>
         <div class="fn-kpi">
             <div class="label">Distribución</div>
             <div class="value">{{ cajas_distribucion }}</div>
             <div class="trend {{ 'down' if ocupacion_promedio >= 80 else 'up' }}">{{ ocupacion_promedio }}% ocupación</div>
-            {{ inv_bars(ocupacion_promedio, ocup_tone) }}
+            {{ kpi_bars(ocupacion_promedio, ocup_tone) }}
         </div>
     </div>
 

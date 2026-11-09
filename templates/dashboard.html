@@ -3,8 +3,14 @@
 {% block title %}Resumen - TONYLEX{% endblock %}
 
 {% block content %}
+{% from '_kpi_viz.html' import kpi_bars, kpi_spark %}
 {% set alerta_nats = (nats_saturadas or []) + (nats_criticas or []) %}
 {% set selected = alerta_nats[0] if alerta_nats else none %}
+{% set tasa_activos = ((clientes_activos / total_clientes) * 100) if total_clientes > 0 else 0 %}
+{% set pct_uso = porcentaje_ocupacion|float %}
+{% set pct_libre = ((capacidad_libre / capacidad_total) * 100) if capacidad_total > 0 else 0 %}
+{% set pct_dist = ((total_distribucion / total_nats) * 100) if total_nats > 0 else 0 %}
+{% set ocup_tone = 'bad' if pct_uso >= 80 else ('warn' if pct_uso >= 50 else 'ok') %}
 
 <div class="fn-page-head">
     <div class="fn-page-head-left">
@@ -25,36 +31,26 @@
     <div class="fn-kpi">
         <div class="label">Clientes activos</div>
         <div class="value">{{ clientes_activos }}</div>
-        <div class="trend up">▲ En línea</div>
-        <div class="viz" aria-hidden="true">
-            <svg class="spark" viewBox="0 0 88 48" fill="none"><path d="M2 36 C18 34, 22 18, 36 20 S58 40, 72 16 S82 10, 86 12" stroke="#6C5CEF" stroke-width="3" stroke-linecap="round"/><circle cx="72" cy="16" r="4" fill="#6C5CEF"/></svg>
-        </div>
+        <div class="trend up">{{ '%.0f'|format(tasa_activos) }}% de {{ total_clientes }}</div>
+        {{ kpi_spark(tasa_activos, '#6C5CEF') }}
     </div>
     <div class="fn-kpi">
         <div class="label">Capacidad total</div>
         <div class="value">{{ capacidad_total }}</div>
-        <div class="trend flat">{{ capacidad_libre }} libres</div>
-        <div class="viz bars" aria-hidden="true">
-            <span style="height:45%"></span><span style="height:70%"></span><span style="height:55%"></span>
-            <span style="height:85%"></span><span style="height:60%"></span><span style="height:75%"></span>
-        </div>
+        <div class="trend flat">{{ capacidad_libre }} libres · {{ '%.0f'|format(pct_libre) }}%</div>
+        {{ kpi_bars(pct_libre, 'ok' if pct_libre >= 40 else ('warn' if pct_libre >= 20 else 'bad')) }}
     </div>
     <div class="fn-kpi">
         <div class="label">Ocupación media</div>
         <div class="value">{{ porcentaje_ocupacion }}%</div>
-        <div class="trend {{ 'down' if porcentaje_ocupacion >= 80 else 'up' }}">{{ 'Crítico' if porcentaje_ocupacion >= 80 else 'Estable' }}</div>
-        <div class="viz" aria-hidden="true">
-            <svg class="spark" viewBox="0 0 88 48" fill="none"><path d="M4 28 C16 26, 24 34, 36 22 S56 10, 70 18 S80 30, 86 24" stroke="#14B8A6" stroke-width="3" stroke-linecap="round"/></svg>
-        </div>
+        <div class="trend {{ 'down' if pct_uso >= 80 else 'up' }}">{{ 'Crítico' if pct_uso >= 80 else ('Moderado' if pct_uso >= 50 else 'Estable') }}</div>
+        {{ kpi_spark(pct_uso, '#14B8A6' if ocup_tone == 'ok' else ('#D97706' if ocup_tone == 'warn' else '#DC2626')) }}
     </div>
     <div class="fn-kpi">
         <div class="label">Cajas en red</div>
         <div class="value">{{ total_nats }}</div>
         <div class="trend flat">{{ total_distribucion }} NAP · {{ total_empalmes }} empalme</div>
-        <div class="viz bars" aria-hidden="true">
-            <span style="height:35%"></span><span style="height:55%"></span><span style="height:80%"></span>
-            <span style="height:50%"></span><span style="height:65%"></span>
-        </div>
+        {{ kpi_bars(pct_dist, 'violet') }}
     </div>
 </div>
 

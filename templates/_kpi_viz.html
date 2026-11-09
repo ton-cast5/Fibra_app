@@ -1,0 +1,30 @@
+{# Viz de KPIs anclado a un % real #}
+{% macro kpi_bars(pct, tone='violet') -%}
+{%- set p = [pct, 100]|min -%}
+{%- set h = [p, 10]|max -%}
+<div class="viz bars tone-{{ tone }}" aria-hidden="true" title="{{ '%.0f'|format(p) }}%">
+    <span style="height: {{ [h * 0.38, 12]|max|round }}%"></span>
+    <span style="height: {{ [h * 0.62, 14]|max|round }}%"></span>
+    <span style="height: {{ [h * 0.48, 12]|max|round }}%"></span>
+    <span style="height: {{ [h * 0.84, 16]|max|round }}%"></span>
+    <span style="height: {{ [h * 0.66, 14]|max|round }}%"></span>
+    <span style="height: {{ h|round }}%"></span>
+</div>
+{%- endmacro %}
+
+{% macro kpi_spark(pct, color='#6C5CEF') -%}
+{%- set p = [pct, 100]|min -%}
+{%- set y1 = [40 - p * 0.18, 8]|max|round(1) -%}
+{%- set y2 = [40 - p * 0.34, 8]|max|round(1) -%}
+{%- set y3 = [40 - p * 0.26, 8]|max|round(1) -%}
+{%- set y4 = [40 - p * 0.58, 8]|max|round(1) -%}
+{%- set y5 = [40 - p * 0.72, 8]|max|round(1) -%}
+{%- set y6 = [40 - p * 0.88, 8]|max|round(1) -%}
+<div class="viz" aria-hidden="true" title="{{ '%.0f'|format(p) }}%">
+    <svg class="spark" viewBox="0 0 88 48" fill="none">
+        <path d="M2 {{ y1 }} C18 {{ y2 }}, 28 {{ y3 }}, 40 {{ y4 }} S62 {{ y5 }}, 78 {{ y6 }} S84 {{ y6 }}, 86 {{ y6 }}"
+              stroke="{{ color }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="78" cy="{{ y6 }}" r="4" fill="{{ color }}"/>
+    </svg>
+</div>
+{%- endmacro %}
