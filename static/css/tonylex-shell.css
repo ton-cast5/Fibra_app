@@ -2629,7 +2629,10 @@ html.dark .fn-pot-search { background: rgba(255,255,255,.04); }
 
 /* ===== INVENTARIO ===== */
 .fn-inv { display: flex; flex-direction: column; gap: 1rem; }
-.fn-inv .fn-kpi { min-height: 0; }
+.fn-kpi .viz.bars.tone-ok span { background: linear-gradient(180deg, #34D399, #059669); }
+.fn-kpi .viz.bars.tone-warn span { background: linear-gradient(180deg, #FBBF24, #D97706); }
+.fn-kpi .viz.bars.tone-bad span { background: linear-gradient(180deg, #F87171, #DC2626); }
+.fn-kpi .viz.bars.tone-violet span { background: linear-gradient(180deg, #A78BFA, #6C5CEF); }
 .fn-inv-clock {
   min-width: 7.5rem;
   padding: 0.55rem 0.85rem;
