@@ -73,10 +73,12 @@
     </div>
 
     <form method="GET" action="{{ url_for('listar_clientes') }}" id="filtros-clientes" class="fn-toolbar fade-in">
-        <div class="fn-search-field">
+        <div class="fn-search-field fn-search-live" id="clientes-search">
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/></svg>
             <input type="search" name="q" id="buscador" value="{{ filtros.q }}"
-                   placeholder="Nombre, apellido, IP, dirección, NAP, plan, activo…">
+                   placeholder="Nombre, apellido, IP, dirección, NAP, plan, activo…"
+                   autocomplete="off" aria-autocomplete="list" aria-controls="clientes-suggest">
+            <div class="fn-suggest" id="clientes-suggest" hidden role="listbox"></div>
         </div>
         <select name="estado" class="filtro-servidor">
             <option value="todos" {% if filtros.estado == 'todos' %}selected{% endif %}>Todos los estados</option>
@@ -201,9 +203,94 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('filtros-clientes');
+    var input = document.getElementById('buscador');
+    var box = document.getElementById('clientes-suggest');
+    var wrap = document.getElementById('clientes-search');
+    var timer = null;
+    var lastQ = '';
+    var reqId = 0;
+
     if (!form) return;
+
     document.querySelectorAll('.filtro-servidor').forEach(function (el) {
         el.addEventListener('change', function () { form.submit(); });
+    });
+
+    if (!input || !box || !wrap) return;
+
+    function hideSuggest() {
+        box.hidden = true;
+        box.innerHTML = '';
+    }
+
+    function escapeHtml(s) {
+        return String(s || '').replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+    }
+
+    function applyInTable(q) {
+        input.value = q || '';
+        hideSuggest();
+        form.submit(); // misma búsqueda del listado, sin salir de Clientes
+    }
+
+    function renderSuggest(items) {
+        if (!items.length) {
+            box.innerHTML = '<div class="fn-suggest-empty">Sin coincidencias</div>';
+            box.hidden = false;
+            return;
+        }
+        box.innerHTML = items.slice(0, 8).map(function (c) {
+            var hint = [c.plan, c.nat_nombre || 'Sin NAP', c.ip].filter(Boolean).join(' · ');
+            return '<button type="button" class="fn-suggest-item" data-q="' + escapeHtml(c.nombre) + '" role="option">' +
+                '<span class="fn-suggest-type">Cliente</span>' +
+                '<span class="fn-suggest-label">' + escapeHtml(c.nombre) + '</span>' +
+                '<span class="fn-suggest-hint">' + escapeHtml(hint) + '</span></button>';
+        }).join('');
+        box.hidden = false;
+        box.querySelectorAll('.fn-suggest-item').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                applyInTable(btn.getAttribute('data-q') || '');
+            });
+        });
+    }
+
+    function fetchSuggest(q) {
+        var myId = ++reqId;
+        fetch('/api/clientes?q=' + encodeURIComponent(q) + '&estado=todos&nap=todas&plan=todos&limit=8', {
+            headers: { 'Accept': 'application/json' }
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (myId !== reqId) return;
+                if ((input.value || '').trim() !== q) return;
+                renderSuggest((data && data.items) || []);
+            })
+            .catch(function () { hideSuggest(); });
+    }
+
+    input.addEventListener('input', function () {
+        var q = (input.value || '').trim();
+        clearTimeout(timer);
+        if (!q) {
+            lastQ = '';
+            hideSuggest();
+            return;
+        }
+        if (q === lastQ) return;
+        timer = setTimeout(function () {
+            lastQ = q;
+            fetchSuggest(q);
+        }, 160);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') hideSuggest();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!wrap.contains(e.target)) hideSuggest();
     });
 });
 </script>
